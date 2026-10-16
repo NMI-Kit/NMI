@@ -1,0 +1,8 @@
+# NMI CURRICULA
+
+This file stores the official curriculum content used by NMI.
+
+Each curriculum will be added according to:
+Country
+Grade
+Subject

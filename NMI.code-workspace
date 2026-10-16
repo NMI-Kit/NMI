@@ -1,0 +1,4 @@
+{
+  "folders": [{ "path": ".", "name": "NMI" }],
+  "settings": { "terminal.integrated.cwd": "${workspaceFolder}" }
+}

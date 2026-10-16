@@ -1,0 +1,271 @@
+"""Offline Flask -> ask_ai -> SQLite integration. Never reads credentials or CLI data."""
+import contextlib
+import copy
+import io
+import json
+from pathlib import Path
+import socket
+import sqlite3
+import sys
+import tempfile
+import threading
+from types import SimpleNamespace
+import unittest
+from unittest.mock import Mock, patch
+from uuid import uuid4
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+import openai
+import httpx2 as httpx
+import ai_test
+from local_web import create_app, real_client
+
+ORIGIN = 'http://127.0.0.1:8766'
+TOKEN = 'synthetic-local-unlock-not-a-real-secret'
+
+
+def parsed(**values):
+    return dict(reply='Synthetic tutor response', is_attempt=False, subject=None,
+                topic=None, skill=None, correct=None, hint_used=None, mistake_type=None) | values
+
+
+class LocalWebTests(unittest.TestCase):
+    def setUp(self):
+        (ROOT / '.cache/local-tests').mkdir(parents=True, exist_ok=True)
+        self.temp = tempfile.TemporaryDirectory(dir=ROOT / '.cache/local-tests')
+        self.addCleanup(self.temp.cleanup)
+        self.db = Path(self.temp.name) / 'test.sqlite3'
+        self.ai = SimpleNamespace(responses=SimpleNamespace(parse=Mock(return_value=SimpleNamespace(output_parsed=parsed(), status='completed'))), close=Mock())
+        self.factory = Mock(return_value=self.ai)
+        self.stack = contextlib.ExitStack(); self.addCleanup(self.stack.close)
+        self.stack.enter_context(patch.object(socket.socket, 'connect', side_effect=AssertionError('No network')))
+        self.stack.enter_context(patch.object(socket, 'create_connection', side_effect=AssertionError('No network')))
+        # Explicitly ensure no fallback into any shared JSON persistence function.
+        for name in ('load_history','load_progress','save_history','record_attempt'):
+            self.stack.enter_context(patch.object(ai_test, name, side_effect=AssertionError('Shared JSON forbidden')))
+        self.app = self.make_app(); self.client = self.app.test_client()
+        self.csrf = self.post('/api/session', {'token':TOKEN}).json['csrf']
+        self.assertEqual(self.post('/api/profile', {'country':'US','grade':10}).status_code, 200)
+
+    def make_app(self, **kwargs):
+        return create_app(data_path=self.db, access_token=TOKEN, enabled=True, model='synthetic-model',
+                          max_calls=20, client_factory=self.factory, allow_api=True, **kwargs)
+
+    def post(self, route, body, **options):
+        if route == '/api/session':
+            self.client.get('/api/session/preflight', base_url=ORIGIN)
+        headers={'Origin':ORIGIN, 'X-NMI-CSRF':getattr(self,'csrf',''), 'X-NMI-Language':'en'} | options.pop('headers',{})
+        return self.client.post(route, json=body, base_url=ORIGIN, headers=headers, **options)
+
+    def state(self):
+        return self.client.get('/api/state', base_url=ORIGIN).json
+
+    def body(self, **extra):
+        return dict(request_id=str(uuid4()), message='Synthetic question', language='en', intent='question') | extra
+
+    def chat(self, result=None, **extra):
+        self.ai.responses.parse.return_value=SimpleNamespace(output_parsed=result if result is not None else parsed(), status='completed')
+        return self.post('/api/chat', self.body(**extra))
+
+    def test_question_history_and_context_no_attempt(self):
+        response=self.chat()
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(len(self.state()['history']),2); self.assertEqual(self.state()['attempts'],[])
+        args=self.ai.responses.parse.call_args.kwargs
+        self.assertIs(args['text_format'], ai_test.LearningResult)
+        self.assertFalse(args['store']); self.assertEqual(args['max_output_tokens'],1800)
+        self.assertIn(ai_test.tutor_rules,args['instructions'])
+        self.assertIn('Do not invent curriculum requirements',args['instructions'])
+
+    def test_correct_incorrect_and_persistence_restart(self):
+        self.chat()
+        for correct in (True,False):
+            self.assertEqual(self.chat(parsed(is_attempt=True,subject='physics',topic='motion',skill='velocity',correct=correct,hint_used=False,mistake_type=None if correct else 'direction'),intent='answer').status_code,200)
+        old=self.state(); self.assertEqual(len(old['attempts']),2)
+        self.app=self.make_app(); self.client=self.app.test_client()
+        self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        self.assertEqual(self.state()['history'],old['history']); self.assertEqual(self.state()['attempts'],old['attempts'])
+
+    def test_question_hint_confusion_and_unsupported_cannot_record(self):
+        self.chat()
+        for intent in ('question','hint','confusion'):
+            self.chat(parsed(is_attempt=True,subject='physics',topic='motion',skill='velocity',correct=False,hint_used=False),intent=intent)
+        for subject in ('history','english'):
+            self.chat(parsed(is_attempt=True,subject=subject,topic='sample',skill='sample',correct=False,hint_used=False),intent='answer')
+        self.assertEqual(self.state()['attempts'],[]); self.assertEqual(len(self.state()['history']),12)
+
+    def test_first_answer_without_exercise_cannot_record(self):
+        self.chat(parsed(is_attempt=True,subject='mathematics',topic='fractions',skill='sum',correct=True,hint_used=False),intent='answer')
+        self.assertEqual(self.state()['attempts'],[])
+
+    def test_invalid_parsed_and_incomplete_preserve_data(self):
+        self.chat(); before=self.state()
+        cases=[None, parsed(reply=' '), parsed(is_attempt='true'), parsed(is_attempt=True),parsed(is_attempt=True,subject='physics',topic='x',skill='x',correct='yes',hint_used=False)]
+        for value in cases:
+            self.ai.responses.parse.return_value=SimpleNamespace(output_parsed=value,status='completed')
+            r=self.post('/api/chat',self.body())
+            self.assertEqual(r.json['error'],'response')
+            self.assertEqual(self.state()['history'],before['history']);self.assertEqual(self.state()['attempts'],before['attempts'])
+        # New app resets only the call-rate counter, not previous conversation.
+        self.app=self.make_app();self.client=self.app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        self.ai.responses.parse.return_value=SimpleNamespace(output_parsed=parsed(),status='incomplete')
+        self.assertEqual(self.post('/api/chat',self.body()).json['error'],'response')
+
+    def test_failures_localized_sanitized_and_no_persistence(self):
+        request=httpx.Request('POST','https://api.openai.com/v1/responses')
+        cases=[(TimeoutError('PRIVATE_SENTINEL'),'timeout'),
+               (openai.AuthenticationError('PRIVATE_SENTINEL',response=httpx.Response(401,request=request),body=None),'key'),
+               (openai.NotFoundError('PRIVATE_SENTINEL',response=httpx.Response(404,request=request),body=None),'model'),
+               (openai.RateLimitError('PRIVATE_SENTINEL',response=httpx.Response(429,request=request),body=None),'unavailable'),
+               (openai.APIConnectionError(request=request),'unavailable')]
+        for error,code in cases:
+            self.ai.responses.parse.side_effect=error
+            output=io.StringIO()
+            with contextlib.redirect_stderr(output),contextlib.redirect_stdout(output):
+                response=self.post('/api/chat',self.body(language='ar'),headers={'X-NMI-Language':'ar'})
+            self.assertEqual(response.json['error'],code)
+            self.assertRegex(response.json['message'],r'[\u0600-\u06ff]')
+            self.assertNotIn('PRIVATE_SENTINEL',response.get_data(as_text=True)+output.getvalue())
+            self.assertEqual(self.state()['history'],[])
+
+    def test_missing_key_and_factory_settings(self):
+        with patch.dict('os.environ',{},clear=True):
+            self.factory.side_effect=real_client
+            self.assertEqual(self.post('/api/chat',self.body()).json['error'],'key')
+        with patch.dict('os.environ',{'OPENAI_API_KEY':'synthetic-not-real','OPENAI_BASE_URL':'https://untrusted.invalid'},clear=True),patch('openai.OpenAI') as ctor:
+            real_client()
+            args=ctor.call_args.kwargs
+            self.assertEqual(args['max_retries'],0);self.assertEqual(args['timeout'],35)
+            self.assertEqual(args['base_url'],'https://api.openai.com/v1')
+        self.assertEqual(self.state()['history'],[])
+
+    def test_duplicate_id_and_changed_payload(self):
+        body=self.body()
+        self.assertEqual(self.post('/api/chat',body).status_code,200)
+        self.assertTrue(self.post('/api/chat',body).json['replayed'])
+        self.assertEqual(self.ai.responses.parse.call_count,1)
+        self.assertEqual(self.post('/api/chat',body|{'message':'changed'}).status_code,409)
+        self.assertEqual(len(self.state()['history']),2)
+
+    def test_failed_id_never_retries_paid_request(self):
+        body=self.body();self.ai.responses.parse.side_effect=TimeoutError()
+        self.assertEqual(self.post('/api/chat',body).json['error'],'timeout')
+        self.assertEqual(self.post('/api/chat',body).json['error'],'timeout')
+        self.assertEqual(self.ai.responses.parse.call_count,1)
+
+    def test_transaction_rollback_between_history_and_receipt(self):
+        self.chat(); before=self.state()
+        with contextlib.closing(sqlite3.connect(self.db)) as db, db:
+            db.execute("CREATE TRIGGER fail_commit BEFORE UPDATE OF status ON requests WHEN NEW.status='done' BEGIN SELECT RAISE(ABORT,'synthetic disk failure'); END")
+        response=self.chat(parsed(is_attempt=True,subject='physics',topic='motion',skill='velocity',correct=True,hint_used=False),intent='answer')
+        self.assertEqual(response.json['error'],'storage')
+        self.assertEqual(self.state()['history'],before['history']);self.assertEqual(self.state()['attempts'],before['attempts'])
+
+    def test_corrupt_payload_not_overwritten(self):
+        with contextlib.closing(sqlite3.connect(self.db)) as db, db:db.execute("UPDATE state SET payload='{truncated'")
+        self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).json['error'],'storage')
+        self.assertEqual(self.post('/api/chat',self.body()).json['error'],'storage')
+        with contextlib.closing(sqlite3.connect(self.db)) as db, db:self.assertEqual(db.execute('SELECT payload FROM state').fetchone()[0],'{truncated')
+        self.factory.assert_not_called()
+
+    def test_origin_csrf_session_host_and_file_protection(self):
+        self.assertEqual(self.post('/api/chat',self.body(),headers={'Origin':'https://evil.invalid'}).status_code,403)
+        self.assertEqual(self.post('/api/chat',self.body(),headers={'X-NMI-CSRF':'wrong'}).status_code,403)
+        stranger=self.app.test_client()
+        self.assertEqual(stranger.get('/api/state',base_url=ORIGIN).status_code,401)
+        self.assertEqual(stranger.post('/api/session',json={'token':TOKEN},base_url=ORIGIN,headers={'Origin':ORIGIN}).status_code,403)
+        self.assertEqual(self.client.get('/api/state',base_url='http://evil.invalid').status_code,400)
+        for path in ('/student.json','/.env','/.local-data/tutor.sqlite3','/../ai_test.py'):
+            self.assertEqual(self.client.get(path,base_url=ORIGIN).status_code,404)
+        self.assertEqual(self.client.get('/api/state',base_url=ORIGIN,headers={'Sec-Fetch-Site':'cross-site'}).status_code,403)
+        self.factory.assert_not_called()
+
+    def test_input_bounds_and_immutable_profile(self):
+        for body in ([],{},self.body(message=' '),self.body(message='x'*4001),self.body(language='fr'),self.body(intent='grade'),self.body(student_id='other'),self.body(request_id='../a')):
+            self.assertEqual(self.post('/api/chat',body).status_code,400)
+        for value in ({'country':'US','grade':8},{'country':'XX','grade':10},{'country':[],'grade':10},{'country':'US','grade':True}):
+            self.assertEqual(self.post('/api/profile',value).status_code,400)
+        self.assertEqual(self.post('/api/profile',{'country':'US','grade':11}).status_code,409)
+        self.assertEqual(self.client.post('/api/chat',data='x'*21000,base_url=ORIGIN,headers={'Origin':ORIGIN,'Content-Type':'application/json','X-NMI-CSRF':self.csrf}).status_code,413)
+        self.factory.assert_not_called()
+
+    def test_headers_and_cookie(self):
+        response=self.client.get('/',base_url=ORIGIN)
+        self.assertIn("connect-src 'self'",response.headers['Content-Security-Policy'])
+        self.assertEqual(response.headers['Cache-Control'],'no-store')
+        self.assertNotIn('Access-Control-Allow-Origin',response.headers)
+        cookie=self.client.get_cookie(self.app.config['SESSION_COOKIE_NAME'],domain='127.0.0.1')
+        self.assertTrue(cookie.http_only);self.assertEqual(cookie.same_site,'Strict')
+
+    def test_disabled_and_call_budget(self):
+        other=Path(self.temp.name)/'locked.sqlite3'
+        app=create_app(data_path=other,access_token=TOKEN,client_factory=self.factory)
+        self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        self.assertEqual(self.post('/api/chat',self.body()).json['error'],'locked');self.factory.assert_not_called()
+        app=create_app(data_path=other,access_token=TOKEN,enabled=True,model='test-model',client_factory=self.factory,allow_api=True)
+        self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf'];self.post('/api/profile',{'country':'US','grade':9})
+        self.assertEqual(self.chat().status_code,200)
+        self.assertEqual(self.chat().json['error'],'limit');self.assertEqual(self.ai.responses.parse.call_count,1)
+
+    def test_interrupted_request_marked_uncertain_on_restart(self):
+        body=self.body()
+        import hashlib
+        self.app.extensions['nmi_store'].begin(body['request_id'],hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest())
+        self.app=self.make_app();self.client=self.app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        self.assertEqual(self.post('/api/chat',body).json['error'],'uncertain');self.factory.assert_not_called()
+
+    def test_concurrent_send_rejected_without_second_call(self):
+        started=threading.Event();release=threading.Event()
+        def slow(**kwargs):
+            started.set();release.wait(3)
+            return SimpleNamespace(output_parsed=parsed(),status='completed')
+        self.ai.responses.parse.side_effect=slow
+        first=self.app.test_client()
+        cookie=self.client.get_cookie(self.app.config['SESSION_COOKIE_NAME'],domain='127.0.0.1')
+        first.set_cookie(self.app.config['SESSION_COOKIE_NAME'],cookie.value,domain='127.0.0.1')
+        responses=[]
+        worker=threading.Thread(target=lambda:responses.append(first.post('/api/chat',json=self.body(),base_url=ORIGIN,headers={'Origin':ORIGIN,'X-NMI-CSRF':self.csrf})))
+        worker.start();self.assertTrue(started.wait(2))
+        try:self.assertEqual(self.post('/api/chat',self.body()).json['error'],'busy')
+        finally:release.set();worker.join(4)
+        self.assertEqual(responses[0].status_code,200);self.assertEqual(self.ai.responses.parse.call_count,1)
+
+    def test_session_expiry_and_wrong_shaped_store(self):
+        self.app.config['PERMANENT_SESSION_LIFETIME']=-1
+        self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).status_code,401)
+        self.app.config['PERMANENT_SESSION_LIFETIME']=28800
+        for value in ('[]','{"profile":{},"history":"wrong","attempts":[]}'):
+            with contextlib.closing(sqlite3.connect(self.db)) as db, db:db.execute('UPDATE state SET payload=?',(value,))
+            self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).json['error'],'storage')
+        self.factory.assert_not_called()
+
+    def test_all_country_grade_pairs_and_tampered_session(self):
+        from local_web import COUNTRIES,valid_profile
+        self.assertEqual(len(COUNTRIES),10)
+        for country in COUNTRIES:
+            for grade in (9,10,11,12):self.assertTrue(valid_profile(dict(country=country,grade=grade)))
+        self.client.set_cookie(self.app.config['SESSION_COOKIE_NAME'],'tampered',domain='127.0.0.1')
+        self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).status_code,401)
+
+    def test_rate_limit_and_identical_text_distinct_requests(self):
+        for _ in range(6):self.assertEqual(self.chat().status_code,200)
+        self.assertEqual(self.chat().json['error'],'limit')
+        self.assertEqual(self.ai.responses.parse.call_count,6)
+        self.assertEqual(len(self.state()['history']),12)
+
+    def test_second_launcher_stops_before_opening_database(self):
+        import msvcrt
+        import local_web
+        base=Path(self.temp.name)
+        directory=base/'.local-data';directory.mkdir()
+        with (directory/'server.lock').open('w+b') as lock:
+            lock.write(b'0');lock.flush();lock.seek(0)
+            msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
+            with patch.object(local_web,'ROOT',base),patch.object(local_web,'create_app') as factory:
+                with self.assertRaises(SystemExit):local_web.main()
+                factory.assert_not_called()
+        self.assertFalse((directory/'tutor.sqlite3').exists())
+
+
+if __name__=='__main__':unittest.main()
