@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>NMI — رفيق تعلّمك</title>
+  <link rel="icon" id="nmi-favicon" href="assets/nmi-mark-light.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="preview.js" defer></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+    <symbol id="portrait" viewBox="0 0 100 100"><circle cx="50" cy="50" r="49" fill="var(--accent-soft)"/><path d="M18 100v-13c0-20 64-20 64 0v13" fill="var(--accent)"/><path d="M42 60h16v18c-4 6-12 6-16 0" fill="#c58d68"/><ellipse cx="50" cy="44" rx="23" ry="27" fill="#e4b48b"/><path d="M27 43c-8-27 9-34 23-34 20 0 29 14 23 34l-7-17c-10 7-23 6-29 3Z" fill="#293c3d"/><path d="M39 44h3m16 0h3M44 57q6 5 12 0" fill="none" stroke="#293c3d" stroke-width="2.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-8 8H4l1.8-4A8 8 0 1 1 20 11.5Z"/></symbol>
+    <symbol id="i-progress" viewBox="0 0 24 24"><path d="M5 19v-5m7 5V9m7 10V4M3 20h18"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-3-2-6-2-9-1v14c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v14"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><path d="m17 5 4 14M3 8h5M10 16h4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></symbol>
+    <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14A8 8 0 0 1 10 4a8.5 8.5 0 1 0 10 10Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 6-6 6 6 6m8-12 6 6-6 6M14 3l-4 18"/></symbol>
+    <symbol id="i-math" viewBox="0 0 24 24"><path d="M5 6h7m-7 6h14M5 18h7m4-15v6m-2 8 5 4m0-4-5 4"/></symbol>
+    <symbol id="i-light" viewBox="0 0 24 24"><path d="M8 17c0-3-3-4-3-8a7 7 0 0 1 14 0c0 4-3 5-3 8ZM9 21h6m-3-10v6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V3H3v13h5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  </defs></svg>
+  <a class="skip-link" href="#main" data-i18n="skip">انتقل إلى المحادثة</a>
+  <div class="app-shell" id="app-shell">
+    <aside class="sidebar" id="sidebar" data-label="sidebar" aria-label="الشريط الجانبي">
+      <a class="brand" href="#new" aria-label="NMI"><img data-nmi-mark src="assets/nmi-mark-light.svg" width="34" height="34" alt=""></a>
+      <nav class="primary-nav" data-label="navigation" aria-label="التنقل الرئيسي">
+        <button class="nav-item new-chat" id="new-chat" type="button" data-label="newChat"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span data-i18n="newChat">محادثة جديدة</span></button>
+        <button class="nav-item" id="search-chats" type="button" aria-haspopup="dialog" data-label="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span data-i18n="search">البحث في المحادثات</span></button>
+        <div class="nav-divider"></div>
+        <a class="nav-item" href="#progress" data-label="progress"><svg class="icon" aria-hidden="true"><use href="#i-progress"/></svg><span data-i18n="progress">تقدّمي</span></a>
+        <a class="nav-item" href="#curriculum" data-label="curriculum"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span data-i18n="curriculum">المنهج الدراسي</span></a>
+        <a class="nav-item" href="#library" data-label="library"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg><span data-i18n="library">المكتبة</span></a>
+        <a class="nav-item" href="#profile" data-label="profile"><svg class="icon" aria-hidden="true"><use href="#i-person"/></svg><span data-i18n="profile">ملفي</span></a>
+      </nav>
+      <section class="history-section" aria-labelledby="history-heading"><div class="history-heading"><h2 id="history-heading" data-i18n="history">المحادثات</h2><span class="history-count" id="history-count"></span></div><p class="history-caption" data-i18n="historyCaption">أمثلة ومحادثات تجريبية محفوظة</p><div id="history-list"></div></section>
+      <div class="sidebar-bottom"><a class="nav-item" href="#settings" data-label="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg><span data-i18n="settings">الإعدادات</span></a><div class="workspace-label"><span class="avatar" aria-hidden="true">N</span><span><strong data-i18n="yourSpace">مساحتك للتعلّم</strong><small data-i18n="preview">معاينة تجريبية</small></span></div></div>
+    </aside>
+    <div class="workspace" id="workspace" data-mode="welcome">
+      <header class="topbar"><div class="topbar-start"><button class="icon-button" id="toggle-sidebar" type="button" aria-controls="sidebar" aria-expanded="true" data-label="collapse" aria-label="طي الشريط الجانبي"><svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg></button><span class="topbar-brand" translate="no">NMI</span><span class="topbar-subtitle" id="view-title" data-i18n="companion">رفيق تعلّمك</span></div><div class="preferences"><span class="demo-badge"><span class="status-dot" aria-hidden="true"></span><span data-i18n="demo">تجريبي</span></span><label class="language-control"><span data-i18n="languages">اللغات</span><select id="language" name="language" data-label="languages"><option value="ar" lang="ar">&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;</option><option value="en" lang="en">English</option></select></label><button class="icon-button" id="theme" type="button" aria-pressed="false" data-label="dark" aria-label="الوضع الداكن"><svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg></button></div></header>
+      <p id="storage-status" class="storage-status" role="status" hidden></p>
+      <main id="main" tabindex="-1">
+        <section id="welcome" class="welcome"><div class="welcome-identity"><img data-nmi-mark src="assets/nmi-mark-light.svg" width="52" height="52" alt="NMI"></div><h1 data-i18n="welcome">ماذا تريد أن تتعلّم اليوم؟</h1><p data-i18n="welcomeBody">سؤال صغير، فكرة صعبة، أو بداية جديدة. لنفكّر معًا.</p></section>
+        <section id="chat-view" class="chat-view" hidden><h1 id="chat-title" class="sr-only" data-i18n="conversation">المحادثة</h1><div id="messages" role="log" aria-live="polite" aria-relevant="additions" aria-labelledby="chat-title"></div></section>
+        <section id="progress" class="utility-page" hidden><span class="page-kicker" data-i18n="learningSpace">مساحة التعلّم</span><h1 data-i18n="progress">تقدّمي</h1><p class="page-lead" data-i18n="progressIntro">تقدّم أكاديمي يستند إلى أدلة تعلّم مُقيّمة.</p><p class="scope-note" data-i18n="academicScope">تقتصر مواءمة المناهج وتقييم المهارات والتقدّم الأكاديمي في الإصدار الأول على الرياضيات والفيزياء والكيمياء.</p><div id="progress-subjects" class="academic-overview"></div><p class="page-note" data-i18n="openChatScope">اسأل عن أي موضوع. تُحفظ المحادثات الأخرى دون درجات إتقان أكاديمية.</p><div class="empty-state"><svg class="large-icon" aria-hidden="true"><use href="#i-progress"/></svg><h2 data-i18n="progressEmpty">ستبدأ رحلة تقدّمك هنا</h2><p data-i18n="progressBody">لا توجد محاولات تعلّم مسجّلة. المحادثات التجريبية لا تمنح درجات ولا تغيّر مستوى الإتقان.</p><a href="#new" class="primary-link" data-i18n="startConversation">ابدأ محادثة</a></div></section>
+        <section id="curriculum" class="utility-page" hidden><span class="page-kicker" data-i18n="learningSpace">مساحة التعلّم</span><h1 data-i18n="curriculum">المنهج الدراسي</h1><p class="page-lead" data-i18n="curriculumIntro">الرياضيات والفيزياء والكيمياء، مع مواءمة المناهج عند توافر مصادر موثّقة فقط.</p><p class="scope-note" data-i18n="academicScope">تقتصر مواءمة المناهج وتقييم المهارات والتقدّم الأكاديمي في الإصدار الأول على الرياضيات والفيزياء والكيمياء.</p><div id="curriculum-subjects" class="academic-overview"></div><p class="page-note" data-i18n="openChatScope">اسأل عن أي موضوع. تُحفظ المحادثات الأخرى دون درجات إتقان أكاديمية.</p><div class="empty-state"><svg class="large-icon" aria-hidden="true"><use href="#i-book"/></svg><h2 data-i18n="curriculumEmpty">لم يُضَف منهج موثّق بعد</h2><p data-i18n="curriculumBody">لن نخترع متطلبات رسمية. يمكنك بدء محادثة عن أي موضوع، دون اختيار منهج مسبقًا.</p><a href="#new" class="primary-link" data-i18n="askAnything">اسأل عن أي موضوع</a></div></section>
+        <section id="library" class="utility-page" hidden><span class="page-kicker" data-i18n="inspiration">بداية لفكرة</span><h1 data-i18n="library">المكتبة</h1><p class="page-lead" data-i18n="libraryIntro">استكشف فكرة أكاديمية أو ابدأ محادثة عن موضوع آخر.</p><h2 data-i18n="academicStarters">استكشف المواد الأكاديمية للإصدار الأول</h2><div id="academic-prompts" class="academic-prompts"></div><p class="page-note" data-i18n="academicScope">تقتصر مواءمة المناهج وتقييم المهارات والتقدّم الأكاديمي في الإصدار الأول على الرياضيات والفيزياء والكيمياء.</p><h2 data-i18n="openStarters">طرق أخرى لبدء محادثة</h2><div class="library-list" id="library-list"></div><p class="page-note" data-i18n="libraryNote">أمثلة توضيحية، وليست مناهج رسمية.</p></section>
+        <section id="settings" class="utility-page" hidden><span class="page-kicker" data-i18n="yourSpace">مساحتك للتعلّم</span><h1 data-i18n="settings">الإعدادات</h1><p class="page-lead" data-i18n="settingsIntro">مساحة مريحة، على طريقتك.</p><div class="settings-list"><div class="setting-row"><label for="settings-language"><strong data-i18n="languageLabel">لغة الواجهة</strong><span data-i18n="languageHelp">العربية أو الإنجليزية، مع اتجاه مناسب للنص.</span></label><select id="settings-language" name="interface-language"><option value="ar" lang="ar">العربية</option><option value="en" lang="en">English</option></select></div><div class="setting-row"><label for="settings-theme"><strong data-i18n="appearance">المظهر</strong><span data-i18n="appearanceHelp">اختر ما يناسبك أثناء القراءة.</span></label><select id="settings-theme" name="appearance"><option value="light" data-i18n="light">الوضع الفاتح</option><option value="dark" data-i18n="dark">الوضع الداكن</option></select></div><div class="setting-row"><div><strong data-i18n="privacy">خصوصية المعاينة</strong><p data-i18n="privacyBody">يُحفظ الملف والمحادثات التجريبية في هذا المتصفح. استخدم بيانات افتراضية فقط؛ يمكن لمن يستخدم ملف المتصفح نفسه رؤيتها. لا يوجد حساب أو مزامنة سحابية.</p></div></div></div></section>
+        <section id="profile" class="utility-page" hidden>
+          <span class="page-kicker" data-i18n="demoProfile">ملف تجريبي</span>
+          <div class="profile-heading"><div class="profile-person"><svg id="profile-avatar" class="portrait" aria-hidden="true"><use href="#portrait"/></svg><div><h1><bdi id="profile-name"></bdi></h1><p id="profile-meta" class="page-note"></p></div></div><button id="edit-profile" class="context-button" type="button" data-i18n="editProfile">تعديل الملف التجريبي</button></div>
+          <p class="page-lead" data-i18n="profileIntro">مساحة لفهم طريقة تعلّمك، بالوتيرة التي تناسبك.</p>
+          <h2 data-i18n="subjects">المواد الأكاديمية</h2><div id="subject-choices" class="subject-choices"></div><p id="legacy-interests" class="page-note" hidden></p>
+          <p class="page-note" data-i18n="subjectNote">اختر مجالًا للتتبّع الأكاديمي مستقبلًا. يمكنك الاستمرار في المحادثة عن أي موضوع.</p>
+          <div class="insight-grid"><section><h2 data-i18n="strengths">نقاط القوة</h2><p data-i18n="noEvidence">لا توجد أدلة تعلّم مُقيّمة بعد.</p></section><section><h2 data-i18n="weaknesses">أساسيات تحتاج إلى دعم</h2><p data-i18n="noEvidence">لا توجد أدلة تعلّم مُقيّمة بعد.</p></section></div>
+          <h2 data-i18n="skillProgress">التقدّم حسب المهارة</h2><p class="page-note" data-i18n="progressBody">لا توجد محاولات تعلّم مسجّلة. المحادثات التجريبية لا تمنح درجات ولا تغيّر مستوى الإتقان.</p><a class="primary-link" href="#progress" data-i18n="viewProgress">عرض التقدّم</a>
+          <h2 data-i18n="learningHistory">سجل التعلّم</h2><p class="page-note" data-i18n="demoHistoryNote">هذه محادثات تجريبية، وليست محاولات تعلّم مُقيّمة.</p><div id="profile-history"></div><a id="continue-learning" class="primary-link" href="#new" data-i18n="continueLearning">متابعة التعلّم</a>
+        </section>
+      </main>
+      <div class="composer-dock" id="composer-dock">
+        <form id="question-form" class="composer" novalidate><label class="sr-only" for="question" data-i18n="questionLabel">رسالتك إلى NMI</label><textarea id="question" name="question" autocomplete="off" rows="2" maxlength="4000" aria-describedby="form-status composer-help" data-placeholder="placeholder" placeholder="اسأل عن أي شيء تريد فهمه…"></textarea><div class="composer-toolbar"><div class="composer-mode"><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg><span data-i18n="learnTogether">لنفهم معًا</span></div><div class="composer-actions"><span class="key-hint" data-i18n="keyboardHint">Enter للإرسال</span><button id="send" class="send-button" type="submit" data-label="send" aria-label="إرسال الرسالة"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button><button id="stop" class="send-button" type="button" hidden data-label="stop" aria-label="إيقاف الرد التجريبي"><svg class="icon" aria-hidden="true"><use href="#i-stop"/></svg></button></div></div></form>
+        <div id="suggestions" class="suggestions"><button type="button" data-prompt="explain"><svg class="icon" aria-hidden="true"><use href="#i-light"/></svg><span data-i18n="suggestExplain">بسّط لي فكرة</span></button><button type="button" data-prompt="math"><svg class="icon" aria-hidden="true"><use href="#i-math"/></svg><span data-i18n="suggestMath">فكّر معي في مسألة</span></button><button type="button" data-prompt="code"><svg class="icon" aria-hidden="true"><use href="#i-code"/></svg><span data-i18n="suggestCode">ساعدني في البرمجة</span></button><button type="button" data-prompt="writing"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg><span data-i18n="suggestWriting">طوّر كتابتي</span></button></div>
+        <p id="form-status" role="status" class="form-status"></p><p id="composer-help" class="composer-help" data-i18n="demoNotice">ردود تجريبية تُحفظ في هذا المتصفح. استخدم أسئلة افتراضية فقط.</p>
+      </div>
+    </div>
+  </div>
+  <dialog id="search-dialog" aria-labelledby="search-heading"><div class="dialog-heading"><h2 id="search-heading" data-i18n="search">البحث في المحادثات</h2><button id="close-search" type="button" class="icon-button" data-label="close" aria-label="إغلاق"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><label for="chat-search" class="sr-only" data-i18n="searchQuery">كلمة من عنوان أو رسالة</label><div class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input id="chat-search" name="chat-search" type="search" autocomplete="off" data-placeholder="searchPlaceholder" placeholder="ابحث في هذه الجلسة…"></div><div id="search-results" class="search-results"></div><p id="search-status" role="status" class="page-note"></p></dialog>
+  <dialog id="onboarding" aria-labelledby="onboarding-heading" aria-describedby="onboarding-note">
+    <div class="onboarding-brand"><img data-nmi-mark src="assets/nmi-mark-light.svg" width="38" height="38" alt="NMI"><span class="demo-badge" data-i18n="preview">معاينة تجريبية</span></div>
+    <h2 id="onboarding-heading" data-i18n="onboardingTitle">لنجهّز مساحة لفكرتك القادمة.</h2><p id="onboarding-note" class="page-note" data-i18n="onboardingNote">استخدم اسمًا مستعارًا وبيانات تجريبية فقط. تُحفظ هذه المعاينة في هذا المتصفح، دون حساب.</p>
+    <form id="onboarding-form" novalidate>
+      <div class="onboarding-grid">
+        <div class="field"><label for="onboarding-language" data-i18n="languageLabel">لغة الواجهة</label><select id="onboarding-language" name="language"><option value="ar" lang="ar">العربية</option><option value="en" lang="en">English</option></select></div>
+        <div class="field"><label for="onboarding-name" data-i18n="demoName">الاسم المستعار التجريبي</label><input id="onboarding-name" name="demo-name" type="text" autocomplete="off" maxlength="40" dir="auto" required aria-describedby="onboarding-error"></div>
+        <div class="field"><label for="onboarding-country" data-i18n="country">بلد الدراسة</label><select id="onboarding-country" name="country" required aria-describedby="onboarding-error legacy-country-note"></select><span id="legacy-country-note" class="page-note" data-i18n="legacyCountry" hidden>ما زال بلدك السابق محفوظًا. اختر بلدًا مدعومًا لتحديث هذا الملف التجريبي.</span></div>
+        <div class="field"><label for="onboarding-grade" data-i18n="grade">الصف الدراسي</label><select id="onboarding-grade" name="grade" required aria-describedby="onboarding-error"></select></div>
+      </div>
+      <label class="check-label"><input id="onboarding-avatar" name="avatar" type="checkbox" checked><span data-i18n="avatarOption">إظهار صورة شخصية مرسومة</span></label>
+      <p id="onboarding-error" class="form-status error" role="status"></p><div class="onboarding-actions"><button type="button" id="cancel-onboarding" class="context-button" data-i18n="cancel" hidden>إلغاء</button><button class="primary-button" type="submit" data-i18n="startLearning">ابدأ الاستكشاف</button></div>
+    </form>
+  </dialog>
+</body>
+</html>
