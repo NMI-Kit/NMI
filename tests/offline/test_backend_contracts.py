@@ -40,10 +40,15 @@ class BackendContracts(unittest.TestCase):
         self.addCleanup(self.stack.close)
         for module, name, filename in [(history, "HISTORY_FILE", "history.json"),
                                         (progress, "PROGRESS_FILE", "progress.json"),
-                                        (student, "STUDENT_FILE", "student.json"),
-                                        (curriculum, "CURRICULUM_FILE", "curriculum.txt")]:
+                                        (student, "STUDENT_FILE", "student.json")]:
             self.stack.enter_context(patch.object(module, name, self.base / filename))
-        curriculum.CURRICULUM_FILE.write_text("Synthetic curriculum: no country markers.", encoding="utf-8")
+        # Synthetic curriculum tree: curriculum/<subject>/grade<N>/<units>units.md
+        self.curriculum_dir = self.base / "curriculum"
+        folder = self.curriculum_dir / "math" / "grade10"
+        folder.mkdir(parents=True)
+        (folder / "3units.md").write_text("Synthetic 3 units fixture", encoding="utf-8")
+        (folder / "4units.md").write_text("Synthetic 4 units fixture", encoding="utf-8")
+        self.stack.enter_context(patch.object(curriculum, "CURRICULUM_DIR", self.curriculum_dir))
         self.stack.enter_context(patch.object(socket.socket, "connect", side_effect=AssertionError("Network forbidden")))
         self.stack.enter_context(patch.object(socket, "create_connection", side_effect=AssertionError("Network forbidden")))
         self.stack.enter_context(patch.object(ai, "client", SimpleNamespace(responses=SimpleNamespace(parse=Mock(return_value=SimpleNamespace(output_parsed=result()))))))
@@ -66,7 +71,7 @@ class BackendContracts(unittest.TestCase):
         self.assertEqual(progress.load_progress(), {})
 
     def test_new_onboarding(self):
-        with patch("builtins.input", side_effect=["Example", "7", "Testland", "Arabic", "Question"]), contextlib.redirect_stdout(io.StringIO()):
+        with patch("builtins.input", side_effect=["Example", "7", "Testland", "Arabic", "", "Question"]), contextlib.redirect_stdout(io.StringIO()):
             main.main()
         self.assertEqual(student.load_student()["name"], "Example")
         self.assertEqual(len(history.load_history()), 2)
@@ -126,9 +131,40 @@ class BackendContracts(unittest.TestCase):
     def test_missing_curriculum_fallback(self):
         self.assertIn("Do not invent curriculum requirements", curriculum.get_curriculum("Testland", "7"))
 
-    def test_matching_curriculum(self):
-        curriculum.CURRICULUM_FILE.write_text("[CURRICULUM:TESTLAND:7]Synthetic fixture only[/CURRICULUM]", encoding="utf-8")
-        self.assertEqual(curriculum.get_curriculum("testland", "7"), "Synthetic fixture only")
+    def test_curriculum_by_units(self):
+        self.assertEqual(curriculum.get_curriculum("Israel", "10", "math", 3), "Synthetic 3 units fixture")
+        self.assertEqual(curriculum.get_curriculum("israel", 10, units="4"), "Synthetic 4 units fixture")
+        self.assertEqual(curriculum.get_curriculum("Israel", "10", "math", 5).split(".")[0], curriculum.NOT_READY.split(".")[0])
+
+    def test_curriculum_without_units_asks_student(self):
+        for units in (None, "", "7"):
+            with self.subTest(units=units):
+                text = curriculum.get_curriculum("Israel", "10", "math", units)
+                self.assertIn("level (units) is unknown", text)
+                self.assertIn("3, 4 units", text)
+
+    def test_curriculum_unknown_country_grade_subject(self):
+        for args in [("Testland", "10"), ("Israel", "7"), ("Israel", "10", "physics")]:
+            with self.subTest(args=args):
+                self.assertIn("Do not invent curriculum requirements", curriculum.get_curriculum(*args, units=3))
+
+    def test_ask_ai_passes_subject_and_units_to_curriculum(self):
+        with patch.object(ai, "get_curriculum", wraps=curriculum.get_curriculum) as spy:
+            ai.ask_ai("Synthetic Student", "10", "Israel", "English", "Synthetic message", units=4)
+        spy.assert_called_once_with("Israel", "10", subject="math", units=4)
+        self.assertIn("Synthetic 4 units fixture", ai.client.responses.parse.call_args.kwargs["instructions"])
+
+    def test_student_units_optional(self):
+        student.save_student("Example", "10", "Israel", "Arabic")
+        self.assertNotIn("units", student.load_student())
+        student.save_student("Example", "10", "Israel", "Arabic", "4")
+        self.assertEqual(student.load_student()["units"], "4")
+
+    def test_new_onboarding_asks_units(self):
+        with patch("builtins.input", side_effect=["Example", "10", "Israel", "Arabic", "4", "Question"]), contextlib.redirect_stdout(io.StringIO()):
+            main.main()
+        self.assertEqual(student.load_student()["units"], "4")
+        self.assertIn("Synthetic 4 units fixture", ai.client.responses.parse.call_args.kwargs["instructions"])
 
     @unittest.expectedFailure
     def test_known_gap_corrupt_json_graceful_read(self):

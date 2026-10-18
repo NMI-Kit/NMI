@@ -21,7 +21,7 @@ from claude_provider import ClaudeProvider, ClaudeError, valid_model as valid_cl
 ROOT = Path(__file__).resolve().parent
 COUNTRIES = dict(US="United States", GB="United Kingdom", CA="Canada", DE="Germany",
                  CH="Switzerland", SG="Singapore", AU="Australia", NL="Netherlands",
-                 QA="Qatar", AE="United Arab Emirates")
+                 QA="Qatar", AE="United Arab Emirates", IL="Israel")
 ASSETS = {"tokens.css", "styles.css", "preview.js", "live.js", "live.css"} | {
     f"assets/nmi-mark{suffix}.svg" for suffix in ("", "-light", "-dark", "-white", "-black")}
 ERRORS = {
@@ -55,8 +55,12 @@ class ChatError(Exception):
 
 
 def valid_profile(value):
-    return (isinstance(value, dict) and set(value) == {"country", "grade"}
-            and isinstance(value["country"], str) and value["country"] in COUNTRIES
+    # "units" is optional so profiles saved before it existed stay valid.
+    if not isinstance(value, dict) or set(value) not in ({"country", "grade"}, {"country", "grade", "units"}):
+        return False
+    if "units" in value and not (value["country"] == "IL" and type(value["units"]) is int and value["units"] in {3, 4, 5}):
+        return False
+    return (isinstance(value["country"], str) and value["country"] in COUNTRIES
             and type(value["grade"]) is int and value["grade"] in {9, 10, 11, 12})
 
 
@@ -263,7 +267,8 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
             p = current["profile"]
             try:
                 reply = ask_ai("Learner", str(p["grade"]), COUNTRIES[p["country"]], lang, message,
-                               storage=buffered, ai_client=client, model=claude_model, web_policy=True, intent=intent)
+                               storage=buffered, ai_client=client, model=claude_model, web_policy=True, intent=intent,
+                               subject="math", units=p.get("units"))
                 usage = getattr(client, 'usage', None)
                 store.commit(rid, buffered.state, reply, usage=usage)
             except Exception as error:

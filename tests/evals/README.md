@@ -1,6 +1,6 @@
 # Tutor evals
 
-`tutor_cases.json` has 25 Arabic cases for Grade 10 math (16 for 3 units, 4 for 4 units, 5 for 5 units). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
+`tutor_cases.json` has 25 Arabic cases for Grade 10 math (17 for 3 units, 4 for 4 units, 4 for 5 units). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
 
 `legacy_cases.json` keeps the earlier 22 unevaluated behavior specifications unchanged. `tools/run_evals.py` does not use it.
 

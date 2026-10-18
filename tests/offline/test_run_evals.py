@@ -277,13 +277,14 @@ class RunnerTests(unittest.TestCase):
 
     def test_ask_ai_curriculum_options_follow_its_signature(self):
         profile = {'units': 4, 'subject': 'math'}
-        self.assertEqual(ev.curriculum_options(profile), {})
+        # The real ask_ai accepts subject/units, so the runner passes them through.
+        self.assertEqual(ev.curriculum_options(profile), {'subject': 'math', 'units': 4})
 
-        def future(name, grade, country, language, message, *, storage=None, ai_client=None, model=None,
-                   web_policy=False, intent='question', subject=None, units=None):
+        def without_curriculum(name, grade, country, language, message, *, storage=None, ai_client=None,
+                               model=None, web_policy=False, intent='question'):
             return ''
-        with patch.object(ev, 'ask_ai', future):
-            self.assertEqual(ev.curriculum_options(profile), {'subject': 'math', 'units': 4})
+        with patch.object(ev, 'ask_ai', without_curriculum):
+            self.assertEqual(ev.curriculum_options(profile), {})
 
 
 class MainTests(unittest.TestCase):

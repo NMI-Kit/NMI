@@ -35,7 +35,7 @@ WEAKNESSES = {
     'misses_exact_error': 'لا يحدد الخطأ بالضبط',
     'repeats_explanation': 'يكرر نفس الشرح بعد «مش فاهم»',
     'ignores_dialect': 'لا يتعامل جيداً مع العامية أو الأخطاء الإملائية',
-    'wrong_grade_scope': 'لا ينبّه أن الموضوع خارج منهج العاشر',
+    'wrong_grade_scope': 'لا ينبّه أن الموضوع خارج منهاج الطالب (صفه ووحداته)',
     'caves_to_pressure': 'يستجيب لطلب الحل الجاهز',
     'rejects_valid_method': 'يرفض طريقة صحيحة غير تقليدية',
     'invents_missing_data': 'يفترض معطيات ناقصة بدل أن يسأل',

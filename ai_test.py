@@ -26,7 +26,8 @@ with open(TUTOR_RULES_FILE, "r", encoding="utf-8") as file:
 
 
 def ask_ai(name, grade, country, language, message, *, storage=None,
-           ai_client=None, model=None, web_policy=False, intent="question"):
+           ai_client=None, model=None, web_policy=False, intent="question",
+           subject="math", units=None):
 
     # Flask may supply its explicitly selected provider. Direct calls use Claude.
     # Import lazily because the adapter shares InvalidAIResponse from this module.
@@ -48,7 +49,7 @@ def ask_ai(name, grade, country, language, message, *, storage=None,
     write_history = storage.save_history if storage else save_history
 
     # Get curriculum
-    curriculum = get_curriculum(country, grade)
+    curriculum = get_curriculum(country, grade, subject=subject, units=units)
 
     # Load student progress
     progress = read_progress()

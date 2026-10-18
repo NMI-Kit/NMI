@@ -1,6 +1,9 @@
 /* Flask-only controller. Main NMI chat, server persistence, no demo fallback. */
 (() => {
   'use strict';
+  // Israel is live-only: the curriculum files exist for it, and the demo list stays unchanged.
+  const LIVE_COUNTRIES = [...COUNTRIES, {code:'IL', en:'Israel', ar:'إسرائيل'}];
+  const UNITS = [3, 4, 5];
   const COPY = {
     en: {
       connection:'Tutor connection',   
@@ -24,7 +27,7 @@
       uncertain:'The request outcome is not confirmed. Do not send another request. Check its saved status again or ask the owner to inspect it.',
       reconcile:'Check saved request status', refresh:'Refresh connection status', setup:'Local test profile',
       privacy:'Use fictional test information only. This local prototype has one owner and one saved conversation.',
-      country:'Country of study', grade:'Grade', save:'Save local test profile', profileSaved:'Local test profile saved.',
+      country:'Country of study', grade:'Grade', units:'Study level (units)', unitsOption:'units', save:'Save local test profile', profileSaved:'Local test profile saved.',
       
       
       validate:'Use a message of 1–4,000 characters.', user:'You', conversation:'Saved conversation',
@@ -61,7 +64,7 @@
       uncertain:'لم تُؤكّد نتيجة الطلب. لا تُرسِل طلبًا آخر. تحقّق من حالته المحفوظة مجددًا أو اطلب من صاحب المشروع فحصها.',
       reconcile:'التحقّق من حالة الطلب المحفوظ', refresh:'تحديث حالة الاتصال', setup:'ملف اختبار محلي',
       privacy:'استخدم معلومات اختبار افتراضية فقط. يدعم هذا النموذج المحلي مستخدمًا واحدًا ومحادثة محفوظة واحدة.',
-      country:'بلد الدراسة', grade:'الصف الدراسي', save:'حفظ ملف الاختبار المحلي', profileSaved:'حُفظ ملف الاختبار المحلي.',
+      country:'بلد الدراسة', grade:'الصف الدراسي', units:'مستوى الدراسة (وحدات)', unitsOption:'وحدات', save:'حفظ ملف الاختبار المحلي', profileSaved:'حُفظ ملف الاختبار المحلي.',
       
       
       validate:'استخدم رسالة من حرف واحد إلى 4000 حرف.', user:'أنت', conversation:'المحادثة المحفوظة',
@@ -94,7 +97,7 @@
   const usageNote=node('p',undefined,'page-note');usageNote.id='live-usage';usageNote.hidden=true;banner.append(usageNote);
   const connection=node('section',undefined,'live-connection');connection.id='live-connection';
   connection.innerHTML=`<h2 data-live="connection"></h2>
-    <form id="live-profile" class="live-profile"><h3 data-live="setup"></h3><p data-live="privacy"></p><div class="field"><label for="live-country" data-live="country"></label><select id="live-country" required></select></div><div class="field"><label for="live-grade" data-live="grade"></label><select id="live-grade" required></select></div><button type="submit" class="primary-button" data-live="save"></button></form><p id="live-profile-note"></p>`;
+    <form id="live-profile" class="live-profile"><h3 data-live="setup"></h3><p data-live="privacy"></p><div class="field"><label for="live-country" data-live="country"></label><select id="live-country" required></select></div><div class="field"><label for="live-grade" data-live="grade"></label><select id="live-grade" required></select></div><div class="field" id="live-units-field" hidden><label for="live-units" data-live="units"></label><select id="live-units"></select></div><button type="submit" class="primary-button" data-live="save"></button></form><p id="live-profile-note"></p>`;
   $('#settings').append(connection);
   const consent=node('label',undefined,'live-consent');
   consent.innerHTML='<input id="live-consent" type="checkbox"><span id="live-consent-text"></span>';
@@ -129,6 +132,8 @@
     catch(error){if(current!==revision)return false;if(error.code==='access'){state=null;csrf='';}throw error;}
     finally {if(current===revision)render();}
   }
+  // Units only apply to Israel from Grade 10, where the curriculum files are split by units.
+  function unitsApply(){return $('#live-country').value==='IL'&&Number($('#live-grade').value)>=10;}
   function chatVisible(){return !['#settings','#profile','#progress','#curriculum','#library'].includes(location.hash);}
   function openSettings(){location.hash='settings';connection.scrollIntoView({block:'nearest'});}
   function renderHistory() {
@@ -167,8 +172,11 @@
     $('#live-profile').hidden=!state||!!state.profile;
     $('#live-profile-note').textContent=state?.profile?tr('readonly'):'';
     const selected=$('#live-country').value, grade=$('#live-grade').value;
-    $('#live-country').replaceChildren(...COUNTRIES.map(c=>{const n=node('option',c[lang()]);n.value=c.code;return n;}));$('#live-country').value=selected||'US';
+    $('#live-country').replaceChildren(...LIVE_COUNTRIES.map(c=>{const n=node('option',c[lang()]);n.value=c.code;return n;}));$('#live-country').value=selected||'US';
     $('#live-grade').replaceChildren(...SUPPORTED_GRADES.map(g=>{const n=node('option',String(g));n.value=String(g);return n;}));$('#live-grade').value=grade||'9';
+    const selectedUnits=$('#live-units').value;
+    $('#live-units').replaceChildren(...UNITS.map(u=>{const n=node('option',`${u} ${tr('unitsOption')}`);n.value=String(u);return n;}));$('#live-units').value=selectedUnits||'3';
+    $('#live-units-field').hidden=!unitsApply();
     $('#live-consent-text').textContent=tr('claudeConsent');
     $('#live-consent').disabled=busy||!!pendingRequest;$('#live-intent').disabled=busy||!!pendingRequest;
     $('#send').hidden=false;$('#stop').hidden=true;
@@ -179,7 +187,7 @@
     usageNote.hidden=!state?.last_usage;
     if(!usageNote.hidden){const u=state.last_usage,n=v=>Number.isSafeInteger(v)?new Intl.NumberFormat(lang()).format(v):'—';usageNote.textContent=`${tr('tokens')}: ${tr('inputTokens')} ${n(u.input_tokens)} · ${tr('outputTokens')} ${n(u.output_tokens)} · ${tr('cacheRead')} ${n(u.cache_read_input_tokens)} · ${tr('cacheWrite')} ${n(u.cache_creation_input_tokens)}${u.complete?'':` · ${tr('partialUsage')}`}`;}
     $('#profile-name').textContent=tr('profileName');$('#profile-avatar').hidden=true;$('#edit-profile').textContent=tr('connection');
-    $('#profile-meta').textContent=state?.profile?`${tr('grade')} ${state.profile.grade} · ${COUNTRIES.find(c=>c.code===state.profile.country)?.[lang()]||''}`:tr('setup');
+    $('#profile-meta').textContent=state?.profile?`${tr('grade')} ${state.profile.grade} · ${LIVE_COUNTRIES.find(c=>c.code===state.profile.country)?.[lang()]||''}${state.profile.units?` · ${state.profile.units} ${tr('unitsOption')}`:''}`:tr('setup');
     $('#profile [data-i18n="demoProfile"]').textContent=tr('setup');
     $('#profile [data-i18n="demoHistoryNote"]').textContent=tr('oneChat');
     $('#profile [data-i18n="progressBody"]').textContent=tr('noScore');
@@ -235,9 +243,10 @@
   window.addEventListener('nmi-render',render);window.addEventListener('nmi-search',renderSearch);
   $('#new-chat').addEventListener('click',()=>status('oneChat'));
   $('#live-consent').addEventListener('change',render);
+  $('#live-country').addEventListener('change',render);$('#live-grade').addEventListener('change',render);
   $('#live-refresh').addEventListener('click',async()=>{try{await refresh();status();}catch(e){status(e.code?'':'failure',true,e.code?e.message:'');}});
   $('#live-retry').addEventListener('click',()=>void reconcile());
-  $('#live-profile').addEventListener('submit',event=>{event.preventDefault();void connectionAction('/api/profile',{country:$('#live-country').value,grade:Number($('#live-grade').value)}).then(result=>{if(result){status('profileSaved');location.hash='new';}});});
+  $('#live-profile').addEventListener('submit',event=>{event.preventDefault();void connectionAction('/api/profile',{country:$('#live-country').value,grade:Number($('#live-grade').value),...(unitsApply()?{units:Number($('#live-units').value)}:{})}).then(result=>{if(result){status('profileSaved');location.hash='new';}});});
   window.addEventListener('beforeunload',event=>{if(busy||pendingRequest||question.value.trim()){event.preventDefault();event.returnValue='';}});
   async function unlock(){
     if(!location.hash.startsWith('#local-access')||unlocking)return;

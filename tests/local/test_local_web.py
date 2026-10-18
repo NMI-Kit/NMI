@@ -229,11 +229,38 @@ class LocalWebTests(unittest.TestCase):
 
     def test_all_country_grade_pairs_and_tampered_session(self):
         from local_web import COUNTRIES,valid_profile
-        self.assertEqual(len(COUNTRIES),10)
+        self.assertEqual(len(COUNTRIES),11);self.assertEqual(COUNTRIES['IL'],'Israel')
         for country in COUNTRIES:
             for grade in (9,10,11,12):self.assertTrue(valid_profile(dict(country=country,grade=grade)))
         self.client.set_cookie(self.app.config['SESSION_COOKIE_NAME'],'tampered',domain='127.0.0.1')
         self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).status_code,401)
+
+    def test_profile_units_validation_and_old_profiles(self):
+        from local_web import valid_profile
+        self.assertTrue(valid_profile(dict(country='US',grade=10)))
+        for units in (3,4,5):self.assertTrue(valid_profile(dict(country='IL',grade=10,units=units)))
+        for units in (2,6,'4',True,None,4.0):self.assertFalse(valid_profile(dict(country='IL',grade=10,units=units)))
+        self.assertFalse(valid_profile(dict(country='US',grade=10,units=4)))
+        self.assertFalse(valid_profile(dict(country='IL',grade=10,units=4,extra=1)))
+
+    def test_israel_units_profile_loads_curriculum_file(self):
+        self.db=Path(self.temp.name)/'israel.sqlite3'
+        self.app=self.make_app();self.client=self.app.test_client()
+        self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'units':4}).status_code,200)
+        self.assertEqual(self.state()['profile'],{'country':'IL','grade':10,'units':4})
+        self.assertEqual(self.chat().status_code,200)
+        instructions=self.ai.responses.parse.call_args.kwargs['instructions']
+        self.assertIn('4 وحدات',instructions);self.assertNotIn('Do not invent curriculum requirements',instructions)
+        self.assertIn('Country: Israel',instructions)
+
+    def test_israel_profile_without_units_still_works(self):
+        self.db=Path(self.temp.name)/'israel-old.sqlite3'
+        self.app=self.make_app();self.client=self.app.test_client()
+        self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10}).status_code,200)
+        self.assertEqual(self.chat().status_code,200)
+        self.assertIn('level (units) is unknown',self.ai.responses.parse.call_args.kwargs['instructions'])
 
     def test_rate_limit_and_identical_text_distinct_requests(self):
         for _ in range(6):self.assertEqual(self.chat().status_code,200)
