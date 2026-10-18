@@ -19,6 +19,7 @@ NMI (Next Mastery Intelligence) is an AI tutor for Grades 9–12, Arabic/English
 - `.venv\Scripts\python.exe -B -m unittest discover -s tests/offline`
 - `.venv\Scripts\python.exe -B -m unittest discover -s tests/local`
 - `node tools/run_frontend_tests.cjs` and `node tools/run_frontend_tests.cjs -c playwright.claude.config.cjs`
+- Tutor evals (owner-run, paid): `tools/run_evals.py`, cases in `tests/evals/tutor_cases.json`; see `tests/evals/README.md`. Never run it without the owner's approval.
 - Tests use mocked SDK transport and temp data under `.cache`; no network, no real keys, no student data.
 
 ## Rules that must not break

@@ -1,16 +1,31 @@
-# Offline tutor evaluation cases
+# Tutor evals
 
-Current scope: 22 cases for enrolled Grades 9-12. The literal Arabic command "شوي" comes from the user's master specification; its scenario is synthetic. Other examples are synthetic and explicitly labeled, not attributed to actual students. Each case includes provenance, enrolled_grade and evaluation_status. All are currently unevaluated against a real tutor reply.
+`tutor_cases.json` has 25 Arabic cases for Grade 10 math (16 for 3 units, 4 for 4 units, 5 for 5 units). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
 
-Added coverage includes subject changes, a missing earlier prerequisite, a grounded prerequisite answer, repeated prerequisite errors, one-concept pacing and return to the original task. A learner's enrolled grade never changes during remediation. Earlier skill support does not authorize unsupported official curriculum generation.
+`legacy_cases.json` keeps the earlier 22 unevaluated behavior specifications unchanged. `tools/run_evals.py` does not use it.
 
-For each future candidate response record: case ID, model/prompt version if known, exact non-sensitive reply, observed intent/assessment, evidence for each rubric criterion, pass/fail and reviewer. Require zero questions/hints/confusion recorded as incorrect attempts, zero invented official requirements, zero cross-learner references, and grounded fields for every assessed answer. A passing mock UI or storage test provides no evidence for these semantic gates. Do not claim training or improvement from this dataset alone.
+## How a case is scored
 
-`tutor_cases.json` contains fabricated messages and exercise context. These are behavior specifications, not official curriculum content or real student records. IDs are test identifiers, not production curriculum IDs.
+1. The runner calls the real `ask_ai` (`web_policy=True`, the same path as the website) with the case conversation in memory. It never touches `.local-data`, SQLite or the CLI JSON files.
+2. Code checks the math with sympy: false arithmetic equations in the reply, a leaked final answer (`must_withhold`), or a missing correct answer (`must_state`). Equations that only quote the conversation are ignored. A written form that is still a step (`4√3 + 2√3`) is not counted as stating `6√3`.
+3. Code checks that the learning attempt was recorded (or not) as `expect_attempt` says.
+4. A Claude judge scores the reply 0-10 against `tutor_rules.txt` and `expected_behavior`, with a reason and weakness tags. It is told not to check arithmetic.
 
-Use nmi-tutor-testing to review intent, explanation, hint progression and adaptation. The backend tests inject fixed LearningResult dictionaries to verify storage/validation contracts. They do NOT demonstrate real AI understanding of these messages. All semantic cases remain unevaluated until actual candidate replies are supplied for offline review or a separately authorized model evaluation is performed.
+A case passes with a judge score of 7 or more, sound math, and a correct attempt record. Known limit: the math check reads plain text and simple LaTeX, so unusual notation is skipped, not failed.
 
-Rubric: correct intent; no assessment of questions/hints/confusion; grounded assessment fields only; one concept before formula; hint progression without immediately revealing an answer; typo tolerance with clarification when genuinely ambiguous; no invented curriculum or grades; adaptation justified by provided history; no leakage between synthetic learners. Record evidence per criterion, not merely an overall score.
+## Running (paid: about 2 requests per case)
 
-Run backend contract tests from NMI with `.venv/Scripts/python.exe -B -m unittest discover -s tests/offline -v`. Known expected failures identify existing reliability gaps and must not be described as passed behavior. Flask, authentication, idempotency and true multi-student storage do not exist yet.
+Both inference gates are required; the model and key come from the environment and are never printed.
 
+```powershell
+$env:NMI_ENABLE_AI = "1"
+$env:NMI_ENABLE_ANTHROPIC_PAID = "1"
+$env:NMI_CLAUDE_MODEL = "<tutor model id>"
+$env:NMI_EVAL_JUDGE_MODEL = "<judge model id>"   # optional, defaults to the tutor model
+.\.venv\Scripts\python.exe -B tools/run_evals.py --max-cases 5
+.\.venv\Scripts\python.exe -B tools/run_evals.py --only m10-sign-01 m10-conf-01
+```
+
+`--max-cases` defaults to 5 and picks one case per category in turn. `--only` overrides it. There are no retries; a key, billing or model error stops the run. The report is written to `tests/evals/report.md`.
+
+Offline tests with fake models: `tests/offline/test_run_evals.py` and `tests/local/test_run_evals_claude.py`.
