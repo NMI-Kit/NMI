@@ -1,4 +1,4 @@
-"""Offline contracts only; fake OpenAI is installed before importing ai_test."""
+"""Offline contracts only: no provider is constructed and no network is used."""
 import contextlib
 import importlib
 import io
@@ -7,15 +7,12 @@ from pathlib import Path
 import socket
 import sys
 import tempfile
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-fake_openai = ModuleType("openai")
-fake_openai.OpenAI = Mock(return_value=SimpleNamespace(responses=SimpleNamespace(parse=Mock())))
-sys.modules["openai"] = fake_openai
 ai = importlib.import_module("ai_test")
 history = importlib.import_module("chat_history")
 progress = importlib.import_module("progress")

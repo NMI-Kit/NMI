@@ -1,5 +1,6 @@
 """Owner-launched local Claude chat; both inference gates default OFF."""
 import argparse
+from contextlib import contextmanager
 from pathlib import Path
 import logging
 import os
@@ -11,11 +12,28 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from claude_provider import check_model, ClaudeError
 from local_web import create_app
-from tools.run_chatgpt import exclusive_store
 
 
-def forbidden_openai(*args, **kwargs):
-    raise RuntimeError('OpenAI providers are disabled in the Claude launcher')
+@contextmanager
+def exclusive_store(directory):
+    """Prevent two Windows processes from opening this same single-user store."""
+    import msvcrt
+    directory.mkdir(parents=True, exist_ok=True)
+    with (directory / 'server.lock').open('a+b') as lock:
+        lock.seek(0, 2)
+        if lock.tell() == 0:
+            lock.write(b'0')
+            lock.flush()
+        lock.seek(0)
+        try:
+            msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
+        except OSError:
+            raise SystemExit('This NMI conversation server is already running. Stop it first.')
+        try:
+            yield
+        finally:
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 def build_app(directory, capability, *, acceptance=False, max_calls=1, environ=None):
@@ -23,12 +41,11 @@ def build_app(directory, capability, *, acceptance=False, max_calls=1, environ=N
     path = Path(directory)/('synthetic.sqlite3' if acceptance else 'tutor.sqlite3')
     if acceptance and path.exists():
         raise ValueError('Acceptance requires a fresh directory; existing data is preserved.')
-    app = create_app(data_path=path, access_token=capability, provider='claude',
+    app = create_app(data_path=path, access_token=capability,
         claude_model=settings.get('NMI_CLAUDE_MODEL',''),
         enabled=settings.get('NMI_ENABLE_AI') == '1',
         allow_claude=settings.get('NMI_ENABLE_ANTHROPIC_PAID') == '1',
-        max_calls=1 if acceptance else max_calls, allow_api=False, signin_enabled=False,
-        client_factory=forbidden_openai, plan_factory=forbidden_openai)
+        max_calls=1 if acceptance else max_calls)
     if acceptance:
         app.extensions['nmi_store'].set_profile({'country':'US','grade':10})
     return app
@@ -60,7 +77,7 @@ def main(argv=None):
             capability = secrets.token_urlsafe(32)
             server.app = build_app(directory,capability,acceptance=args.acceptance,max_calls=args.max_calls)
             armed = os.environ.get('NMI_ENABLE_AI') == '1' and os.environ.get('NMI_ENABLE_ANTHROPIC_PAID') == '1'
-            print('NMI Claude: paid inference '+('ENABLED' if armed else 'DISABLED')+'. OpenAI providers OFF.')
+            print('NMI Claude: paid inference '+('ENABLED' if armed else 'DISABLED')+'.')
             print('Attempt limit: '+str(args.max_calls)+'. No automatic retries or provider fallback.')
             print('Records: '+str(directory.relative_to(ROOT)))
             print('Open privately in one Chrome profile; never share or screenshot the following local link:')

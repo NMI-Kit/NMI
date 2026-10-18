@@ -130,14 +130,12 @@ class ClaudeWebTests(unittest.TestCase):
             self.stack.enter_context(patch.object(ai_test, name, side_effect=AssertionError('CLI student JSON forbidden')))
         self.fixture = SyntheticClaude()
         self.factory = Mock(side_effect=lambda model:ClaudeProvider(model, sdk_factory=self.fixture.client))
-        self.forbidden = Mock(side_effect=AssertionError('OpenAI forbidden'))
         self.setup_app()
         self.assertEqual(self.post('/api/profile', {'country':'US','grade':10}).status_code, 200)
 
     def setup_app(self, **options):
-        args = dict(data_path=self.db, access_token=CAPABILITY, provider='claude', enabled=True,
-            allow_claude=True, claude_model=MODEL, claude_factory=self.factory, max_calls=20,
-            allow_api=True, signin_enabled=True, client_factory=self.forbidden, plan_factory=self.forbidden)
+        args = dict(data_path=self.db, access_token=CAPABILITY, enabled=True,
+            allow_claude=True, claude_model=MODEL, claude_factory=self.factory, max_calls=20)
         self.app = create_app(**(args | options)); self.client = self.app.test_client()
         self.client.get('/api/session/preflight', base_url=ORIGIN)
         self.csrf = self.post('/api/session', {'token':CAPABILITY}).json['csrf']
@@ -148,7 +146,7 @@ class ClaudeWebTests(unittest.TestCase):
 
     def state(self): return self.client.get('/api/state', base_url=ORIGIN).json
     def body(self, **values):
-        return dict(request_id=str(uuid4()), provider='claude', language='en', intent='question', message='Why is the sky blue?') | values
+        return dict(request_id=str(uuid4()), language='en', intent='question', message='Why is the sky blue?') | values
     def chat(self, **values): return self.post('/api/chat', self.body(**values))
 
     def test_multiturn_context_usage_persistence_and_no_fallback(self):
@@ -159,11 +157,8 @@ class ClaudeWebTests(unittest.TestCase):
         self.assertIn('مش فاهم', body['messages'][-1]['content'])
         self.assertIn(ai_test.tutor_rules, body['system'])
         before = self.state(); self.assertEqual(len(before['history']),4); self.assertEqual(before['attempts'],[])
-        self.assertFalse(before['api_enabled']); self.assertFalse(before['signin_enabled'])
-        self.assertTrue(before['provider_locked'])
         self.setup_app(); after = self.state()
         for name in ('history','attempts','profile','last_usage'): self.assertEqual(after[name],before[name])
-        self.forbidden.assert_not_called()
 
     def test_valid_correct_and_incorrect_attempts(self):
         self.chat()
@@ -209,15 +204,11 @@ class ClaudeWebTests(unittest.TestCase):
         self.assertEqual(len(self.fixture.posts),1)
 
     def test_security_student_cannot_change_provider_model_or_use_other_session(self):
-        for provider in ('api','chatgpt','claude'):
-            self.assertEqual(self.post('/api/provider',{'provider':provider}).status_code,403)
-        self.assertEqual(self.post('/api/chatgpt/model',{'model':MODEL}).status_code,403)
-        self.assertEqual(self.post('/api/chatgpt/start',{}).status_code,503)
         self.assertEqual(self.post('/api/chat',self.body(model=MODEL)).status_code,400)
         self.assertEqual(self.post('/api/chat',self.body(),**{'Origin':'https://evil.invalid'}).status_code,403)
         self.assertEqual(self.post('/api/chat',self.body(),**{'X-NMI-CSRF':'wrong'}).status_code,403)
         self.assertEqual(self.app.test_client().get('/api/state',base_url=ORIGIN).status_code,401)
-        self.factory.assert_not_called();self.forbidden.assert_not_called()
+        self.factory.assert_not_called()
 
     def test_error_is_localized_and_private_detail_not_returned_or_logged(self):
         self.fixture.status=401; output=io.StringIO()
@@ -265,7 +256,6 @@ class ClaudeWebTests(unittest.TestCase):
         self.assertEqual(response.status_code,200)
         value=client.get('/api/state',base_url=ORIGIN).json
         self.assertFalse(value['enabled']);self.assertFalse(value['claude_enabled'])
-        self.assertFalse(value['api_enabled']);self.assertFalse(value['signin_enabled'])
         self.assertEqual(value['remaining'],1)
         with self.assertRaises(ValueError):build_app(directory,CAPABILITY,acceptance=True,environ={})
         self.assertEqual(store.load()['profile'],{'country':'US','grade':10})

@@ -29,7 +29,7 @@ def provider(model):
     return ClaudeProvider(model,sdk_factory=fixture.client)
 
 
-def forbidden(*args,**kwargs): raise AssertionError('Non-Claude provider or shared JSON forbidden')
+def forbidden(*args,**kwargs): raise AssertionError('Shared JSON forbidden')
 
 
 if __name__=='__main__':
@@ -41,6 +41,5 @@ if __name__=='__main__':
         for name in ('load_history','load_progress','save_history','record_attempt'):
             stack.enter_context(patch.object(ai_test,name,side_effect=forbidden))
         app=create_app(data_path=Path(temporary)/'synthetic.sqlite3',access_token='synthetic-local-unlock-not-a-real-secret',
-            provider='claude',claude_model=MODEL,claude_factory=provider,enabled=True,allow_claude=True,
-            allow_api=False,signin_enabled=False,client_factory=forbidden,plan_factory=forbidden,max_calls=10,port=8771)
+            claude_model=MODEL,claude_factory=provider,enabled=True,allow_claude=True,max_calls=10,port=8771)
         app.run(host='127.0.0.1',port=8771,debug=False,use_reloader=False,load_dotenv=False)

@@ -1,8 +1,0 @@
-{
-  "name": "nmi-local-design-tools",
-  "private": true,
-  "version": "0.1.0",
-  "description": "Local-only desktop preview tests; no frontend framework or backend runtime changes",
-  "scripts": { "test:frontend": "node tools/run_frontend_tests.cjs" },
-  "devDependencies": { "@playwright/test": "1.64.0", "@axe-core/playwright": "4.13.0" }
-}

@@ -1,6 +1,6 @@
 from pathlib import Path
+import os
 
-from openai import OpenAI
 from pydantic import ValidationError
 
 from curriculum import get_curriculum
@@ -27,6 +27,20 @@ with open(TUTOR_RULES_FILE, "r", encoding="utf-8") as file:
 
 def ask_ai(name, grade, country, language, message, *, storage=None,
            ai_client=None, model=None, web_policy=False, intent="question"):
+
+    # Flask may supply its explicitly selected provider. Direct calls use Claude.
+    # Import lazily because the adapter shares InvalidAIResponse from this module.
+    active_client = ai_client if ai_client is not None else client
+    active_model = model
+    if active_client is None:
+        from claude_provider import ClaudeProvider, ClaudeError
+        if (os.environ.get("NMI_ENABLE_AI") != "1"
+                or os.environ.get("NMI_ENABLE_ANTHROPIC_PAID") != "1"):
+            raise ClaudeError("claude_locked")
+        active_model = model or os.environ.get("NMI_CLAUDE_MODEL", "")
+        active_client = ClaudeProvider(active_model)
+    elif not active_model:
+        active_model = getattr(active_client, "model", None) or os.environ.get("NMI_CLAUDE_MODEL", "")
 
     read_progress = storage.load_progress if storage else load_progress
     read_history = storage.load_history if storage else load_history
@@ -107,10 +121,9 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
 
     # Send conversation + context to NMI Tutor
     try:
-        active_client = ai_client or client or OpenAI()
         options = {"store": False, "max_output_tokens": 1800} if web_policy else {}
         response = active_client.responses.parse(
-            model=model or "gpt-5.6-luna",
+            model=active_model,
             instructions=instructions,
             input=history,
             text_format=LearningResult,

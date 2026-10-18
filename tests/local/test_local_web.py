@@ -16,13 +16,13 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-import openai
-import httpx2 as httpx
 import ai_test
-from local_web import create_app, real_client
+from claude_provider import ClaudeError
+from local_web import create_app
 
 ORIGIN = 'http://127.0.0.1:8766'
 TOKEN = 'synthetic-local-unlock-not-a-real-secret'
+MODEL = 'claude-synthetic-model'
 
 
 def parsed(**values):
@@ -49,8 +49,8 @@ class LocalWebTests(unittest.TestCase):
         self.assertEqual(self.post('/api/profile', {'country':'US','grade':10}).status_code, 200)
 
     def make_app(self, **kwargs):
-        return create_app(data_path=self.db, access_token=TOKEN, enabled=True, model='synthetic-model',
-                          max_calls=20, client_factory=self.factory, allow_api=True, **kwargs)
+        return create_app(data_path=self.db, access_token=TOKEN, enabled=True, claude_model=MODEL,
+                          allow_claude=True, max_calls=20, claude_factory=self.factory, **kwargs)
 
     def post(self, route, body, **options):
         if route == '/api/session':
@@ -113,32 +113,19 @@ class LocalWebTests(unittest.TestCase):
         self.assertEqual(self.post('/api/chat',self.body()).json['error'],'response')
 
     def test_failures_localized_sanitized_and_no_persistence(self):
-        request=httpx.Request('POST','https://api.openai.com/v1/responses')
         cases=[(TimeoutError('PRIVATE_SENTINEL'),'timeout'),
-               (openai.AuthenticationError('PRIVATE_SENTINEL',response=httpx.Response(401,request=request),body=None),'key'),
-               (openai.NotFoundError('PRIVATE_SENTINEL',response=httpx.Response(404,request=request),body=None),'model'),
-               (openai.RateLimitError('PRIVATE_SENTINEL',response=httpx.Response(429,request=request),body=None),'unavailable'),
-               (openai.APIConnectionError(request=request),'unavailable')]
+               (ClaudeError('claude_key'),'claude_key'),
+               (ClaudeError('claude_model'),'claude_model'),
+               (RuntimeError('PRIVATE_SENTINEL'),'unavailable')]
         for error,code in cases:
             self.ai.responses.parse.side_effect=error
             output=io.StringIO()
             with contextlib.redirect_stderr(output),contextlib.redirect_stdout(output):
                 response=self.post('/api/chat',self.body(language='ar'),headers={'X-NMI-Language':'ar'})
             self.assertEqual(response.json['error'],code)
-            self.assertRegex(response.json['message'],r'[\u0600-\u06ff]')
+            self.assertRegex(response.json['message'],r'[؀-ۿ]')
             self.assertNotIn('PRIVATE_SENTINEL',response.get_data(as_text=True)+output.getvalue())
             self.assertEqual(self.state()['history'],[])
-
-    def test_missing_key_and_factory_settings(self):
-        with patch.dict('os.environ',{},clear=True):
-            self.factory.side_effect=real_client
-            self.assertEqual(self.post('/api/chat',self.body()).json['error'],'key')
-        with patch.dict('os.environ',{'OPENAI_API_KEY':'synthetic-not-real','OPENAI_BASE_URL':'https://untrusted.invalid'},clear=True),patch('openai.OpenAI') as ctor:
-            real_client()
-            args=ctor.call_args.kwargs
-            self.assertEqual(args['max_retries'],0);self.assertEqual(args['timeout'],35)
-            self.assertEqual(args['base_url'],'https://api.openai.com/v1')
-        self.assertEqual(self.state()['history'],[])
 
     def test_duplicate_id_and_changed_payload(self):
         body=self.body()
@@ -200,10 +187,10 @@ class LocalWebTests(unittest.TestCase):
 
     def test_disabled_and_call_budget(self):
         other=Path(self.temp.name)/'locked.sqlite3'
-        app=create_app(data_path=other,access_token=TOKEN,client_factory=self.factory)
+        app=create_app(data_path=other,access_token=TOKEN,claude_factory=self.factory)
         self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
         self.assertEqual(self.post('/api/chat',self.body()).json['error'],'locked');self.factory.assert_not_called()
-        app=create_app(data_path=other,access_token=TOKEN,enabled=True,model='test-model',client_factory=self.factory,allow_api=True)
+        app=create_app(data_path=other,access_token=TOKEN,enabled=True,claude_model=MODEL,allow_claude=True,claude_factory=self.factory)
         self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf'];self.post('/api/profile',{'country':'US','grade':9})
         self.assertEqual(self.chat().status_code,200)
         self.assertEqual(self.chat().json['error'],'limit');self.assertEqual(self.ai.responses.parse.call_count,1)

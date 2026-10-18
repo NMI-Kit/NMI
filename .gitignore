@@ -12,3 +12,6 @@ playwright-report/
 .env
 .env.*
 
+
+# Python virtual environment
+.venv/

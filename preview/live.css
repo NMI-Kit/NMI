@@ -8,7 +8,6 @@
 .live-connection h2, .live-connection p { margin:0; }
 .live-connection p, .live-connection a { font-size:13px; line-height:1.8; }
 .live-connection a { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
-.live-auth-actions { display:flex; flex-wrap:wrap; gap:8px; margin-block:12px; }
 .live-profile { max-width:520px; display:grid; gap:16px; margin-block:16px; }
 .live-profile p { color:var(--muted); }
 .live-consent { display:flex; align-items:start; gap:9px; margin-block:8px 12px; font-size:12px; line-height:1.7; color:var(--muted); }

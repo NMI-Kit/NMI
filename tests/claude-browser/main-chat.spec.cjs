@@ -21,8 +21,8 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
   await page.locator('#live-profile button').click();
   await expect(page.locator('#live-profile')).toBeHidden();
   await page.locator('#open-live').click();
-  await expect(page.locator('#live-provider-field')).toBeHidden();
-  await expect(page.locator('#live-signin')).toBeHidden();
+  await expect(page.locator('#live-provider-field')).toHaveCount(0);
+  await expect(page.locator('#live-signin')).toHaveCount(0);
   expect(await page.locator('select[id*="model"]').count()).toBe(0);
   await page.locator('#new-chat').click();
   await page.locator('#live-consent').check();
@@ -57,7 +57,7 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
   expect(posts).toBe(6);
   const state=await page.evaluate(async()=> (await fetch('/api/state')).json());
   expect(state.history).toHaveLength(8);expect(state.attempts).toEqual([]);
-  expect(state.provider).toBe('claude');expect(state.api_enabled).toBe(false);expect(state.signin_enabled).toBe(false);
+  expect(state.claude_enabled).toBe(true);
   const storage=await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}));
   expect(storage).not.toContain('Synthetic Claude reply');expect(storage).not.toContain('synthetic-fixture-not-a-key');
   expect(errors).toEqual([]);expect(external).toEqual([]);
