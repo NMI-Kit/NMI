@@ -37,6 +37,16 @@ class SchemaTests(unittest.TestCase):
         self.assertIn("ONE small next step", question)
         self.assertIn("must not contain the answer", question)
 
+    def test_explanation_description_forbids_the_repeated_weaknesses_of_the_grade_11_12_runs(self):
+        explanation = LearningResult.model_json_schema()["properties"]["explanation"]["description"]
+        # The tutor wrote the corrected step itself (h11u5-1, h12u5-3).
+        self.assertIn("never write the corrected version of that step", explanation)
+        self.assertIn("the student writes the correction", explanation)
+        # Long answers with a second idea, an extra analogy or a derivation (h11u4-2, h12u5-2 and others).
+        self.assertIn("at most five sentences and ONE idea", explanation)
+        for forbidden in ("second idea", "side remark", "extra analogy", "no derivation or proof"):
+            self.assertIn(forbidden, explanation)
+
     def test_question_description_forbids_joining_two_requests(self):
         question = LearningResult.model_json_schema()["properties"]["question"]["description"]
         self.assertIn("one value or one step only", question)

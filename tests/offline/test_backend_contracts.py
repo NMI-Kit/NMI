@@ -144,6 +144,9 @@ class BackendContracts(unittest.TestCase):
         self.assertIn("delete every question except the last one", ai.FINAL_CHECK)
         self.assertIn("Do not do the student's next step for them", ai.FINAL_CHECK)
         self.assertIn("factor, substitute or calculate", ai.FINAL_CHECK)
+        self.assertIn("Do not write the corrected version of the student's wrong step", ai.FINAL_CHECK)
+        self.assertIn("The question asks for one single thing", ai.FINAL_CHECK)
+        self.assertIn("at most five sentences) and about one idea", ai.FINAL_CHECK)
 
     def test_only_the_current_subject_section_of_the_rules_is_sent(self):
         full = ai.tutor_rules

@@ -221,6 +221,36 @@ class MathCheckTests(unittest.TestCase):
         self.assertTrue(ev.check_math('= x + 3', {'expected': ['x+3'], 'mode': 'must_withhold'})['revealed'])
         self.assertTrue(ev.check_math('نعم الجواب \\frac{17}{12} صحيح', {'expected': ['17/12'], 'mode': 'must_state'})['stated'])
 
+    def test_percent_signs_and_letter_glued_numbers_are_not_false_equations(self):
+        # Exact tutor replies from report-grade11.md (h11u3-1: "3 = 60") and report-grade12.md (h12u5-1: "2 = -2").
+        growth_reply = ("الخطأ هون إنك جمعت النسب: 20% × 3 = 60%. هاد الحل بيصير صح بس لو النقصان 20% من السعر الأصلي كل سنة (نقصان ثابت). "
+                        "بس بمسألة اضمحلال، النقصان 20% كل سنة بيكون من سعر السنة اللي قبلها، والسعر بعد كل سنة بيصير أصغر، فالنقصان بالشيكل بيصغر كمان. "
+                        "عشان هيك النسب ما بتنجمع، وبنضرب بمعامل الاضمحلال بدل الجمع. تلميح: إذا النقصان 20%، كم % من السعر بيضل بعد سنة وحدة. "
+                        "والمعامل بيطلع من هاد الرقم.\n\nبعد السنة الأولى بس، كم بيصير سعر السيارة؟")
+        complex_reply = ("في عندك خطأ حسابي واحد بالخطوة الأولى. الفكرة عندك صحيحة: كتبت العدد بالصورة القطبية، ورفعته للقوة بضرب الزاوية، وهاي طريقة ممتازة. "
+                         "الخطأ: لما رفعت المعامل 2 للقوة 6 ضربته بدل ما ترفعه. نظرية دي موافر بتقول إنو الزاوية بتنضرب بالقوة، بس الطول بينرفع للقوة. "
+                         "أما الجزء التاني (1 − i)⁴ = −4 فهو سليم، وانتبهت إنو (1 − i)² = −2i، وهاي خطوة ذكية.\n\n"
+                         "بعد ما تصحح هالخطوة، شو بتصير قيمة 2⁶ اللي بتطلع بدل الرقم 2 في الناتج؟")
+        cases = ((growth_reply, ['25600', '24400'], '20% × 3 سنين = 60%'),
+                 (complex_reply, ['-16', '64'], '(1 − i)² = −2i'))
+        for reply, expected, quoted in cases:
+            for known in ([], [quoted]):
+                with self.subTest(reply=reply[:20], known=bool(known)):
+                    result = ev.check_math(reply, {'expected': expected, 'mode': 'must_withhold'}, known)
+                    self.assertEqual(result['arithmetic_errors'], [])
+                    self.assertTrue(result['ok'])
+        # Numbers glued to letters belong to a longer expression, even a correct statement of one.
+        for text in ('BC² = 7² + 8² − 2·7·8 = 57', 'z = 1 + i√3 و z² = −2 + 2i√3', 'الحد 2·7·8·cos 60° كبير'):
+            with self.subTest(text=text):
+                self.assertEqual(ev.check_math(text, None)['arithmetic_errors'], [])
+        # A real false equation next to them, with or without a percent sign elsewhere, is still caught.
+        self.assertEqual(ev.check_math('z = 2i و 2 + 2 = 5 ونسبة 20% × 3 = 60%', None)['arithmetic_errors'], ['2 + 2 = 5'])
+        # A leaked percentage answer is still a leak.
+        spec = {'expected': ['65'], 'mode': 'must_withhold'}
+        self.assertTrue(ev.check_math('الجواب 65%', spec)['revealed'])
+        self.assertTrue(ev.check_math('x = 65%', spec)['revealed'])
+        self.assertFalse(ev.check_math('نسبة الربح 20% × 3', spec)['revealed'])
+
     def test_negative_leaked_answer_after_a_keyword_is_detected(self):
         spec = {'expected': ['-16'], 'mode': 'must_withhold'}
         self.assertTrue(ev.check_math('الجواب: −16', spec)['revealed'])

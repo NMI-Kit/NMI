@@ -44,7 +44,12 @@ class LearningResult(BaseModel):
         "The teaching part of the reply, in the student's language. It contains NO question marks at all "
         "(neither ? nor ؟) and asks nothing. Name the exact mistake if there is one, explain why it happened, "
         "and give at most one small hint. It must never calculate, factor, substitute or otherwise do the step "
-        "that the question asks the student to do, and it must never state the final answer."))
+        "that the question asks the student to do, and it must never state the final answer. When the student's "
+        "step is wrong, say which step is wrong and what kind of mistake it is, but never write the corrected "
+        "version of that step (the right expression, value, formula or list of right terms), not even partly: "
+        "the student writes the correction in answer to the question. Keep it short: at most five sentences and "
+        "ONE idea. No second idea, no side remark such as 'we can also...', no extra analogy on top of the main "
+        "one, and no derivation or proof unless the student asked for one."))
     question: str = Field(description=(
         "Exactly one short question for the student, with a single question mark. It asks for ONE small next "
         "step (for example one substitution, one factorisation or one value), not a whole solution. It must not "

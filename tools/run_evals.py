@@ -59,7 +59,7 @@ class JudgeVerdict(BaseModel):
 # ---------------------------------------------------------------- math checks
 _DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩٫', '0123456789.')
 # A '.' belongs to a run only inside a number (0.5); "112. 2*7*8" is two sentences, not one run.
-_RUN = re.compile(r'(?:-(?=[0-9xy√(]))?[0-9xy√(](?:[0-9xy√+\-*/^()= ]|\.(?=\d))*')
+_RUN = re.compile(r'(?:-(?=[0-9xy√(]))?[0-9xy√(](?:[0-9xy√+\-*/^()=% ]|\.(?=\d))*')
 _KEYWORD = re.compile(r'(?:يساوي|الجواب|الناتج|النتيجة|الحل)\s*(?:هو|هي)?\s*:?\s*(-?[0-9xy√(](?:[0-9xy√+\-*/^() ]|\.(?=\d))*)')
 # A claim the tutor rejects ("مش 112", "≠ 5") is not something the tutor asserts.
 _NEGATION = re.compile(r'(?<![\w\u0600-\u06FF])(?:مش|ليس|ليست|لا يساوي|لا تساوي|ما بيساوي|ما بتساوي|ما بيصير|ما بتصير|not)'
@@ -129,6 +129,11 @@ def same(first, second):
         return False
 
 
+class _Run(list):
+    """The '='-separated parts of one math run; `percent` when the run wrote a percent sign."""
+    percent = False
+
+
 def _runs(text):
     """Split normalized text into math runs, each a list of '='-separated parts."""
     found = []
@@ -136,9 +141,15 @@ def _runs(text):
     for match in _RUN.finditer(normalized):
         if _NEGATION.search(normalized[max(0, match.start() - 16):match.start()]):
             continue
-        parts = [part.strip() for part in match.group().split('=')]
-        if all(parts) and any(re.search(r'\d|√', part) for part in parts):
-            found.append(parts)
+        # A run glued to a letter is only part of a longer expression (BC^2, z^2, -2i, 8*cos): skip it.
+        before = normalized[match.start() - 1:match.start()] if match.start() else ''
+        after = normalized[match.end():match.end() + 1]
+        if re.fullmatch(r'[A-Za-z_^]', before) or re.fullmatch(r'[A-Za-z_]', after):
+            continue
+        run = _Run(part.strip() for part in match.group().replace('%', '').split('='))
+        run.percent = '%' in match.group()
+        if all(run) and any(re.search(r'\d|√', part) for part in run):
+            found.append(run)
     return found
 
 
@@ -159,7 +170,8 @@ def check_math(reply, spec, known_texts=()):
             everything.append(expr)
             if (len(parts) > 1 or '/' in part or '√' in part or expr.free_symbols) and reduced(part):
                 candidates.append(expr)
-        if len(parts) > 1 and all(e is not None and not e.free_symbols for e in exprs):
+        # A percent sign changes what the numbers mean (20% x 3 = 60%), so those runs are not recomputed.
+        if len(parts) > 1 and not parts.percent and all(e is not None and not e.free_symbols for e in exprs):
             for i in range(len(parts) - 1):
                 if _compact(parts[i:i + 2]) not in known and not same(exprs[i], exprs[i + 1]):
                     errors.append(f'{parts[i]} = {parts[i + 1]}')

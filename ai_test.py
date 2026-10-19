@@ -18,7 +18,10 @@ FINAL_CHECK = """# FINAL CHECK
 
 Before you send the reply, check it:
 - The reply ends with exactly one question. If it contains more than one question mark (? or ؟), delete every question except the last one.
-- Do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do."""
+- Do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do.
+- Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it.
+- The question asks for one single thing. If it lists several things to find or compute (with "and", "then" or commas), keep only the first one.
+- The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations."""
 
 
 # Construct only when a conversation is explicitly requested, never on import.
