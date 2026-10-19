@@ -139,11 +139,58 @@ class BackendContracts(unittest.TestCase):
                 instructions = ai.client.responses.parse.call_args.kwargs["instructions"]
                 self.assertTrue(instructions.endswith(ai.FINAL_CHECK))
                 self.assertEqual(instructions.count("# FINAL CHECK"), 1)
-                self.assertLess(instructions.index(ai.tutor_rules), instructions.index("# FINAL CHECK"))
+                self.assertLess(instructions.index(ai.rules_for_subject("math")), instructions.index("# FINAL CHECK"))
         self.assertIn("exactly one question", ai.FINAL_CHECK)
         self.assertIn("delete every question except the last one", ai.FINAL_CHECK)
         self.assertIn("Do not do the student's next step for them", ai.FINAL_CHECK)
         self.assertIn("factor, substitute or calculate", ai.FINAL_CHECK)
+
+    def test_only_the_current_subject_section_of_the_rules_is_sent(self):
+        full = ai.tutor_rules
+        math = ai.rules_for_subject("math")
+        for heading in ("# GENERAL RULES", "# MATHEMATICS", "# LEARNING RESULT DATA", "TEACHING RULES", "NMI BEHAVIOR"):
+            self.assertIn(heading, math)
+        for heading in ("# PHYSICS", "# CHEMISTRY", "# ENGLISH", "# HISTORY"):
+            self.assertNotIn(heading, math)
+        self.assertLess(len(math), len(full) * 0.8)
+        self.assertEqual(ai.rules_for_subject("Mathematics"), math)
+        self.assertEqual(ai.rules_for_subject("رياضيات"), math)
+        # Nothing is rewritten: every kept line is a line of tutor_rules.txt, in the same order.
+        position = 0
+        for line in math.splitlines():
+            position = full.index(line, position)
+        physics = ai.rules_for_subject("physics")
+        self.assertIn("# PHYSICS", physics)
+        self.assertNotIn("# MATHEMATICS", physics)
+        self.assertIn("# LEARNING RESULT DATA", physics)
+        for unknown in ("", "music", None):
+            self.assertEqual(ai.rules_for_subject(unknown), full)  # unknown subject: send everything
+        self.assertEqual(ai.tutor_rules, (ROOT / "tutor_rules.txt").read_text(encoding="utf-8"))
+
+    def test_stable_prefix_is_rules_then_curriculum_and_identical_between_requests(self):
+        def send(message, name="Synthetic Student", units=4, **options):
+            ai.client.responses.parse.reset_mock()
+            ai.ask_ai(name, "10", "Israel", "English", message, units=units, **options)
+            return ai.client.responses.parse.call_args.kwargs
+
+        first = send("first question")
+        history.save_history([{"role": "assistant", "content": "Previous synthetic reply"}])
+        progress.save_progress({"attempts": [result(True, True)]})
+        second = send("a different question", name="Another Name", web_policy=True, intent="answer")
+        prefix = first["cache_prefix"]
+        self.assertEqual(second["cache_prefix"], prefix)
+        self.assertEqual(prefix, ai.rules_for_subject("math") + "\n\n# STUDENT CURRICULUM\n" + "Synthetic 4 units fixture")
+        for call in (first, second):
+            self.assertTrue(call["instructions"].startswith(prefix + "\n\n"))
+            variable = call["instructions"][len(prefix) + 2:]
+            self.assertTrue(variable.endswith(ai.FINAL_CHECK))
+            self.assertIn("# STUDENT INFORMATION", variable)
+            self.assertIn("# STUDENT PROGRESS", variable)
+            for part in ("Name: ", "Preferred language", "Previous synthetic reply", "first question", "a different question"):
+                self.assertNotIn(part, prefix)
+        self.assertIn("LOCAL WEBSITE SAFETY", second["instructions"][len(prefix):])
+        self.assertNotIn("LOCAL WEBSITE SAFETY", prefix)
+        self.assertNotEqual(send("again", units=3)["cache_prefix"], prefix)  # another curriculum, another prefix
 
     def test_curriculum_by_units(self):
         self.assertEqual(curriculum.get_curriculum("Israel", "10", "math", 3), "Synthetic 3 units fixture")

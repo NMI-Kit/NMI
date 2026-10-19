@@ -73,8 +73,10 @@ class SdkEvalTests(unittest.TestCase):
         self.assertEqual((result['tutor_usage']['input_tokens'], result['judge_usage']['input_tokens']), (120, 120))
         sent = tutor.posts[0]
         self.assertEqual([m['content'] for m in sent['messages']], ['تمرين', '5 - 2x = 11', 'x = 3'])
-        self.assertIn('Student-selected intent: answer', sent['system'])
-        self.assertIn('Israel', sent['system'])
+        system = ''.join(block['text'] for block in sent['system'])
+        self.assertIn('Student-selected intent: answer', system)
+        self.assertIn('Israel', system)
+        self.assertEqual(sent['system'][0]['cache_control'], {'type': 'ephemeral'})
         self.assertEqual(ev.total_tokens([result])['requests_with_usage'], 2)
 
 

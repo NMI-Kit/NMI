@@ -68,6 +68,19 @@ async def verify_model(sdk, model):
     return info
 
 
+def system_blocks(instructions, cache_prefix):
+    """Split the system prompt into a cached stable block and an uncached variable block.
+
+    `cache_prefix` must be the exact start of `instructions` followed by a blank line; otherwise
+    the prompt is sent as one plain string with no caching.
+    """
+    head = cache_prefix + '\n\n' if isinstance(cache_prefix, str) and cache_prefix else None
+    if head is None or not instructions.startswith(head) or not instructions[len(head):].strip():
+        return instructions
+    return [{'type': 'text', 'text': cache_prefix, 'cache_control': {'type': 'ephemeral'}},
+            {'type': 'text', 'text': instructions[len(head):]}]
+
+
 class ClaudeProvider:
     """Adapt ask_ai.responses.parse while retaining NMI's result/storage contracts."""
     def __init__(self, model, *, sdk_factory=sdk_client, deadline=90, max_tokens=1800):
@@ -85,12 +98,12 @@ class ClaudeProvider:
             number = getattr(value, field, None)
             self.usage[field] = number if type(number) is int and number >= 0 else None
 
-    def parse(self, *, model, instructions, input, text_format, **options):
+    def parse(self, *, model, instructions, input, text_format, cache_prefix=None, **options):
         if model != self.model or text_format is not LearningResult or not isinstance(input, list):
             raise ClaudeError('claude_request')
         self.usage = None
         try:
-            return asyncio.run(self._parse(instructions, input))
+            return asyncio.run(self._parse(system_blocks(instructions, cache_prefix), input))
         except (ClaudeError, InvalidAIResponse):
             raise
         except (ValidationError, json.JSONDecodeError):
@@ -98,7 +111,7 @@ class ClaudeProvider:
         except Exception as error:
             raise safe_error(error) from None
 
-    async def _parse(self, instructions, messages):
+    async def _parse(self, system, messages):
         # A cancellation deadline covers model lookup, headers and the entire
         # stream, including a slow/trickling response. No background retry thread.
         async with asyncio.timeout(self.deadline):
@@ -107,7 +120,7 @@ class ClaudeProvider:
                 settings = {}
                 if self.model == 'claude-sonnet-5-5':
                     settings = {'thinking': {'type': 'between_tools'}, 'output_config': {'effort': 'low'}}
-                async with sdk.messages.stream(model=self.model, system=instructions,
+                async with sdk.messages.stream(model=self.model, system=system,
                         messages=messages, max_tokens=self.max_tokens, output_format=LearningResult,
                         **settings) as stream:
                     stopped, size = False, 0

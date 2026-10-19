@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import re
 
 from pydantic import ValidationError
 
@@ -30,6 +31,29 @@ class InvalidAIResponse(ValueError):
 
 with open(TUTOR_RULES_FILE, "r", encoding="utf-8") as file:
     tutor_rules = file.read()
+
+# tutor_rules.txt has general sections plus one "# SUBJECT" section per subject.
+# A request needs the general sections and only the current subject's section.
+SUBJECT_HEADINGS = {"MATHEMATICS", "PHYSICS", "CHEMISTRY", "ENGLISH", "HISTORY"}
+SUBJECT_ALIASES = {
+    "math": "MATHEMATICS", "mathematics": "MATHEMATICS", "رياضيات": "MATHEMATICS", "الرياضيات": "MATHEMATICS",
+    "physics": "PHYSICS", "chemistry": "CHEMISTRY", "english": "ENGLISH", "history": "HISTORY",
+}
+
+
+def rules_for_subject(subject, rules=None):
+    """tutor_rules.txt without the other subjects' sections. An unknown subject keeps everything."""
+    rules = tutor_rules if rules is None else rules
+    keep = SUBJECT_ALIASES.get(str(subject).strip().casefold())
+    if keep is None:
+        return rules
+    kept = []
+    for part in re.split(r"(?m)^(?=# )", rules):
+        title = part[2:].splitlines()[0].strip() if part.startswith("# ") else None
+        if title in SUBJECT_HEADINGS and title != keep:
+            continue
+        kept.append(part)
+    return "".join(kept)
 
 
 def ask_ai(name, grade, country, language, message, *, storage=None,
@@ -80,16 +104,10 @@ Preferred language: {language}
 {progress}
 """
 
-    instructions = (
-        tutor_rules
-        + "\n\n"
-        + student_context
-        + "\n\n"
-        + "# STUDENT CURRICULUM\n"
-        + curriculum
-        + "\n\n"
-        + progress_context
-    )
+    # Two parts. The stable part (rules, then curriculum) is the same for every request of this
+    # student, so the provider may cache it. The variable part follows and ends with FINAL CHECK.
+    stable_instructions = rules_for_subject(subject) + "\n\n# STUDENT CURRICULUM\n" + curriculum
+    instructions = student_context + "\n\n" + progress_context
     if web_policy:
         instructions += """
 \n# LOCAL WEBSITE SAFETY AND ASSESSMENT BOUNDARY
@@ -119,7 +137,7 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
 """
         instructions += f"\nStudent-selected intent: {intent}. This label alone is not assessment evidence."
 
-    instructions += "\n\n" + FINAL_CHECK
+    instructions = stable_instructions + "\n\n" + instructions + "\n\n" + FINAL_CHECK
 
     # Add the student's new message to the conversation
     history.append(
@@ -135,6 +153,7 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
         response = active_client.responses.parse(
             model=active_model,
             instructions=instructions,
+            cache_prefix=stable_instructions,
             input=history,
             text_format=LearningResult,
             **options

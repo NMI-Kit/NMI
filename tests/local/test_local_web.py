@@ -75,7 +75,9 @@ class LocalWebTests(unittest.TestCase):
         args=self.ai.responses.parse.call_args.kwargs
         self.assertIs(args['text_format'], ai_test.LearningResult)
         self.assertFalse(args['store']); self.assertEqual(args['max_output_tokens'],1800)
-        self.assertIn(ai_test.tutor_rules,args['instructions'])
+        self.assertIn(ai_test.rules_for_subject('math'),args['instructions'])
+        self.assertTrue(args['instructions'].startswith(args['cache_prefix']))
+        self.assertTrue(args['instructions'].endswith(ai_test.FINAL_CHECK))
         self.assertIn('Do not invent curriculum requirements',args['instructions'])
 
     def test_correct_incorrect_and_persistence_restart(self):

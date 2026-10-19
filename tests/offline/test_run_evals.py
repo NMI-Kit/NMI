@@ -526,6 +526,19 @@ class MainTests(unittest.TestCase):
         self.assertIn('## أكثر 5 نقاط ضعف', text)
         self.assertIn('Running 5 case(s)', output)
 
+    def test_judge_model_comes_from_the_environment_and_defaults_to_the_tutor_model(self):
+        seen = []
+
+        def judge_factory(model):
+            seen.append(model)
+            return judge_returning(8)
+        tutor = lambda model: tutor_returning('x')
+        self.run_main(['--max-cases', '1'], GOOD_ENV, tutor_factory=tutor, judge_factory=judge_factory)
+        without = {key: value for key, value in GOOD_ENV.items() if key != 'NMI_EVAL_JUDGE_MODEL'}
+        self.run_main(['--max-cases', '1'], without, tutor_factory=tutor, judge_factory=judge_factory)
+        self.run_main(['--max-cases', '1'], GOOD_ENV | {'NMI_EVAL_JUDGE_MODEL': ''}, tutor_factory=tutor, judge_factory=judge_factory)
+        self.assertEqual(seen, [JUDGE_MODEL, MODEL, MODEL])
+
     def run_counting(self, argv):
         built = []
 

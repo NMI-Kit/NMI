@@ -38,6 +38,20 @@ class AdapterTests(unittest.TestCase):
             input=[{'role':'user','content':'Explain fractions'}], text_format=LearningResult)
         return result, provider
 
+    def test_cache_prefix_becomes_a_cached_block_and_falls_back_to_a_string(self):
+        fixture = SyntheticClaude()
+        provider = ClaudeProvider(MODEL, sdk_factory=fixture.client)
+        messages = [{'role': 'user', 'content': 'Explain fractions'}]
+        joined = 'STABLE' + chr(10) * 2 + 'VARIABLE'
+        provider.parse(model=MODEL, instructions=joined, cache_prefix='STABLE', input=messages, text_format=LearningResult)
+        self.assertEqual(fixture.posts[-1]['system'], [
+            {'type': 'text', 'text': 'STABLE', 'cache_control': {'type': 'ephemeral'}},
+            {'type': 'text', 'text': 'VARIABLE'}])
+        for prefix in (None, '', 'OTHER', joined, 7):
+            with self.subTest(prefix=prefix):
+                provider.parse(model=MODEL, instructions=joined, cache_prefix=prefix, input=messages, text_format=LearningResult)
+                self.assertEqual(fixture.posts[-1]['system'], joined)
+
     def test_official_sdk_structured_stream_and_usage(self):
         fixture = SyntheticClaude()
         result, provider = self.parse(fixture)
@@ -155,7 +169,17 @@ class ClaudeWebTests(unittest.TestCase):
         body = self.fixture.posts[-1]
         self.assertEqual(len(body['messages']), 3)
         self.assertIn('مش فاهم', body['messages'][-1]['content'])
-        self.assertIn(ai_test.tutor_rules, body['system'])
+        # The real SDK request: a cached stable block (rules, then curriculum), then an uncached variable block.
+        stable, variable = body['system']
+        self.assertEqual(stable['cache_control'], {'type': 'ephemeral'})
+        self.assertNotIn('cache_control', variable)
+        self.assertTrue(stable['text'].startswith(ai_test.rules_for_subject('math')))
+        self.assertIn('# STUDENT CURRICULUM', stable['text'])
+        self.assertNotIn('# STUDENT INFORMATION', stable['text'])
+        self.assertIn('# STUDENT INFORMATION', variable['text'])
+        self.assertTrue(variable['text'].endswith(ai_test.FINAL_CHECK))
+        first = self.fixture.posts[-2]['system']
+        self.assertEqual(first[0], stable)  # the cached block is identical across requests
         before = self.state(); self.assertEqual(len(before['history']),4); self.assertEqual(before['attempts'],[])
         self.setup_app(); after = self.state()
         for name in ('history','attempts','profile','last_usage'): self.assertEqual(after[name],before[name])
