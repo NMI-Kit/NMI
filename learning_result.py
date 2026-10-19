@@ -48,7 +48,9 @@ class LearningResult(BaseModel):
     question: str = Field(description=(
         "Exactly one short question for the student, with a single question mark. It asks for ONE small next "
         "step (for example one substitution, one factorisation or one value), not a whole solution. It must not "
-        "contain the answer to that step and must not open a second topic."))
+        "contain the answer to that step and must not open a second topic. It asks for one value or one step "
+        "only: never join two requests with 'and', 'then', 'after that' or 'how' (in Arabic: و, وبعدها, وكيف, ثم). "
+        "If two steps are needed, ask only about the first one."))
 
     is_attempt: bool
 

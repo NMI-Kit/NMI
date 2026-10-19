@@ -37,6 +37,14 @@ class SchemaTests(unittest.TestCase):
         self.assertIn("ONE small next step", question)
         self.assertIn("must not contain the answer", question)
 
+    def test_question_description_forbids_joining_two_requests(self):
+        question = LearningResult.model_json_schema()["properties"]["question"]["description"]
+        self.assertIn("one value or one step only", question)
+        self.assertIn("never join two requests", question)
+        for joiner in ("'and'", "'then'", "'after that'", "'how'", "و", "وبعدها", "وكيف", "ثم"):
+            self.assertIn(joiner, question)
+        self.assertIn("ask only about the first one", question)
+
 
 class ExplanationTests(unittest.TestCase):
     def test_question_marks_become_full_stops(self):
