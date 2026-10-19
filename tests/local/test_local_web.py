@@ -231,7 +231,9 @@ class LocalWebTests(unittest.TestCase):
         from local_web import COUNTRIES,valid_profile
         self.assertEqual(len(COUNTRIES),11);self.assertEqual(COUNTRIES['IL'],'Israel')
         for country in COUNTRIES:
-            for grade in (9,10,11,12):self.assertTrue(valid_profile(dict(country=country,grade=grade)))
+            for grade in (9,10,11,12):
+                # Israel has curriculum files only for grades 10-12; every other country is unchanged.
+                self.assertEqual(valid_profile(dict(country=country,grade=grade)),not(country=='IL' and grade==9))
         self.client.set_cookie(self.app.config['SESSION_COOKIE_NAME'],'tampered',domain='127.0.0.1')
         self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).status_code,401)
 
@@ -242,6 +244,37 @@ class LocalWebTests(unittest.TestCase):
         for units in (2,6,'4',True,None,4.0):self.assertFalse(valid_profile(dict(country='IL',grade=10,units=units)))
         self.assertFalse(valid_profile(dict(country='US',grade=10,units=4)))
         self.assertFalse(valid_profile(dict(country='IL',grade=10,units=4,extra=1)))
+
+    def test_options_are_built_from_curriculum_folders(self):
+        import curriculum
+        from local_web import curriculum_options,valid_profile
+        self.assertEqual(curriculum_options(),{'math':{'10':[3,4,5],'11':[3,4,5],'12':[3,4,5]}})
+        self.assertEqual(self.state()['curriculum'],{'country':'IL','options':curriculum_options()})
+        root=Path(self.temp.name)/'tree'
+        (root/'math/grade10').mkdir(parents=True);(root/'math/grade10/4units.md').write_text('x',encoding='utf-8')
+        (root/'math/grade11').mkdir();(root/'math/grade11/3units.md').write_text('x',encoding='utf-8')
+        (root/'math/grade11/notes.md').write_text('x',encoding='utf-8');(root/'SOURCES.md').write_text('x',encoding='utf-8')
+        (root/'physics/grade10').mkdir(parents=True);(root/'physics/grade10/5units.md').write_text('x',encoding='utf-8')
+        (root/'math/grade12').mkdir()  # no unit files, so it is not an option
+        with patch.object(curriculum,'CURRICULUM_DIR',root):
+            self.assertEqual(curriculum_options(),{'math':{'10':[4],'11':[3]},'physics':{'10':[5]}})
+            self.assertTrue(valid_profile(dict(country='IL',grade=10,units=4)))
+            self.assertTrue(valid_profile(dict(country='IL',grade=10,subject='physics',units=5)))
+            for bad in (dict(grade=10,units=3),dict(grade=12),dict(grade=11,units=4),dict(grade=10,subject='physics',units=4),dict(grade=10,subject='chemistry'),dict(grade=10,subject=3)):
+                self.assertFalse(valid_profile(dict(country='IL')|bad),bad)
+            self.assertEqual(self.post('/api/profile',{'country':'IL','grade':12}).status_code,400)
+
+    def test_server_rejects_choices_without_a_file(self):
+        self.db=Path(self.temp.name)/'reject.sqlite3'
+        self.app=self.make_app();self.client=self.app.test_client()
+        self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        for bad in ({'grade':9},{'grade':10,'units':6},{'grade':10,'subject':'physics'},{'grade':10,'subject':'math','units':'3'},{'grade':13}):
+            self.assertEqual(self.post('/api/profile',{'country':'IL'}|bad).status_code,400,bad)
+        self.assertEqual(self.post('/api/profile',{'country':'US','grade':10,'subject':'math'}).status_code,400)
+        self.assertIsNone(self.state()['profile'])
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':11,'subject':'math','units':5}).status_code,200)
+        self.assertEqual(self.chat().status_code,200)
+        self.assertIn('رياضيات، الصف الحادي عشر، 5 وحدات',self.ai.responses.parse.call_args.kwargs['instructions'])
 
     def test_israel_units_profile_loads_curriculum_file(self):
         self.db=Path(self.temp.name)/'israel.sqlite3'

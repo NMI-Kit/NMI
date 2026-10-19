@@ -14,6 +14,7 @@ from uuid import UUID
 from flask import Flask, jsonify, request, send_from_directory, session
 from werkzeug.exceptions import HTTPException
 
+import curriculum
 from ai_test import ask_ai, InvalidAIResponse
 from local_store import LocalStore, BufferedConversation, StoreError
 from claude_provider import ClaudeProvider, ClaudeError, valid_model as valid_claude_model
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parent
 COUNTRIES = dict(US="United States", GB="United Kingdom", CA="Canada", DE="Germany",
                  CH="Switzerland", SG="Singapore", AU="Australia", NL="Netherlands",
                  QA="Qatar", AE="United Arab Emirates", IL="Israel")
+CURRICULUM_COUNTRY = "IL"  # the only country with curriculum files so far
 ASSETS = {"tokens.css", "styles.css", "preview.js", "live.js", "live.css"} | {
     f"assets/nmi-mark{suffix}.svg" for suffix in ("", "-light", "-dark", "-white", "-black")}
 ERRORS = {
@@ -54,14 +56,37 @@ class ChatError(Exception):
         self.code, self.status = code, status
 
 
+def curriculum_options():
+    """{subject: {grade: [units]}} read from curriculum/<subject>/grade<N>/<units>units.md."""
+    options = {}
+    root = Path(curriculum.CURRICULUM_DIR)
+    for subject in sorted(p for p in root.iterdir() if p.is_dir()) if root.is_dir() else []:
+        grades = {}
+        for folder in sorted(p for p in subject.iterdir() if p.is_dir() and re.fullmatch(r"grade\d+", p.name)):
+            units = sorted(int(m.group(1)) for f in folder.glob("*units.md") if (m := re.fullmatch(r"([345])units\.md", f.name)))
+            if units:
+                grades[folder.name[5:]] = units
+        if grades:
+            options[subject.name] = dict(sorted(grades.items(), key=lambda item: int(item[0])))
+    return options
+
+
 def valid_profile(value):
-    # "units" is optional so profiles saved before it existed stay valid.
-    if not isinstance(value, dict) or set(value) not in ({"country", "grade"}, {"country", "grade", "units"}):
+    # "subject" and "units" are optional so profiles saved before they existed stay valid.
+    if (not isinstance(value, dict) or not {"country", "grade"} <= set(value)
+            or not set(value) <= {"country", "grade", "subject", "units"}):
         return False
-    if "units" in value and not (value["country"] == "IL" and type(value["units"]) is int and value["units"] in {3, 4, 5}):
+    country, grade = value["country"], value["grade"]
+    if not (isinstance(country, str) and country in COUNTRIES and type(grade) is int and grade in {9, 10, 11, 12}):
         return False
-    return (isinstance(value["country"], str) and value["country"] in COUNTRIES
-            and type(value["grade"]) is int and value["grade"] in {9, 10, 11, 12})
+    if country != CURRICULUM_COUNTRY:
+        return set(value) == {"country", "grade"}
+    # Curriculum country: every choice must exist as a file under curriculum/.
+    subject = value.get("subject", "math")
+    grades = curriculum_options().get(subject) if isinstance(subject, str) else None
+    if grades is None or str(grade) not in grades:
+        return False
+    return "units" not in value or (type(value["units"]) is int and value["units"] in grades[str(grade)])
 
 
 def provider_error(error):
@@ -186,7 +211,8 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
         value = store.load()
         if value["profile"] is not None and not valid_profile(value["profile"]):
             raise StoreError()
-        return jsonify(**value, csrf=owner["csrf"], enabled=enabled, remaining=max(0, max_calls-count[0]),
+        return jsonify(**value, curriculum=dict(country=CURRICULUM_COUNTRY, options=curriculum_options()),
+                       csrf=owner["csrf"], enabled=enabled, remaining=max(0, max_calls-count[0]),
                        claude_enabled=allow_claude, claude_configured=valid_claude_model(claude_model),
                        last_usage=store.usage())
 
@@ -268,7 +294,7 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
             try:
                 reply = ask_ai("Learner", str(p["grade"]), COUNTRIES[p["country"]], lang, message,
                                storage=buffered, ai_client=client, model=claude_model, web_policy=True, intent=intent,
-                               subject="math", units=p.get("units"))
+                               subject=p.get("subject", "math"), units=p.get("units"))
                 usage = getattr(client, 'usage', None)
                 store.commit(rid, buffered.state, reply, usage=usage)
             except Exception as error:

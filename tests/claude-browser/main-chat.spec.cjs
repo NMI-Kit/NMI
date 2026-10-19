@@ -20,14 +20,21 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
   await page.locator('#open-live').click();
   // Units are asked only for Israel from Grade 10, next to the grade.
   await expect(page.locator('#live-units-field')).toBeHidden();
+  await expect(page.locator('#live-subject-field')).toBeHidden();
+  await expect(page.locator('#live-grade option')).toHaveText(['9','10','11','12']);
   await page.locator('#live-country').selectOption('IL');
-  await expect(page.locator('#live-units-field')).toBeHidden();
-  await page.locator('#live-grade').selectOption('10');
+  // Options come from the server's curriculum folders: math, grades 10-12, units 3/4/5.
+  await expect(page.locator('#live-subject-field')).toBeVisible();
+  await expect(page.locator('#live-subject option')).toHaveCount(1);
+  await expect(page.locator('#live-subject')).toHaveValue('math');
+  await expect(page.locator('#live-grade option')).toHaveText(['10','11','12']);
   await expect(page.locator('#live-units-field')).toBeVisible();
+  await expect(page.locator('#live-units option')).toHaveCount(3);
+  await page.locator('#live-grade').selectOption('10');
   await page.locator('#live-units').selectOption('4');
   await page.locator('#live-profile button').click();
   await expect(page.locator('#live-profile')).toBeHidden();
-  expect((await (await page.request.get('/api/state')).json()).profile).toEqual({country:'IL',grade:10,units:4});
+  expect((await (await page.request.get('/api/state')).json()).profile).toEqual({country:'IL',grade:10,subject:'math',units:4});
   await page.locator('#open-live').click();
   await expect(page.locator('#live-provider-field')).toHaveCount(0);
   await expect(page.locator('#live-signin')).toHaveCount(0);
