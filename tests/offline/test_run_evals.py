@@ -13,9 +13,11 @@ from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'tests' / 'evals'))
 from claude_provider import ClaudeError
 from learning_result import LearningResult
 from tools import run_evals as ev
+import hard_solutions
 
 MODEL = 'claude-fake-tutor'
 JUDGE_MODEL = 'claude-fake-judge'
@@ -56,14 +58,19 @@ class CaseFileTests(unittest.TestCase):
         cls.cases = ev.load_cases()
 
     def test_twenty_five_arabic_math_cases_mostly_three_units(self):
-        self.assertEqual(len(self.cases), 25)
-        self.assertEqual(len({c['id'] for c in self.cases}), 25)
-        units = [c['profile']['units'] for c in self.cases]
+        base = [c for c in self.cases if c.get('tier') != 'hard']
+        self.assertEqual(len(base), 25)
+        self.assertEqual(len(self.cases), 52)
+        self.assertEqual(len({c['id'] for c in self.cases}), 52)
+        units = [c['profile']['units'] for c in base]
         self.assertGreater(units.count(3), len(units) / 2)
         self.assertTrue(set(units) <= {3, 4, 5} and 5 in units)
-        for c in self.cases:
+        for c in base:
             self.assertEqual(c['profile']['grade'], 10)
+        for c in self.cases:
             self.assertEqual(c['profile']['language'], 'ar')
+            self.assertEqual(c['profile']['subject'], 'math')
+            self.assertEqual(c['profile']['country'], 'Israel')
             self.assertRegex(' '.join(m['content'] for m in c['conversation']), r'[؀-ۿ]')
 
     def test_required_fields_and_alternating_conversation(self):
@@ -119,6 +126,78 @@ class CaseFileTests(unittest.TestCase):
         self.assertEqual(sympy.expand((sympy.sqrt(3) + 1) ** 2), 4 + 2 * sympy.sqrt(3))
 
 
+LEVELS = [(grade, units) for grade in (10, 11, 12) for units in (3, 4, 5)]
+
+
+class HardCaseTests(unittest.TestCase):
+    """27 hard cases: 3 per grade x units, topics from the curriculum files, answers checked by sympy."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = [c for c in ev.load_cases() if c.get('tier') == 'hard']
+
+    def test_three_cases_for_each_grade_and_units_with_one_of_each_kind(self):
+        self.assertEqual(len(self.cases), 27)
+        for grade, units in LEVELS:
+            with self.subTest(grade=grade, units=units):
+                level = [c for c in self.cases if (c['profile']['grade'], c['profile']['units']) == (grade, units)]
+                self.assertEqual(sorted(c['category'] for c in level), ['hard_multistep', 'hard_trap', 'hard_why'])
+                self.assertEqual([c['id'] for c in level], [f'h{grade}u{units}-{n}' for n in (1, 2, 3)])
+
+    def test_topic_id_exists_in_the_matching_curriculum_file(self):
+        for c in self.cases:
+            with self.subTest(case=c['id']):
+                grade, units = c['profile']['grade'], c['profile']['units']
+                text = (ROOT / 'curriculum' / 'math' / f'grade{grade}' / f'{units}units.md').read_text(encoding='utf-8')
+                self.assertRegex(c['topic'], rf'^m{grade}-{units}-\d\d$')
+                self.assertIn(c['topic'] + ' ', text)
+                self.assertIn(c['topic'], c['provenance'])
+
+    def test_kinds_set_the_intent_and_attempt_expectation(self):
+        # h12u4-3 has no numeric answer (the correct result is "no minimum"); sympy facts cover it instead.
+        no_numeric_answer = {'h12u4-3'}
+        for c in self.cases:
+            with self.subTest(case=c['id']):
+                roles = [m['role'] for m in c['conversation']]
+                if c['category'] == 'hard_why':
+                    self.assertEqual((c['intent'], c['expect_attempt']), ('question', {'recorded': False}))
+                else:
+                    self.assertEqual((c['intent'], c['expect_attempt']), ('answer', {'recorded': True, 'correct': False}))
+                    self.assertEqual(roles, ['user', 'assistant', 'user'])
+                    if c['id'] in no_numeric_answer:
+                        self.assertIsNone(c['math'])
+                    else:
+                        self.assertEqual(c['math']['mode'], 'must_withhold')
+                self.assertGreater(len(c['expected_behavior']), 80)
+
+    def test_every_solution_has_a_case_and_answers_match_sympy(self):
+        self.assertEqual(set(hard_solutions.SOLUTIONS), {c['id'] for c in self.cases})
+        for c in self.cases:
+            with self.subTest(case=c['id']):
+                solved = hard_solutions.SOLUTIONS[c['id']]()
+                for number, fact in enumerate(solved['facts']):
+                    self.assertTrue(bool(fact), f'fact {number} is false')
+                expected = (c['math'] or {}).get('expected', [])
+                self.assertEqual(len(expected), len(solved['answers']))
+                for text, answer in zip(expected, solved['answers']):
+                    self.assertTrue(ev.same(ev.to_expr(text), answer), f'{text} != {answer}')
+
+    def test_the_conversation_itself_never_contains_the_withheld_answer(self):
+        # Otherwise the tutor repeating the student's own correct step would be scored as a leak.
+        for c in self.cases:
+            if c['math']:
+                for message in c['conversation']:
+                    with self.subTest(case=c['id'], role=message['role']):
+                        self.assertFalse(ev.check_math(message['content'], c['math'])['revealed'])
+
+    def test_a_reply_that_reveals_each_reference_answer_is_caught(self):
+        for c in self.cases:
+            if c['math']:
+                with self.subTest(case=c['id']):
+                    reply = 'الجواب: ' + c['math']['expected'][0].replace('sqrt', '√').replace('*', '')
+                    self.assertTrue(ev.check_math(reply, c['math'])['revealed'], reply)
+
+
 class MathCheckTests(unittest.TestCase):
     def test_leaked_answer_is_detected_in_arabic_variable_and_digits(self):
         spec = {'expected': ['4'], 'mode': 'must_withhold'}
@@ -133,6 +212,12 @@ class MathCheckTests(unittest.TestCase):
         self.assertFalse(ev.check_math('نجمع الجذور بعد التبسيط 4√3 + 2√3', {'expected': ['6*sqrt(3)'], 'mode': 'must_withhold'})['revealed'])
         self.assertTrue(ev.check_math('= x + 3', {'expected': ['x+3'], 'mode': 'must_withhold'})['revealed'])
         self.assertTrue(ev.check_math('نعم الجواب \\frac{17}{12} صحيح', {'expected': ['17/12'], 'mode': 'must_state'})['stated'])
+
+    def test_negative_leaked_answer_after_a_keyword_is_detected(self):
+        spec = {'expected': ['-16'], 'mode': 'must_withhold'}
+        self.assertTrue(ev.check_math('الجواب: −16', spec)['revealed'])
+        self.assertTrue(ev.check_math('الناتج يساوي -16', spec)['revealed'])
+        self.assertFalse(ev.check_math('الناتج 16', spec)['revealed'])
 
     def test_missing_confirmation_fails_must_state(self):
         result = ev.check_math('ممتاز، جرب سؤالاً آخر', {'expected': ['16'], 'mode': 'must_state'})
@@ -166,11 +251,29 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual(len(ev.select_cases(self.cases, max_cases=12)), 12)
         self.assertEqual([c['id'] for c in ev.select_cases(self.cases, only=['m10-odd-01', 'm10-sign-01'], max_cases=1)],
                          ['m10-odd-01', 'm10-sign-01'])
-        for bad in (0, 26):
+        for bad in (0, len(self.cases) + 1):
             with self.assertRaises(ValueError):
                 ev.select_cases(self.cases, max_cases=bad)
         with self.assertRaises(ValueError):
             ev.select_cases(self.cases, only=['nope'])
+
+
+class LevelSelectionTests(unittest.TestCase):
+    def setUp(self):
+        self.cases = ev.load_cases()
+
+    def test_filter_by_grade_units_or_both(self):
+        both = ev.filter_cases(self.cases, grade=11, units=4)
+        self.assertEqual([c['id'] for c in both], ['h11u4-1', 'h11u4-2', 'h11u4-3'])
+        self.assertEqual({c['profile']['grade'] for c in ev.filter_cases(self.cases, grade=12)}, {12})
+        self.assertEqual(len(ev.filter_cases(self.cases, grade=12)), 9)
+        self.assertEqual({c['profile']['units'] for c in ev.filter_cases(self.cases, units=5)}, {5})
+        self.assertEqual(len(ev.filter_cases(self.cases)), 52)
+        self.assertEqual(len(ev.filter_cases(self.cases, grade=10, units=3)), 17 + 3)
+
+    def test_asking_for_every_case_keeps_file_order(self):
+        level = ev.filter_cases(self.cases, grade=11, units=4)
+        self.assertEqual(ev.select_cases(level, max_cases=len(level)), level)
 
 
 class RunnerTests(unittest.TestCase):
@@ -265,6 +368,42 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual({tag for tag, info in top}, {'reveals_answer', 'caves_to_pressure'})
         self.assertTrue(all(info['cases'] == ['bad'] for tag, info in top))
 
+    def test_report_table_per_grade_and_units_with_weakest_case_and_reason(self):
+        def result(case_id, grade, units, score, reason, tags=()):
+            return {'id': case_id, 'category': 'hard_trap', 'grade': grade, 'units': units, 'status': 'ok', 'error': None,
+                    'score': score, 'reason': reason, 'weaknesses': list(tags), 'passed': score >= 7, 'reply': 'رد',
+                    'math': {'revealed': False, 'stated': None, 'arithmetic_errors': []},
+                    'attempt': {'ok': True, 'expected': {}, 'recorded': []}}
+        results = [result('h11u4-1', 11, 4, 9, 'ممتاز'), result('h11u4-2', 11, 4, 3, 'كشف الحل مباشرة', ['reveals_answer']),
+                   result('h11u4-3', 11, 4, 7, 'جيد'), result('h10u3-1', 10, 3, 8, 'جيد'),
+                   {**result('h10u3-2', 10, 3, 0, ''), 'score': None, 'passed': False, 'status': 'tutor_error', 'error': 'timeout'}]
+        meta = {'date': '2026-10-19', 'model': MODEL, 'judge_model': JUDGE_MODEL, 'curriculum': 'اختبار'}
+        report = ev.render_report(meta, results)
+        self.assertIn('| الصف | الوحدات | الحالات | المعدل | أضعف حالة | درجتها | سبب الضعف |', report)
+        rows = ev.level_rows(results)
+        self.assertEqual([row[:2] for row in rows], [(10, 3), (11, 4)])
+        self.assertEqual(rows[0][2:], ('2 (1 خطأ تنفيذ)', '8.0/10', 'h10u3-1', '8/10', 'جيد'))
+        self.assertEqual(rows[1][2:5], ('3', '6.3/10', 'h11u4-2'))
+        self.assertIn('كشف الحل مباشرة', rows[1][6])
+        self.assertIn(ev.WEAKNESSES['reveals_answer'], rows[1][6])
+        self.assertLess(report.index('## المعدل حسب الصف والوحدات'), report.index('## علامة كل حالة'))
+        self.assertIn('| 11 | 4 | 3 | 6.3/10 | h11u4-2 | 3/10 |', report)
+
+    def test_outcome_records_grade_and_topic(self):
+        client = tutor_returning('فكّر')
+        profile = {'grade': 11, 'country': 'Israel', 'units': 4, 'language': 'ar', 'subject': 'math'}
+        result = ev.evaluate_case(case(topic='m11-4-12', profile=profile), MODEL, lambda m: client, judge_returning(9))
+        self.assertEqual((result['grade'], result['units'], result['topic']), (11, 4, 'm11-4-12'))
+        instructions = client.responses.parse.call_args.kwargs['instructions']
+        self.assertIn('Grade: 11', instructions)
+        self.assertIn('الصف الحادي عشر، 4 وحدات', instructions)
+
+    def test_judge_prompt_carries_the_topic_and_is_not_grade_10_only(self):
+        self.assertIn('<topic>m11-4-12</topic>', ev.judge_prompt(case(topic='m11-4-12'), 'رد', 'facts'))
+        self.assertNotIn('<topic>', ev.judge_prompt(case(), 'رد', 'facts'))
+        self.assertIn('Grades 10-12', ev.JUDGE_SYSTEM)
+        self.assertNotIn('Grade 10 students', ev.JUDGE_SYSTEM)
+
     def test_top_five_weaknesses_are_limited_and_ranked_by_frequency(self):
         results = []
         for number, tags in enumerate([['bad_pacing'], ['bad_pacing', 'misses_exact_error'], ['bad_pacing'],
@@ -331,6 +470,45 @@ class MainTests(unittest.TestCase):
         text = report.read_text(encoding='utf-8')
         self.assertIn('## أكثر 5 نقاط ضعف', text)
         self.assertIn('Running 5 case(s)', output)
+
+    def run_counting(self, argv):
+        built = []
+
+        def tutor(model):
+            built.append(tutor_returning('x'))
+            return built[-1]
+        _, output = self.run_main(argv, GOOD_ENV, tutor_factory=tutor, judge_factory=lambda model: judge_returning(8))
+        return built, output
+
+    def test_grade_and_units_run_every_case_of_that_level_only(self):
+        built, output = self.run_counting(['--grade', '11', '--units', '4'])
+        self.assertEqual(len(built), 3)
+        self.assertIn('Running 3 case(s): about 6 paid requests', output)
+        instructions = ' '.join(c.responses.parse.call_args.kwargs['instructions'] for c in built)
+        self.assertIn('الصف الحادي عشر، 4 وحدات', instructions)
+        self.assertNotIn('الصف الحادي عشر، 3 وحدات', instructions)
+        built, output = self.run_counting(['--grade', '12'])
+        self.assertEqual(len(built), 9)
+        built, output = self.run_counting(['--units', '5'])
+        self.assertEqual(len(built), 4 + 9)
+        built, output = self.run_counting(['--grade', '10', '--units', '3', '--max-cases', '2'])
+        self.assertEqual(len(built), 2)
+
+    def test_level_run_reports_the_level_table_and_rejects_unknown_levels(self):
+        report, _ = self.run_main(['--grade', '12', '--units', '3'], GOOD_ENV, tutor_factory=lambda m: tutor_returning('x'),
+                                  judge_factory=lambda model: judge_returning(8))
+        text = report.read_text(encoding='utf-8')
+        self.assertIn('| 12 | 3 | 3 | 8.0/10 |', text)
+        self.assertNotIn('| 11 |', text.split('## علامة كل حالة')[0])
+        factory = Mock()
+        for argv in (['--grade', '9'], ['--units', '6'], ['--grade', 'x']):
+            with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+                self.run_main(argv, GOOD_ENV, tutor_factory=factory, judge_factory=factory)
+        factory.assert_not_called()
+
+    def test_only_overrides_the_level_filter(self):
+        built, _ = self.run_counting(['--only', 'm10-odd-01', '--grade', '12'])
+        self.assertEqual(len(built), 1)
 
     def test_only_runs_exactly_the_named_cases(self):
         clients = []

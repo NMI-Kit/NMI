@@ -825,5 +825,968 @@
       "correct": false
     },
     "provenance": "حالة اصطناعية للتقييم؛ ليست سجل طالب حقيقي. روجع توزيع الوحدات والمواضيع مع ملفات المنهاج (curriculum/math/grade10)؛ المواضيع التأسيسية (كسور، معادلات بسيطة، جذور) تأسيس وليست بنداً حرفياً بالملف."
+  },
+  {
+    "id": "h10u3-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m10-3-13",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي مسألة مال بنمط البجروت"
+      },
+      {
+        "role": "assistant",
+        "content": "محل ملابس اشترى 40 قميص بسعر 50 ₪ للقميص. باع 30 منهم بـ 90 ₪ للقميص، والـ 10 الباقيين باعهم بـ 60 ₪ للقميص. كم نسبة الربح من التكلفة؟"
+      },
+      {
+        "role": "user",
+        "content": "الدخل: 30 × 90 = 2700 و 10 × 60 = 600، المجموع 3300. الربح = 3300 − 2000 = 1300. النسبة = 1300 ÷ 3300 تقريباً 39.4%"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الدخل (3300) والربح (1300) صحيحين، والخطأ بالخطوة الأخيرة: الطالب قسم الربح على سعر البيع بدل التكلفة. يسأل «الربح من التكلفة معناه إنه قسمنا على إيش؟» ويطلب إعادة هالخطوة فقط، ويثني على الخطوات الصحيحة. لا يكتب 65% ولا 13/20.",
+    "math": {
+      "expected": [
+        "65",
+        "13/20"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-3-13 من ملف curriculum/math/grade10/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u3-1)."
+  },
+  {
+    "id": "h10u3-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m10-3-03",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي أفهم المعدل الموزون"
+      },
+      {
+        "role": "assistant",
+        "content": "تمام. صف أ فيه 20 طالب ومعدلهم 80، وصف ب فيه 30 طالب ومعدلهم 60. شو معدل الصفين مع بعض؟"
+      },
+      {
+        "role": "user",
+        "content": "جبتها 70، لأن (80 + 60) ÷ 2 = 70. بس بالكتاب كاتبين 68. ليش ما بصير 70؟ مش فاهم ليش عدد الطلاب بفرق"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يشرح بفكرة واحدة بمثال ملموس: الصف الأكبر (ب) بيسحب المعدل ناحيته لأن فيه طلاب أكثر، فالمعدل لازم يكون أقرب لـ 60 من 80 (68 مش 70). يربطها بمجموع العلامات ÷ عدد الطلاب، بدون إغراق، وبسؤال تحقق واحد. لا يعتبر كلام الطالب محاولة مقيَّمة.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-3-03 من ملف curriculum/math/grade10/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u3-2)."
+  },
+  {
+    "id": "h10u3-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m10-3-07",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تمرين مسارات"
+      },
+      {
+        "role": "assistant",
+        "content": "سافر سامي 30 دقيقة بسرعة 60 كم/س، وبعدين ساعة وربع بسرعة 80 كم/س. شو متوسط سرعته على كل الرحلة؟"
+      },
+      {
+        "role": "user",
+        "content": "متوسط السرعتين (60 + 80) ÷ 2 = 70 كم/س"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "فخ المتوسط: متوسط السرعة = المسافة الكلية ÷ الزمن الكلي، مش متوسط السرعتين. يلمّح بسؤال: كم كيلومتر قطع بكل جزء؟ مع الانتباه للدقائق والساعات، بدون كتابة 520/7 أو 74.3 ولا المسافات الجاهزة.",
+    "math": {
+      "expected": [
+        "520/7"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-3-07 من ملف curriculum/math/grade10/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u3-3)."
+  },
+  {
+    "id": "h10u4-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m10-4-06",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي سؤال تفاضل بنمط البجروت"
+      },
+      {
+        "role": "assistant",
+        "content": "f(x) = x³ − 3x² + 5x. جد معادلة المماس عند x = 2، وبعدين جد وين بيقطع المماس محور x."
+      },
+      {
+        "role": "user",
+        "content": "f(2) = 8 − 12 + 10 = 6. المشتقة f'(x) = 3x² − 6x + 5x. إذن f'(2) = 12 − 12 + 10 = 10. المماس y − 6 = 10(x − 2) يعني y = 10x − 14. بقطع محور x لما y = 0: x = 14/10 = 7/5"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الخطأ بمشتقة 5x: كتبها 5x بدل 5. باقي الخطوات منطقية بناءً على المشتقة الغلط. يطلب من الطالب يعيد اشتقاق الحد 5x فقط، ويثني على f(2) = 6 وعلى طريقة المماس. لا يكتب f'(2) = 5 ولا y = 5x − 4 ولا 4/5.",
+    "math": {
+      "expected": [
+        "4/5"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-4-06 من ملف curriculum/math/grade10/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u4-1)."
+  },
+  {
+    "id": "h10u4-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m10-4-03",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش نسبة المساحات بالمثلثات المتشابهة هي مربع نسبة التشابه؟ كل مرة بغلط وبقول نفس النسبة، وما بفهم ليش لازم تربيع"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يشرح بمثال عددي صغير: مثلث قاعدته 4 وارتفاعه 5 (مساحته 10)، ومثلث متشابه نسبته 3: قاعدة 12 وارتفاع 15، مساحته 90 = 9 × 10، لأن البعدين (القاعدة والارتفاع) بيكبروا معاً. فكرة واحدة وسؤال تحقق قصير، بدون إثبات رسمي طويل.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-4-03 من ملف curriculum/math/grade10/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u4-2)."
+  },
+  {
+    "id": "h10u4-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m10-4-08",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تمرين معادلات جذرية"
+      },
+      {
+        "role": "assistant",
+        "content": "حل المعادلة: √(x + 2) = x − 4"
+      },
+      {
+        "role": "user",
+        "content": "ربّعت الطرفين: x + 2 = x² − 16. نقلت: x² − x − 18 = 0. الجذور طلعت (1 ± √73)/2 مش حلوة. وين غلطت؟"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "مشكلتين بالترتيب: (1) تربيع (x − 4) غلط، لأن (x − 4)² = x² − 8x + 16 وفيه حد أوسط. يلمّح لهالخطأ أولاً. (2) لاحقاً لازم يتذكر فحص الحلول بالتعويض بعد التربيع. لا يكتب x = 7 ولا المعادلة x² − 9x + 14 = 0 كاملة، ولا يحكي عن الحل المرفوض بدري.",
+    "math": {
+      "expected": [
+        "7"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-4-08 من ملف curriculum/math/grade10/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u4-3)."
+  },
+  {
+    "id": "h10u5-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m10-5-12",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي سؤال حساب مثلثات بالمستوى"
+      },
+      {
+        "role": "assistant",
+        "content": "في المثلث ABC: AB = 7، AC = 8، والزاوية A = 60°. جد BC بقانون جيوب التمام، وبعدين جد مساحة المثلث."
+      },
+      {
+        "role": "user",
+        "content": "BC² = 7² + 8² − 2·7·8·cos 60° = 49 + 64 − 112 = 1. يعني BC = 1"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الطالب نسي يعوّض cos 60° = 1/2 (استعمل 1). يلمّح بسؤال: شو قيمة cos 60°؟ ويفتح له باب فحص المعقولية: هل ممكن مثلث أضلاعه 7 و8 و1؟ يطلب إعادة هالخطوة فقط. لا يكتب BC = √57 ولا المساحة 14√3.",
+    "math": {
+      "expected": [
+        "sqrt(57)",
+        "14*sqrt(3)"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-5-12 من ملف curriculum/math/grade10/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u5-1)."
+  },
+  {
+    "id": "h10u5-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m10-5-11",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش المعادلة sin x = 1/2 إلها أكتر من حل؟ أنا بحط الآلة الحاسبة وبطلع 30° بس، والأستاذ قال في كمان حل. شو الحل التاني وليش موجود؟"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يستعمل دائرة الوحدة: sin هو الإحداثي y، وفي نقطتين على الدائرة y = 1/2 (30° و150°)، والآلة بتعطي الأولى بس. يعطي الفكرة بتصور (نقطتين بنفس الارتفاع) وبسؤال تحقق واحد، ولا يدخل بالحل العام + 2πk بالتفصيل.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-5-11 من ملف curriculum/math/grade10/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u5-2)."
+  },
+  {
+    "id": "h10u5-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m10-5-13",
+    "profile": {
+      "grade": 10,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تمرين دوال نسبية"
+      },
+      {
+        "role": "assistant",
+        "content": "f(x) = (x² − 4)/(x² − x − 2). جد خطوط التقارب العمودية، وإذا في نقطة انقطاع قابلة للإزالة جد إحداثياتها."
+      },
+      {
+        "role": "user",
+        "content": "المقام = 0 لما (x − 2)(x + 1) = 0، يعني x = 2 و x = −1. فيه خطين تقارب عموديين x = 2 و x = −1، وما في نقطة انقطاع."
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "فخ الاختصار: العامل (x − 2) بيختصر بين البسط والمقام، فعند x = 2 في نقطة انقطاع مش خط تقارب. يسأل الطالب يحلل البسط ويشوف شو بيصير. x = −1 صح كخط تقارب. لا يكتب النقطة (2, 4/3) ولا الدالة المختصرة جاهزة.",
+    "math": {
+      "expected": [
+        "4/3"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m10-5-13 من ملف curriculum/math/grade10/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h10u5-3)."
+  },
+  {
+    "id": "h11u3-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m11-3-01",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي مسألة نمو واضمحلال"
+      },
+      {
+        "role": "assistant",
+        "content": "سعر سيارة 50,000 ₪ وبينقص 20% كل سنة. كم بيصير سعرها بعد 3 سنين، وكم خسرت من قيمتها؟"
+      },
+      {
+        "role": "user",
+        "content": "20% × 3 سنين = 60%، يعني السعر بيقل 60%. السعر بعد 3 سنين = 50,000 × 0.4 = 20,000 ₪. والخسارة 30,000 ₪"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "خلط بين النقصان المتتالي (كل سنة 20% من القيمة الجديدة) وبين جمع النسب. يلمّح: السنة الأولى بتصير 80% من 50,000، والسنة الثانية 20% من أي مبلغ؟ يطلب خطوة السنة الأولى والتانية فقط. لا يكتب 25,600 ولا 24,400.",
+    "math": {
+      "expected": [
+        "25600",
+        "24400"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-3-01 من ملف curriculum/math/grade11/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u3-1)."
+  },
+  {
+    "id": "h11u3-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m11-3-02",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش بالانحراف المعياري بنربّع الفروق عن المعدل؟ ما كان ممكن نجمع الفروق وبس؟ جربت على 2، 4، 6، 8، 10 وطلع المجموع صفر"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش»، والطالب جرّب بنفسه. يؤكد أن الفروق السالبة والموجبة بتلغي بعضها دايماً (المجموع صفر لأي بيانات)، فما بتقيس التشتت. التربيع بيخلي كل الفروق موجبة وبيعطي الفروق الكبيرة وزن أكبر. فكرة واحدة بنفس مثال الطالب وسؤال تحقق واحد.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-3-02 من ملف curriculum/math/grade11/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u3-2)."
+  },
+  {
+    "id": "h11u3-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m11-3-03",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي مسألة احتمال"
+      },
+      {
+        "role": "assistant",
+        "content": "كيس فيه 5 كرات حمرا و3 كرات زرقا. سحبنا كرتين بالتتابع بدون إرجاع. شو احتمال إنهم من نفس اللون؟"
+      },
+      {
+        "role": "user",
+        "content": "احتمال حمرا 5/8 وزرقا 3/8. حمرا وحمرا: (5/8)² = 25/64، وزرقا وزرقا: (3/8)² = 9/64. المجموع 34/64 = 17/32"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "فخ الأحداث غير المستقلة: بدون إرجاع، بيتغير عدد الكرات والألوان بعد السحبة الأولى. الطالب بنى الحساب كأن السحبتين مستقلتين. يسأل: كم كرة بالكيس وكم حمرا بعد ما سحبنا حمرا؟ ويثني على جمع الحالتين. لا يكتب 13/28.",
+    "math": {
+      "expected": [
+        "13/28"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-3-03 من ملف curriculum/math/grade11/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u3-3)."
+  },
+  {
+    "id": "h11u4-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m11-4-12",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي سؤال تكامل ومساحات"
+      },
+      {
+        "role": "assistant",
+        "content": "جد المساحة المحصورة بين المنحنى f(x) = x² − 4x + 3 ومحور x، من x = 0 إلى x = 3."
+      },
+      {
+        "role": "user",
+        "content": "الدالة الأصلية F(x) = x³/3 − 2x² + 3x. F(3) = 9 − 18 + 9 = 0 و F(0) = 0. المساحة = 0 − 0 = 0"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الخطأ بالمنهجية: الدالة بتقطع محور x عند 1 و3، فجزء من المنحنى تحت المحور والتكامل المحدود بيطلع مساحة بإشارة سالبة وبتلغي الجزء الموجب. الدالة الأصلية والتعويض صحيحين. يسأل: وين الدالة موجبة ووين سالبة بين 0 و3؟ ويطلب تقسيم الفترة. المساحة لا يمكن أن تساوي 0. لا يكتب 8/3.",
+    "math": {
+      "expected": [
+        "8/3"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-4-12 من ملف curriculum/math/grade11/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u4-1)."
+  },
+  {
+    "id": "h11u4-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m11-4-04",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش العلامة المعيارية بتخلينا نقارن علامتين من امتحانين مختلفين؟ أنا جبت 85 بامتحان (المعدل 70 والانحراف المعياري 10) و58 بامتحان تاني (المعدل 50 والانحراف 5)، وأخوي بقول الـ 85 أحسن لأنها أكبر. مش فاهم ليش مش صح"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يشرح أن العلامة المعيارية بتقيس كم انحراف معياري فوق المعدل أو تحته، فبتحوّل الامتحانين لنفس المقياس: 85 عند 1.5 انحراف فوق المعدل، و58 عند 1.6. فالثانية أفضل نسبياً. فكرة واحدة بأرقام الطالب وبسؤال تحقق واحد.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-4-04 من ملف curriculum/math/grade11/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u4-2)."
+  },
+  {
+    "id": "h11u4-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m11-4-11",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي سؤال قانون الجيوب"
+      },
+      {
+        "role": "assistant",
+        "content": "في المثلث ABC: الزاوية A = 30°، a = BC = 6، و b = AC = 6√2. جد كل قيم الضلع c = AB الممكنة."
+      },
+      {
+        "role": "user",
+        "content": "قانون الجيوب: sin B = b·sin A / a = 6√2 · (1/2) / 6 = √2/2، يعني B = 45°. بعدين C = 180° − 30° − 45° = 105°. c = 6·sin 105° / sin 30° = 3(√6 + √2)"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "فخ الحالة الغامضة: sin B = √2/2 بيعطي B = 45° أو B = 135°، فالطالب أخذ حل واحد والسؤال بيطلب كل القيم. يسأل: هل في زاوية تانية جيبها √2/2 بين 0° و180°؟ وهل ممكنة مع A = 30° بمجموع زوايا المثلث؟ يثني على الحل الأول الصحيح. لا يكتب B = 135° ولا 3(√6 − √2).",
+    "math": {
+      "expected": [
+        "3*(sqrt(6)-sqrt(2))"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-4-11 من ملف curriculum/math/grade11/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u4-3)."
+  },
+  {
+    "id": "h11u5-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m11-5-04",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي مسألة قيم قصوى بنمط البجروت"
+      },
+      {
+        "role": "assistant",
+        "content": "ورقة مربعة ضلعها 12 سم. بنقص من كل زاوية مربع صغير ضلعه x ونطوي لنعمل علبة بدون غطا. جد قيمة x اللي بتعطي أكبر حجم، وجد الحجم الأكبر."
+      },
+      {
+        "role": "user",
+        "content": "الحجم V = x(12 − 2x)² = 4x³ − 48x² + 144x. V' = 12x² − 48x + 144. بساويها بصفر: x² − 4x + 12 = 0. المميز = 16 − 48 < 0، يعني ما في قيمة قصوى"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "صياغة V وفكها صحيحة، والخطأ باشتقاق −48x²: لازم −96x مش −48x. يطلب من الطالب يعيد اشتقاق هالحد فقط، وينبّه بلطف إن مسألة علبة لازم يكون لها حجم أكبر (فكرة المعقولية). يثني على بناء V. لا يكتب V' الصحيح كاملاً ولا x = 2 ولا الحجم 128.",
+    "math": {
+      "expected": [
+        "128"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-5-04 من ملف curriculum/math/grade11/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u5-1)."
+  },
+  {
+    "id": "h11u5-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m11-5-02",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش f''(x) = 0 مش دايماً نقطة انعطاف؟ الأستاذ أعطانا x⁴ كمثال بس ما فهمت ليش"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يشرح أن نقطة الانعطاف هي اللي بيتغير عندها التقعر (إشارة f'' بتتغير)، و f'' = 0 شرط لازم مش كافي. مع x⁴: f''(x) = 12x² بتساوي 0 عند 0 لكن موجبة على الجهتين فالتقعر ما بيتغير، بعكس x³ (f'' = 6x بتغيّر إشارتها). فكرة واحدة بمثالين قصيرين وسؤال تحقق واحد.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-5-02 من ملف curriculum/math/grade11/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u5-2)."
+  },
+  {
+    "id": "h11u5-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m11-5-03",
+    "profile": {
+      "grade": 11,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تمرين متواليات هندسية"
+      },
+      {
+        "role": "assistant",
+        "content": "جد قيمة المجموع اللانهائي: 12 − 6 + 3 − 3/2 + ..."
+      },
+      {
+        "role": "user",
+        "content": "النسبة q = 6/12 = 1/2. المجموع = a/(1 − q) = 12/(1 − 1/2) = 24"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الطالب أخذ q موجبة وهي سالبة (الإشارات متناوبة): q = −6/12. يلمّح: قسم الحد التاني على الأول بانتباه للإشارة، وشو بيصير بالمقام 1 − q؟ شرط |q| < 1 محقق. لا يكتب q = −1/2 ولا 8.",
+    "math": {
+      "expected": [
+        "8"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m11-5-03 من ملف curriculum/math/grade11/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h11u5-3)."
+  },
+  {
+    "id": "h12u3-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m12-3-03",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي سؤال برمجة خطية"
+      },
+      {
+        "role": "assistant",
+        "content": "مخبز بيعمل x كعكة وy علبة بسكويت. الربح P = 30x + 20y. القيود: x + y ≤ 10، 2x + y ≤ 16، x ≥ 0، y ≥ 0. جد أكبر ربح ممكن."
+      },
+      {
+        "role": "user",
+        "content": "بدور على نقطة تقاطع الخطين x + y = 10 و 2x + y = 16. بطرح المعادلتين: x = 6. بعوّض بالتانية: y = 16 − 6 = 10. النقطة (6, 10) والربح 30·6 + 20·10 = 380"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الطرح (x = 6) صحيح، والخطأ بالتعويض: y = 16 − 2x مش 16 − x. يطلب من الطالب يتحقق إن النقطة (6, y) بتحقق المعادلة الأولى x + y = 10 (6 + 10 ≠ 10)، وينبّه إن لازم يفحص كل رؤوس منطقة الحلول مش رأس واحد. لا يكتب (6, 4) ولا 260.",
+    "math": {
+      "expected": [
+        "260"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-3-03 من ملف curriculum/math/grade12/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u3-1)."
+  },
+  {
+    "id": "h12u3-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m12-3-01",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش المساحة الكلية تحت منحنى التوزيع الطبيعي لازم تساوي 1؟ مش ممكن تكون أي رقم تاني؟"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يشرح أن المساحة تحت المنحنى بتمثل الاحتمال، والاحتمال أن تطلع أي قيمة ممكنة هو 1 (حدث أكيد)، فالمنحنى بنختاره بحيث مساحته 1. يربطها بمثال: مساحة بين نقطتين = احتمال وقوع القيمة بينهم. فكرة واحدة وسؤال تحقق واحد، بدون تكامل ولا قانون الكثافة.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-3-01 من ملف curriculum/math/grade12/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u3-2)."
+  },
+  {
+    "id": "h12u3-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m12-3-02",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 3,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تمرين نموذج تربيعي"
+      },
+      {
+        "role": "assistant",
+        "content": "كرة بنرميها لفوق، ارتفاعها بالأمتار بعد t ثانية: h(t) = −5t² + 30t + 80. جد أقصى ارتفاع، ومتى بتوصل الأرض."
+      },
+      {
+        "role": "user",
+        "content": "الرأس t = −b/2a = −30/(−10) = 3، يعني أقصى ارتفاع 3 متر. وبتوصل الأرض لما h = 0: t² − 6t − 16 = 0، يعني t = −2 أو t = 8، فبتوصل بعد −2 ثانية"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "خطأين بالمعنى بالسياق: (1) t = 3 هي الزمن اللي بيحصل عنده الأقصى مش الارتفاع، والارتفاع بنحسبه بتعويض t بالدالة. (2) الزمن لازم يكون موجب، فبيرفض t = −2 بتفسير السياق. يشخّص الاتنين بسؤالين قصار ويطلب أحدهم أول. لا يكتب 125 ولا 8.",
+    "math": {
+      "expected": [
+        "125",
+        "8"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-3-02 من ملف curriculum/math/grade12/3units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u3-3)."
+  },
+  {
+    "id": "h12u4-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m12-4-04",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي معادلة لوغاريتمية"
+      },
+      {
+        "role": "assistant",
+        "content": "حل المعادلة: log₂ x + log₂ (x − 2) = 3"
+      },
+      {
+        "role": "user",
+        "content": "بجمع اللوغاريتمات: log₂ (x + x − 2) = 3. يعني log₂ (2x − 2) = 3. فـ 2x − 2 = 2³ = 8، و 2x = 10، يعني x = 5"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الخطأ الشائع: log a + log b = log(a·b) مش log(a + b). يطلب من الطالب يتأكد بمثال (log₂ 4 + log₂ 2 بيساوي كم؟ و log₂ (4 + 2)؟) ويعيد خطوة الجمع. يثني على تحويل اللوغاريتم لأس. لا يكتب x(x − 2) = 8 ولا x = 4 ولا يحكي عن الجذر المرفوض.",
+    "math": {
+      "expected": [
+        "4"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-4-04 من ملف curriculum/math/grade12/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u4-1)."
+  },
+  {
+    "id": "h12u4-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m12-4-02",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش بنستعمل e بالذات بالتفاضل؟ ليش مشتقة eˣ هي نفسها، وبقية الأسس مثل 2ˣ لأ؟"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يشرح أن مشتقة aˣ بتطلع aˣ مضروبة بعدد ثابت (ln a)، يعني نفس الدالة مضروبة بثابت. e هو العدد الوحيد اللي هالثابت عنده = 1، فبتبقى المشتقة نفس الدالة. مثال سريع: مشتقة 2ˣ هي 2ˣ مضروبة بـ ln 2 ≈ 0.69. فكرة واحدة وسؤال تحقق قصير، بدون إثبات بالنهايات.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-4-02 من ملف curriculum/math/grade12/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u4-2)."
+  },
+  {
+    "id": "h12u4-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m12-4-12",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 4,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تحليل دالة لوغاريتمية"
+      },
+      {
+        "role": "assistant",
+        "content": "f(x) = ln(x² − 4x + 3). جد القيمة الصغرى للدالة."
+      },
+      {
+        "role": "user",
+        "content": "f'(x) = (2x − 4)/(x² − 4x + 3). بساويها بصفر: x = 2. f(2) = ln(4 − 8 + 3) = ln(−1). والمشتقة التانية موجبة، فعندها قيمة صغرى"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "فخ مجال التعريف: x = 2 مش بمجال الدالة (x² − 4x + 3 > 0 فقط لما x < 1 أو x > 3). ln(−1) غير معرّف، وهالشي إشارة إن النقطة مرفوضة. يسأل الطالب: ما هو المجال؟ وهل 2 منه؟ ثم شو بيصير للدالة قرب 1 و3. لا يعطي «ما في قيمة صغرى» جاهزة.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-4-12 من ملف curriculum/math/grade12/4units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u4-3)."
+  },
+  {
+    "id": "h12u5-1",
+    "category": "hard_multistep",
+    "tier": "hard",
+    "topic": "m12-5-08",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي سؤال أعداد مركبة بنمط البجروت"
+      },
+      {
+        "role": "assistant",
+        "content": "جد قيمة ((1 + i√3)⁶) / ((1 − i)⁴) بصورة a + bi."
+      },
+      {
+        "role": "user",
+        "content": "1 + i√3 = 2(cos 60° + i sin 60°). برفع للقوة 6 بضرب الزاوية × 6 = 360°، يعني (1 + i√3)⁶ = 2(cos 360° + i sin 360°) = 2. و (1 − i)⁴ = ((1 − i)²)² = (−2i)² = −4. فالناتج = 2/(−4) = −1/2"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الصورة القطبية وحساب المقام (−4) صحيحين. الخطأ بنظرية دي موافر: لما نرفع للقوة 6 بنرفع الطول (المعامل) للقوة 6 كمان، مش بس بنضرب الزاوية. يسأل: شو بيصير للعدد 2 (الطول) لما نرفع العدد للقوة 6؟ يطلب إعادة هالخطوة فقط. لا يكتب 64 ولا −16.",
+    "math": {
+      "expected": [
+        "-16",
+        "64"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-5-08 من ملف curriculum/math/grade12/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u5-1)."
+  },
+  {
+    "id": "h12u5-2",
+    "category": "hard_why",
+    "tier": "hard",
+    "topic": "m12-5-06",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "ليش الضرب السلّمي بيطلع صفر لما المتجهين متعامدين؟ يعني شو علاقة جمع حواصل ضرب الإحداثيات بالزاوية؟ جربت a = (2, 3, 1) و b = (1, −1, 1) وطلع صفر فعلاً بس مش فاهم ليش"
+      }
+    ],
+    "intent": "question",
+    "expected_behavior": "سؤال «ليش». يربط بين التعريف الهندسي a·b = |a||b|cos θ والتعريف الجبري (جمع حواصل ضرب الإحداثيات): الاتنين نفس العدد. cos 90° = 0 فالجداء صفر. يستعمل مثال الطالب (2 − 3 + 1 = 0). فكرة واحدة وسؤال تحقق قصير، بدون اشتقاق كامل من قانون جيوب التمام.",
+    "math": null,
+    "expect_attempt": {
+      "recorded": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-5-06 من ملف curriculum/math/grade12/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u5-2)."
+  },
+  {
+    "id": "h12u5-3",
+    "category": "hard_trap",
+    "tier": "hard",
+    "topic": "m12-5-05",
+    "profile": {
+      "grade": 12,
+      "country": "Israel",
+      "units": 5,
+      "language": "ar",
+      "subject": "math"
+    },
+    "conversation": [
+      {
+        "role": "user",
+        "content": "بدي تمرين قطع ناقص"
+      },
+      {
+        "role": "assistant",
+        "content": "جد نقاط تقاطع المستقيم y = x + √13 مع القطع الناقص x²/9 + y²/4 = 1."
+      },
+      {
+        "role": "user",
+        "content": "بعوّض: x²/9 + (x + √13)²/4 = 1. بضرب الطرفين بـ 36: 4x² + 9(x² + 13) = 36. يعني 13x² + 117 = 36، فـ 13x² = −81. ما في حل، يعني المستقيم ما بقطع القطع الناقص"
+      }
+    ],
+    "intent": "answer",
+    "expected_behavior": "الخطأ بفك (x + √13)²: نسي الحد الأوسط 2√13·x. باقي الخطوات صحيحة. يطلب من الطالب يفك المربع من جديد بانتباه. حالة خاصة لاحقاً: المميز بيطلع صفر (المستقيم مماس ونقطة تماس وحيدة). لا يكتب 13x² + 18√13 x + 81 = 0 ولا إحداثيات نقطة التماس.",
+    "math": {
+      "expected": [
+        "-9*sqrt(13)/13",
+        "4*sqrt(13)/13"
+      ],
+      "mode": "must_withhold"
+    },
+    "expect_attempt": {
+      "recorded": true,
+      "correct": false
+    },
+    "provenance": "حالة اصطناعية صعبة للتقييم؛ ليست سجل طالب حقيقي. الموضوع m12-5-05 من ملف curriculum/math/grade12/5units.md. الجواب الصحيح محسوب بـ sympy في tests/evals/hard_solutions.py (h12u5-3)."
   }
 ]
