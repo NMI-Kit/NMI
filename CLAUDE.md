@@ -30,3 +30,9 @@ NMI (Next Mastery Intelligence) is an AI tutor for Grades 9–12, Arabic/English
 - V1 targets desktop widths >= 1280px; no mobile layouts. Arabic and English only (RTL/LTR).
 - Do not edit `tutor_rules.txt` or add features beyond the task.
 - No git push, purchases or uploads.
+
+## قواعد التعديل
+- التصميم مقصود يكون أبيض وأسود وبسيط. لا تغيّره ولا تحسّنه ولا تضيف ألوان.
+- ممنوع تلمس ملفات css أو tokens.css أو الشكل، إلا إذا طلبت تغيير تصميم بالاسم.
+- عدّل بس الإشي المطلوب بالضبط. ممنوع تعيد بناء أي صفحة.
+- قبل التعديل، قلي شو الملفات اللي رح تلمسها.
