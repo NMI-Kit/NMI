@@ -15,3 +15,8 @@ playwright-report/
 
 # Python virtual environment
 .venv/
+
+# Python bytecode and local eval reports (owner-run, paid)
+__pycache__/
+*.pyc
+tests/evals/report*.md
