@@ -5,7 +5,7 @@ import re
 from pydantic import ValidationError
 
 from curriculum import get_curriculum
-from learning_result import LearningResult
+from learning_result import LearningResult, has_reply_text
 from progress import load_progress, record_attempt
 from chat_history import load_history, save_history
 
@@ -165,7 +165,7 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
         if result is not None:
             if web_policy:
                 raw = result.model_dump() if isinstance(result, LearningResult) else result
-                if not isinstance(raw, dict) or type(raw.get("is_attempt")) is not bool or not isinstance(raw.get("reply"), str):
+                if not isinstance(raw, dict) or type(raw.get("is_attempt")) is not bool or not has_reply_text(raw):
                     raise InvalidAIResponse()
             # Validate again before saving, including already-created model instances.
             result = LearningResult.model_validate(result)

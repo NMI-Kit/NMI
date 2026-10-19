@@ -11,9 +11,10 @@ import httpx2 as httpx
 from pydantic import ValidationError
 
 from ai_test import InvalidAIResponse
-from learning_result import LearningResult
+from learning_result import LearningResult, has_reply_text
 
 ENDPOINT = 'https://api.anthropic.com'
+EFFORTS = ('low', 'medium', 'high')
 USAGE_FIELDS = ('input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens')
 
 
@@ -83,9 +84,13 @@ def system_blocks(instructions, cache_prefix):
 
 class ClaudeProvider:
     """Adapt ask_ai.responses.parse while retaining NMI's result/storage contracts."""
-    def __init__(self, model, *, sdk_factory=sdk_client, deadline=90, max_tokens=1800):
+    def __init__(self, model, *, sdk_factory=sdk_client, deadline=90, max_tokens=1800, effort=None):
         if not valid_model(model):
             raise ClaudeError('claude_model')
+        # Reasoning effort: NMI_CLAUDE_EFFORT (owner-set), default low. An unknown value stops before any request.
+        self.effort = (effort or os.environ.get('NMI_CLAUDE_EFFORT') or 'low').strip().lower()
+        if self.effort not in EFFORTS:
+            raise ClaudeError('claude_request')
         if not 0 < deadline <= 90 or type(max_tokens) is not int or not 256 <= max_tokens <= 4096:
             raise ValueError('Invalid Claude request limits')
         self.model, self.sdk_factory = model, sdk_factory
@@ -119,7 +124,7 @@ class ClaudeProvider:
                 await verify_model(sdk, self.model)
                 settings = {}
                 if self.model == 'claude-sonnet-5-5':
-                    settings = {'thinking': {'type': 'between_tools'}, 'output_config': {'effort': 'low'}}
+                    settings = {'thinking': {'type': 'between_tools'}, 'output_config': {'effort': self.effort}}
                 async with sdk.messages.stream(model=self.model, system=system,
                         messages=messages, max_tokens=self.max_tokens, output_format=LearningResult,
                         **settings) as stream:
@@ -149,7 +154,7 @@ class ClaudeProvider:
                         raise InvalidAIResponse()
                     raw = json.loads(blocks[0].text)
                     if (not isinstance(raw, dict) or type(raw.get('is_attempt')) is not bool
-                            or not isinstance(raw.get('reply'), str)):
+                            or not has_reply_text(raw)):
                         raise InvalidAIResponse()
                     result = LearningResult.model_validate(raw)
                     return SimpleNamespace(status='completed', output_parsed=result)

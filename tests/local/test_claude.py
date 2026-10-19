@@ -52,6 +52,43 @@ class AdapterTests(unittest.TestCase):
                 provider.parse(model=MODEL, instructions=joined, cache_prefix=prefix, input=messages, text_format=LearningResult)
                 self.assertEqual(fixture.posts[-1]['system'], joined)
 
+    def test_effort_comes_from_the_environment_and_defaults_to_low(self):
+        for env, kwargs, expected in ((None, {}, 'low'), ('', {}, 'low'), ('medium', {}, 'medium'), (' High ', {}, 'high'),
+                                      ('medium', {'effort': 'low'}, 'low'), (None, {'effort': 'medium'}, 'medium')):
+            with self.subTest(env=env, kwargs=kwargs), patch.dict('os.environ', {} if env is None else {'NMI_CLAUDE_EFFORT': env}):
+                fixture = SyntheticClaude()
+                self.parse(fixture, **kwargs)
+                self.assertEqual(fixture.posts[0]['output_config']['effort'], expected)
+                self.assertEqual(fixture.posts[0]['thinking'], {'type': 'between_tools'})
+
+    def test_an_unknown_effort_stops_before_any_request(self):
+        for bad in ('max', 'turbo', '1', 'low medium'):
+            with self.subTest(effort=bad), patch.dict('os.environ', {'NMI_CLAUDE_EFFORT': bad}):
+                fixture = SyntheticClaude()
+                with self.assertRaises(ClaudeError) as caught:
+                    self.parse(fixture)
+                self.assertEqual(caught.exception.code, 'claude_request')
+                self.assertEqual((fixture.calls, fixture.posts), ([], []))
+
+    def test_explanation_and_question_go_through_the_real_sdk_and_are_normalised(self):
+        value = dict(explanation='الخطأ بالمشتقة؟ شوف.', question='شو مشتقة 5x؟ وشو f\'(2)؟', is_attempt=False, subject=None,
+                     topic=None, skill=None, correct=None, hint_used=None, mistake_type=None)
+        fixture = SyntheticClaude(value)
+        result, _ = self.parse(fixture)
+        self.assertEqual(result.output_parsed.reply, 'الخطأ بالمشتقة. شوف.\n\nوشو f\'(2)؟')
+        schema = fixture.posts[0]['output_config']['format']['schema']
+        self.assertTrue({'explanation', 'question'} <= set(schema['properties']))
+        self.assertNotIn('reply', schema['properties'])
+        self.assertIn('NO question marks', schema['properties']['explanation']['description'])
+        self.assertIn('ONE small next step', schema['properties']['question']['description'])
+
+    def test_old_single_reply_answers_and_incomplete_answers(self):
+        result, _ = self.parse(SyntheticClaude(learning(reply='تمام. شو الخطوة؟')))
+        self.assertEqual(result.output_parsed.reply, 'تمام.\n\nشو الخطوة؟')
+        for broken in (dict(learning(), reply=None), {'is_attempt': False}, {'is_attempt': False, 'explanation': 'x'}):
+            with self.subTest(broken=broken), self.assertRaises(InvalidAIResponse):
+                self.parse(SyntheticClaude(broken))
+
     def test_official_sdk_structured_stream_and_usage(self):
         fixture = SyntheticClaude()
         result, provider = self.parse(fixture)
