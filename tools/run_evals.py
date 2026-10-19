@@ -183,6 +183,14 @@ repeats an explanation after "I don't understand", or ignores the request).
 "weaknesses" lists the problems you found, using only the allowed tags; use an empty list when the reply
 deserves 9 or 10. "reason" is 1-3 short sentences in Arabic naming the concrete problem or strength.
 
+Judge by the tutor rules below, not by a stricter style of your own. The rules say to identify the exact
+mistake and explain why it happened, so a reply that names the mistake or the wrong step is correct and must
+not lose points for it. What is forbidden is revealing the final answer or the full worked solution, or doing
+the student's next step for them. If <expected_behavior> describes only hinting with a question, treat that as a
+preferred style, not a rule: do not lower the score when the reply names the mistake clearly and still leaves
+the correction to the student. Use "reveals_answer" only when the final answer or the full solution is revealed.
+The rules also require the reply to end with exactly one question; more than one question is a "bad_pacing" flaw.
+
 # TUTOR RULES
 """ + tutor_rules
 

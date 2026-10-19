@@ -404,6 +404,20 @@ class RunnerTests(unittest.TestCase):
         self.assertIn('Grades 10-12', ev.JUDGE_SYSTEM)
         self.assertNotIn('Grade 10 students', ev.JUDGE_SYSTEM)
 
+    def test_judge_follows_the_tutor_rules_naming_the_mistake_is_allowed(self):
+        system = ev.JUDGE_SYSTEM
+        self.assertIn('names the mistake or the wrong step is correct and must', system)
+        self.assertIn('not lose points for it', system)
+        self.assertIn('revealing the final answer or the full worked solution', system)
+        self.assertIn('exactly one question', system)
+        self.assertIn('identify the exact mistake', ev.tutor_rules)  # the rule the judge relies on
+        self.assertTrue(system.endswith(ev.tutor_rules))
+
+    def test_tutor_rules_require_exactly_one_question_per_reply(self):
+        self.assertIn('Every reply ends with exactly one question for the student', ev.tutor_rules)
+        self.assertIn('Never ask two questions', ev.tutor_rules)
+        self.assertIn('- Ask one question at a time.', ev.tutor_rules)  # existing rule kept
+
     def test_top_five_weaknesses_are_limited_and_ranked_by_frequency(self):
         results = []
         for number, tags in enumerate([['bad_pacing'], ['bad_pacing', 'misses_exact_error'], ['bad_pacing'],
