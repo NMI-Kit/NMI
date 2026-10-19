@@ -539,6 +539,30 @@ class MainTests(unittest.TestCase):
         self.run_main(['--max-cases', '1'], GOOD_ENV | {'NMI_EVAL_JUDGE_MODEL': ''}, tutor_factory=tutor, judge_factory=judge_factory)
         self.assertEqual(seen, [JUDGE_MODEL, MODEL, MODEL])
 
+    def test_report_starts_with_the_effort_used_and_defaults_to_medium(self):
+        def run(env):
+            report, output = self.run_main(['--max-cases', '1'], env, tutor_factory=lambda m: tutor_returning('x'),
+                                           judge_factory=lambda model: judge_returning(8))
+            return report.read_text(encoding='utf-8'), output
+        text, output = run(GOOD_ENV)
+        self.assertIn('- مستوى التفكير (effort): `medium`', text)
+        self.assertIn('effort medium', output)
+        self.assertLess(text.index('مستوى التفكير'), text.index('## المعدل حسب الصف والوحدات'))
+        for value, shown in (('low', 'low'), ('HIGH', 'high'), ('', 'medium')):
+            text, _ = run(GOOD_ENV | {'NMI_CLAUDE_EFFORT': value})
+            self.assertIn(f'(effort): `{shown}`', text)
+
+    def test_unknown_effort_stops_before_any_client_is_built(self):
+        factory = Mock()
+        for bad in ('max', 'turbo', 'low medium'):
+            with self.assertRaises(SystemExit):
+                self.run_main([], GOOD_ENV | {'NMI_CLAUDE_EFFORT': bad}, tutor_factory=factory, judge_factory=factory)
+        factory.assert_not_called()
+
+    def test_a_result_without_effort_metadata_still_renders(self):
+        meta = {'date': '2026-10-19', 'model': MODEL, 'judge_model': JUDGE_MODEL, 'curriculum': 'اختبار'}
+        self.assertIn('(effort): `غير مسجّل`', ev.render_report(meta, []))
+
     def run_counting(self, argv):
         built = []
 

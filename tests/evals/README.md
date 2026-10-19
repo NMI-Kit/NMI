@@ -32,6 +32,7 @@ $env:NMI_ENABLE_AI = "1"
 $env:NMI_ENABLE_ANTHROPIC_PAID = "1"
 $env:NMI_CLAUDE_MODEL = "<tutor model id>"
 $env:NMI_EVAL_JUDGE_MODEL = "<judge model id>"   # optional, defaults to the tutor model
+$env:NMI_CLAUDE_EFFORT = "medium"                  # optional: low, medium or high; default medium (also for the website)
 .\.venv\Scripts\python.exe -B tools/run_evals.py --max-cases 5
 .\.venv\Scripts\python.exe -B tools/run_evals.py --only m10-sign-01 m10-conf-01
 .\.venv\Scripts\python.exe -B tools/run_evals.py --grade 11 --units 4     # one level: all its cases (3 cases, 6 requests)

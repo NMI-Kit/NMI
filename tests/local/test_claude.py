@@ -52,9 +52,9 @@ class AdapterTests(unittest.TestCase):
                 provider.parse(model=MODEL, instructions=joined, cache_prefix=prefix, input=messages, text_format=LearningResult)
                 self.assertEqual(fixture.posts[-1]['system'], joined)
 
-    def test_effort_comes_from_the_environment_and_defaults_to_low(self):
-        for env, kwargs, expected in ((None, {}, 'low'), ('', {}, 'low'), ('medium', {}, 'medium'), (' High ', {}, 'high'),
-                                      ('medium', {'effort': 'low'}, 'low'), (None, {'effort': 'medium'}, 'medium')):
+    def test_effort_comes_from_the_environment_and_defaults_to_medium(self):
+        for env, kwargs, expected in ((None, {}, 'medium'), ('', {}, 'medium'), ('low', {}, 'low'), (' High ', {}, 'high'),
+                                      ('medium', {'effort': 'low'}, 'low'), (None, {'effort': 'high'}, 'high')):
             with self.subTest(env=env, kwargs=kwargs), patch.dict('os.environ', {} if env is None else {'NMI_CLAUDE_EFFORT': env}):
                 fixture = SyntheticClaude()
                 self.parse(fixture, **kwargs)
@@ -101,7 +101,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(body['max_tokens'], 1800)
         self.assertEqual(body['output_config']['format']['type'], 'json_schema')
         self.assertEqual(body['thinking'], {'type':'between_tools'})
-        self.assertEqual(body['output_config']['effort'], 'low')
+        self.assertEqual(body['output_config']['effort'], 'medium')
         self.assertNotIn('store', body)
         self.assertEqual(provider.usage['input_tokens'], 120)
         self.assertEqual(provider.usage['output_tokens'], 80)

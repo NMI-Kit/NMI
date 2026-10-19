@@ -21,8 +21,8 @@ from pydantic import BaseModel, ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from ai_test import ask_ai, InvalidAIResponse, tutor_rules
-from claude_provider import (ClaudeProvider, ClaudeError, USAGE_FIELDS, safe_error,
-                             sdk_client, valid_model)
+from claude_provider import (ClaudeProvider, ClaudeError, DEFAULT_EFFORT, USAGE_FIELDS, resolve_effort,
+                             safe_error, sdk_client, valid_model)
 from local_store import BufferedConversation
 
 CASES_FILE = ROOT / 'tests' / 'evals' / 'tutor_cases.json'
@@ -443,6 +443,7 @@ def render_report(meta, results):
     tokens = total_tokens(results)
     lines = ['# تقرير تقييم المدرّس', '',
              f"- التاريخ: {meta['date']}", f"- موديل المدرّس: `{meta['model']}` — موديل الحَكَم: `{meta['judge_model']}`",
+             f"- مستوى التفكير (effort): `{meta.get('effort') or 'غير مسجّل'}`",
              f"- المنهاج: {meta['curriculum']}",
              f"- الحالات: {len(results)} — نجحت: {passed} — معدل الحَكَم: {average:.1f}/10 (النجاح = {PASS_SCORE}+ مع سلامة الحساب وتسجيل المحاولة)",
              f"- التوكنز: إدخال {tokens['input_tokens']} — إخراج {tokens['output_tokens']} — "
@@ -513,6 +514,10 @@ def main(argv=None, *, tutor_factory=ClaudeProvider, judge_factory=ClaudeJudge, 
     if not valid_model(model) or not valid_model(judge_model):
         raise SystemExit('Set NMI_CLAUDE_MODEL (and optionally NMI_EVAL_JUDGE_MODEL) to a valid Claude model id.')
     try:
+        effort = resolve_effort(settings.get('NMI_CLAUDE_EFFORT') or DEFAULT_EFFORT)
+    except ClaudeError:
+        raise SystemExit('NMI_CLAUDE_EFFORT must be low, medium or high (default medium).') from None
+    try:
         pool = load_cases(cases_file)
         if not args.only:
             pool = filter_cases(pool, grade=args.grade, units=args.units)
@@ -524,11 +529,11 @@ def main(argv=None, *, tutor_factory=ClaudeProvider, judge_factory=ClaudeJudge, 
         raise SystemExit(str(error)) from None
     sample = curriculum_options(cases[0]['profile'])
     print(f'Running {len(cases)} case(s): about {2 * len(cases)} paid requests '
-          f'(tutor {model}, judge {judge_model}). No automatic retries.', flush=True)
+          f'(tutor {model}, effort {effort}, judge {judge_model}). No automatic retries.', flush=True)
     results = run_cases(cases, model, tutor_factory, judge_factory(judge_model),
                         progress=lambda text: print(text, flush=True))
     meta = {'date': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'), 'model': model,
-            'judge_model': judge_model,
+            'judge_model': judge_model, 'effort': effort,
             'curriculum': ('units/subject مُمرَّرة إلى ask_ai' if sample
                            else 'ask_ai لا يستقبل units/subject بعد؛ بدون ملفات المنهاج')}
     write_report(report, meta, results)
