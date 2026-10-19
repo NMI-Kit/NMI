@@ -170,6 +170,14 @@ class HardCaseTests(unittest.TestCase):
                         self.assertEqual(c['math']['mode'], 'must_withhold')
                 self.assertGreater(len(c['expected_behavior']), 80)
 
+    def test_h10u5_2_allows_the_general_solution_because_the_curriculum_has_it(self):
+        case = next(c for c in self.cases if c['id'] == 'h10u5-2')
+        text = (ROOT / 'curriculum' / 'math' / 'grade10' / '5units.md').read_text(encoding='utf-8')
+        self.assertIn('الحل العام', text.split('m10-5-11')[1].split('###')[0])
+        self.assertIn('الحل العام', case['expected_behavior'])
+        self.assertIn('مسموح', case['expected_behavior'])
+        self.assertNotIn('ولا يدخل بالحل العام', case['expected_behavior'])
+
     def test_every_solution_has_a_case_and_answers_match_sympy(self):
         self.assertEqual(set(hard_solutions.SOLUTIONS), {c['id'] for c in self.cases})
         for c in self.cases:
@@ -218,6 +226,39 @@ class MathCheckTests(unittest.TestCase):
         self.assertTrue(ev.check_math('الجواب: −16', spec)['revealed'])
         self.assertTrue(ev.check_math('الناتج يساوي -16', spec)['revealed'])
         self.assertFalse(ev.check_math('الناتج 16', spec)['revealed'])
+
+    def test_function_calls_and_rejected_claims_are_not_false_equations(self):
+        # Exact tutor replies from the h10u4-1 and h10u5-1 reports that were wrongly marked as arithmetic errors.
+        derivative_reply = ("شغلك منظّم وخطواتك واضحة، وحساب f(2) = 6 صحيح 👏 بس في خطأ بالمشتقة: كتبت f'(x) = 3x² − 6x + 5x، "
+                            "يعني اشتقّيت الحدّ الأخير 5x وبقي 5x. مشتقة 5x بتطلع عدد ثابت، مش 5x. لاحظ كيف اشتقّيت 3x² وطلع 6x، "
+                            "وكيف اشتقّيت x³ وطلع 3x². بما إن باقي طريقتك (معادلة المماس وإيجاد التقاطع مع محور x) سليمة، "
+                            "أول ما تصلّح المشتقة بتتغيّر الأرقام بس. جرّب: شو مشتقة 5x، وبعدين شو بتصير f'(2)؟")
+        cosine_reply = ("محاولة منيحة، وبدأت صح: كتبت القانون صح وعوّضت الأضلاع والزاوية صح. الغلطة بآخر حد: 2·7·8·cos 60° مش 112. "
+                        "2·7·8 = 112 صح، بس لازم تضرب كمان بـ cos 60°. شو قيمة cos 60°؟ وبعد ما تضربها بالـ 112، شو بيصير ناتج BC²؟")
+        conversation = ['f(2) = 8 − 12 + 10 = 6. f\'(x) = 3x² − 6x + 5x. f\'(2) = 12 − 12 + 10 = 10',
+                        'BC² = 7² + 8² − 2·7·8 = 1']
+        for reply in (derivative_reply, cosine_reply):
+            with self.subTest(reply=reply[:30]):
+                for known in ([], conversation):
+                    result = ev.check_math(reply, {'expected': ['4/5', 'sqrt(57)'], 'mode': 'must_withhold'}, known)
+                    self.assertEqual(result['arithmetic_errors'], [])
+                    self.assertTrue(result['ok'])
+        # Function calls are skipped for any function name, but x(..), y(..) and sqrt(..) stay math.
+        self.assertEqual(ev.check_math('cos(60) = 1/2 و g(3) = 7', None)['arithmetic_errors'], [])
+        self.assertTrue(ev.check_math('f(x) = x + 3', {'expected': ['x+3'], 'mode': 'must_withhold'})['revealed'])
+        self.assertTrue(ev.check_math('الناتج = x(2)', {'expected': ['2*x'], 'mode': 'must_withhold'})['revealed'])
+        # A negated claim is not asserted, with every negation word, but a false claim next to it still is.
+        for word in ('مش', 'ليس', 'ليست', '≠', 'لا يساوي', 'ما بيصير'):
+            with self.subTest(word=word):
+                self.assertEqual(ev.check_math(f'الجواب {word} 2 + 2 = 5', None)['arithmetic_errors'], [])
+        flagged = ev.check_math('مش 112. 3 + 4 = 8', None)
+        self.assertEqual(flagged['arithmetic_errors'], ['3 + 4 = 8'])
+        self.assertTrue(ev.check_math('الناتج 2 + 2 = 5', None)['arithmetic_errors'])
+        # A rejected value is not a leak either: the tutor saying "not 6√3" gives nothing away.
+        self.assertFalse(ev.check_math('الجواب مش 6√3', {'expected': ['6*sqrt(3)'], 'mode': 'must_withhold'})['revealed'])
+        # A decimal point stays inside a number; a sentence period ends the run.
+        self.assertTrue(ev.check_math('الناتج 0.5 + 0.25 = 0.75', None)['ok'])
+        self.assertEqual(ev.check_math('2*3 = 6. 4*5 = 20', None)['arithmetic_errors'], [])
 
     def test_missing_confirmation_fails_must_state(self):
         result = ev.check_math('ممتاز، جرب سؤالاً آخر', {'expected': ['16'], 'mode': 'must_state'})

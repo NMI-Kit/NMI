@@ -79,7 +79,8 @@ def h10u5_1():  # m10-5-12: law of cosines, then the area with the sine formula
 
 def h10u5_2():  # m10-5-11: sin x = 1/2 has two solutions on one turn (unit circle, same y)
     found = sp.solveset(sp.sin(x) - R(1, 2), x, sp.Interval.Ropen(0, 2 * sp.pi))
-    return _case([], [found == {sp.pi / 6, 5 * sp.pi / 6}, sp.sin(sp.pi - sp.pi / 6) == sp.sin(sp.pi / 6)])
+    general = all(sp.sin(base + 2 * sp.pi * k) == R(1, 2) for base in (sp.pi / 6, 5 * sp.pi / 6) for k in range(-3, 4))
+    return _case([], [found == {sp.pi / 6, 5 * sp.pi / 6}, sp.sin(sp.pi - sp.pi / 6) == sp.sin(sp.pi / 6), general])
 
 
 def h10u5_3():  # m10-5-13: a cancelled factor gives a hole, not a vertical asymptote

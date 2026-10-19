@@ -12,6 +12,13 @@ from chat_history import load_history, save_history
 BASE_DIR = Path(__file__).resolve().parent
 TUTOR_RULES_FILE = BASE_DIR / "tutor_rules.txt"
 
+# Always the last section of the instructions, so it is the last thing the model reads.
+FINAL_CHECK = """# FINAL CHECK
+
+Before you send the reply, check it:
+- The reply ends with exactly one question. If it contains more than one question mark (? or ؟), delete every question except the last one.
+- Do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do."""
+
 
 # Construct only when a conversation is explicitly requested, never on import.
 client = None
@@ -111,6 +118,8 @@ encourage a trusted adult and appropriate local emergency help; do not invent nu
 Do not claim to be a human, a therapist, or an authoritative source of official curricula.
 """
         instructions += f"\nStudent-selected intent: {intent}. This label alone is not assessment evidence."
+
+    instructions += "\n\n" + FINAL_CHECK
 
     # Add the student's new message to the conversation
     history.append(

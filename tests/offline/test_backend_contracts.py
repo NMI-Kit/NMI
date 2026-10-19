@@ -131,6 +131,20 @@ class BackendContracts(unittest.TestCase):
     def test_missing_curriculum_fallback(self):
         self.assertIn("Do not invent curriculum requirements", curriculum.get_curriculum("Testland", "7"))
 
+    def test_final_check_is_the_last_section_of_the_instructions(self):
+        for web_policy in (False, True):
+            with self.subTest(web_policy=web_policy):
+                ai.client.responses.parse.reset_mock()
+                ai.ask_ai("Synthetic Student", "10", "Israel", "English", "Synthetic message", web_policy=web_policy, units=4)
+                instructions = ai.client.responses.parse.call_args.kwargs["instructions"]
+                self.assertTrue(instructions.endswith(ai.FINAL_CHECK))
+                self.assertEqual(instructions.count("# FINAL CHECK"), 1)
+                self.assertLess(instructions.index(ai.tutor_rules), instructions.index("# FINAL CHECK"))
+        self.assertIn("exactly one question", ai.FINAL_CHECK)
+        self.assertIn("delete every question except the last one", ai.FINAL_CHECK)
+        self.assertIn("Do not do the student's next step for them", ai.FINAL_CHECK)
+        self.assertIn("factor, substitute or calculate", ai.FINAL_CHECK)
+
     def test_curriculum_by_units(self):
         self.assertEqual(curriculum.get_curriculum("Israel", "10", "math", 3), "Synthetic 3 units fixture")
         self.assertEqual(curriculum.get_curriculum("israel", 10, units="4"), "Synthetic 4 units fixture")

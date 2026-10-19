@@ -58,8 +58,14 @@ class JudgeVerdict(BaseModel):
 
 # ---------------------------------------------------------------- math checks
 _DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩٫', '0123456789.')
-_RUN = re.compile(r'(?:-(?=[0-9xy√(]))?[0-9xy√(][0-9xy√+\-*/^().= ]*')
-_KEYWORD = re.compile(r'(?:يساوي|الجواب|الناتج|النتيجة|الحل)\s*(?:هو|هي)?\s*:?\s*(-?[0-9xy√(][0-9xy√+\-*/^(). ]*)')
+# A '.' belongs to a run only inside a number (0.5); "112. 2*7*8" is two sentences, not one run.
+_RUN = re.compile(r'(?:-(?=[0-9xy√(]))?[0-9xy√(](?:[0-9xy√+\-*/^()= ]|\.(?=\d))*')
+_KEYWORD = re.compile(r'(?:يساوي|الجواب|الناتج|النتيجة|الحل)\s*(?:هو|هي)?\s*:?\s*(-?[0-9xy√(](?:[0-9xy√+\-*/^() ]|\.(?=\d))*)')
+# A claim the tutor rejects ("مش 112", "≠ 5") is not something the tutor asserts.
+_NEGATION = re.compile(r'(?<![\w\u0600-\u06FF])(?:مش|ليس|ليست|لا يساوي|لا تساوي|ما بيساوي|ما بتساوي|ما بيصير|ما بتصير|not)'
+                       r'\s*[:：]?\s*$|(?:≠|!=)\s*$')
+# f(2), f'(x), cos(60): a function call is a name, not the number in parentheses. x(…), y(…) and sqrt(…) stay math.
+_CALL = re.compile(r"(?<![A-Za-z])([A-Za-z]+)'{0,2}\(([^()]*)\)")
 _STANDALONE_S = re.compile(r'(?<![\u0600-\u06FF])س(?![\u0600-\u06FF])')
 
 
@@ -73,6 +79,7 @@ def _normalize(text):
                      ('÷', '/'), ('²', '^2'), ('³', '^3')):
         text = text.replace(old, new)
     text = _STANDALONE_S.sub('x', text)
+    text = _CALL.sub(lambda m: m.group() if m.group(1) in {'x', 'y', 'sqrt'} else ' ¶ ', text)
     return re.sub(r'(?m)^\s*\d+[.)]\s+', '', text)
 
 
@@ -125,7 +132,10 @@ def same(first, second):
 def _runs(text):
     """Split normalized text into math runs, each a list of '='-separated parts."""
     found = []
-    for match in _RUN.finditer(_normalize(text)):
+    normalized = _normalize(text)
+    for match in _RUN.finditer(normalized):
+        if _NEGATION.search(normalized[max(0, match.start() - 16):match.start()]):
+            continue
         parts = [part.strip() for part in match.group().split('=')]
         if all(parts) and any(re.search(r'\d|√', part) for part in parts):
             found.append(parts)
