@@ -195,6 +195,48 @@ class BackendContracts(unittest.TestCase):
         self.assertNotIn("LOCAL WEBSITE SAFETY", prefix)
         self.assertNotEqual(send("again", units=3)["cache_prefix"], prefix)  # another curriculum, another prefix
 
+    def test_dialect_rule_is_in_the_variable_part_and_forbids_egyptian_unless_the_student_uses_it(self):
+        ai.client.responses.parse.reset_mock()
+        ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "بدي أتعلم", units=4)
+        call = ai.client.responses.parse.call_args.kwargs
+        variable = call["instructions"][len(call["cache_prefix"]) + 2:]
+        self.assertIn(ai.DIALECT_RULE, variable)
+        self.assertNotIn("LANGUAGE AND DIALECT", call["cache_prefix"])
+        self.assertTrue(variable.endswith(ai.FINAL_CHECK))
+        for part in ("same dialect as the student's own messages", "Palestinian", "keep that dialect for the whole conversation",
+                     "simple Arabic close to Palestinian", "Do not use Egyptian Arabic", "هنبدأ", "إيه", "عشان كده",
+                     "unless the student wrote in it", "preferred language is English"):
+            self.assertIn(part, ai.DIALECT_RULE)
+
+    def test_moving_up_a_level_sends_both_curriculum_files_in_the_cached_part(self):
+        def send(**options):
+            ai.client.responses.parse.reset_mock()
+            ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "شو لازم أتعلم؟", units=3, **options)
+            return ai.client.responses.parse.call_args.kwargs
+
+        plain = send()["cache_prefix"]
+        self.assertEqual(plain, ai.rules_for_subject("math") + "\n\n# STUDENT CURRICULUM\nSynthetic 3 units fixture")
+        call = send(target_units=4)
+        prefix = call["cache_prefix"]
+        self.assertTrue(prefix.startswith(plain))  # the current level file is unchanged and comes first
+        self.assertIn("# TARGET LEVEL CURRICULUM (4 units)\nSynthetic 4 units fixture", prefix)
+        self.assertIn(ai.LEVEL_TRANSITION.format(units=3, target=4), prefix)
+        self.assertLess(prefix.index("Synthetic 3 units fixture"), prefix.index("Synthetic 4 units fixture"))
+        for rule in ("cover the difference between them step by step", "topics that are in the target level file and not in the current level file",
+                     "short ordered plan from the target file's topics", "Do not invent topics"):
+            self.assertIn(rule, prefix)
+        self.assertTrue(call["instructions"].startswith(prefix + "\n\n"))
+        self.assertNotIn("TARGET LEVEL", call["instructions"][len(prefix):])  # nothing of it in the uncached part
+        self.assertEqual(send(target_units=4)["cache_prefix"], prefix)  # identical between requests
+        for ignored in (None, "", 3, "3", 5, 6):  # same level, or no such file in the fixture: no target section
+            with self.subTest(target_units=ignored):
+                self.assertEqual(send(target_units=ignored)["cache_prefix"], plain)
+
+    def test_target_is_ignored_when_the_student_has_no_curriculum_file(self):
+        ai.client.responses.parse.reset_mock()
+        ai.ask_ai("Synthetic Student", "7", "Testland", "Arabic", "x", units=3, target_units=4)
+        self.assertNotIn("TARGET LEVEL", ai.client.responses.parse.call_args.kwargs["cache_prefix"])
+
     def test_curriculum_by_units(self):
         self.assertEqual(curriculum.get_curriculum("Israel", "10", "math", 3), "Synthetic 3 units fixture")
         self.assertEqual(curriculum.get_curriculum("israel", 10, units="4"), "Synthetic 4 units fixture")

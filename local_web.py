@@ -40,6 +40,7 @@ ERRORS = {
     "cookies": ("Allow cookies for 127.0.0.1, then reopen this launch's private link. The session was not claimed.", "اسمح بملفات الارتباط للموقع 127.0.0.1 ثم افتح رابط التشغيل الخاص مجددًا. لم تُحجز الجلسة."),
     "invalid": ("Check the form, country, grade and message, then try again.", "تحقّق من النموذج والبلد والصف والرسالة ثم حاول مجددًا."),
     "profile": ("Create the local test profile first. This server supports one tester only.", "أنشئ ملف الاختبار المحلي أولًا. يدعم هذا الخادم مستخدمًا واحدًا فقط."),
+    "profile_incomplete": ("Complete the student profile first: country, grade and units are required before chatting.", "أكمل ملف الطالب أولًا: الدولة والصف والوحدات مطلوبة قبل المحادثة."),
     "timeout": ("The tutor timed out. Nothing was added to history or progress. Provider usage may already have occurred.", "انتهت مهلة الرد. لم يُضَف شيء للسجل أو التقدّم. قد يكون الطلب قد استهلك جزءًا من الاستخدام."),
     "unavailable": ("The AI service could not reply. Your previous conversation and progress are safe.", "تعذّر الحصول على رد من خدمة الذكاء الاصطناعي. محادثتك السابقة وتقدّمك محفوظان."),
     "response": ("No valid tutor reply was received. Nothing was saved or assessed.", "لم يصل رد صالح من المعلّم. لم تُحفظ محادثة أو نتيجة تقييم جديدة."),
@@ -72,9 +73,9 @@ def curriculum_options():
 
 
 def valid_profile(value):
-    # "subject" and "units" are optional so profiles saved before they existed stay valid.
+    # "subject", "units" and "target_units" are optional so profiles saved before they existed stay valid.
     if (not isinstance(value, dict) or not {"country", "grade"} <= set(value)
-            or not set(value) <= {"country", "grade", "subject", "units"}):
+            or not set(value) <= {"country", "grade", "subject", "units", "target_units"}):
         return False
     country, grade = value["country"], value["grade"]
     if not (isinstance(country, str) and country in COUNTRIES and type(grade) is int and grade in {9, 10, 11, 12}):
@@ -86,7 +87,19 @@ def valid_profile(value):
     grades = curriculum_options().get(subject) if isinstance(subject, str) else None
     if grades is None or str(grade) not in grades:
         return False
-    return "units" not in value or (type(value["units"]) is int and value["units"] in grades[str(grade)])
+    available = grades[str(grade)]
+    if "units" in value and not (type(value["units"]) is int and value["units"] in available):
+        return False
+    if "target_units" in value:
+        # A higher level of the same grade, and only for a student who has a current level.
+        target = value["target_units"]
+        return ("units" in value and type(target) is int and target in available and target > value["units"])
+    return True
+
+
+def profile_ready(profile):
+    """A student may chat only with a profile that has a curriculum: curriculum country, grade and units."""
+    return (valid_profile(profile) and profile["country"] == CURRICULUM_COUNTRY and "units" in profile)
 
 
 def provider_error(error):
@@ -211,7 +224,8 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
         value = store.load()
         if value["profile"] is not None and not valid_profile(value["profile"]):
             raise StoreError()
-        return jsonify(**value, curriculum=dict(country=CURRICULUM_COUNTRY, options=curriculum_options()),
+        return jsonify(**value, profile_ready=profile_ready(value["profile"]),
+                       curriculum=dict(country=CURRICULUM_COUNTRY, options=curriculum_options()),
                        csrf=owner["csrf"], enabled=enabled, remaining=max(0, max_calls-count[0]),
                        claude_enabled=allow_claude, claude_configured=valid_claude_model(claude_model),
                        last_usage=store.usage())
@@ -240,12 +254,18 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
         value = request.get_json()
         if not valid_profile(value):
             raise ChatError("invalid")
-        with gate:
+        # A new profile starts the conversation; an edit replaces the profile and keeps the conversation.
+        # The next message loads the curriculum of the new profile.
+        if not gate.acquire(blocking=False):
+            raise ChatError("busy", 409)
+        try:
             existing = store.load()["profile"]
-            if existing is not None and existing != value:
-                raise ChatError("profile", 409)
             if existing is None:
                 store.set_profile(value)
+            elif existing != value:
+                store.update_profile(value)
+        finally:
+            gate.release()
         return jsonify(ok=True)
 
     @app.post("/api/chat")
@@ -282,6 +302,8 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
             current = store.load()
             if current["profile"] is None or not valid_profile(current["profile"]):
                 raise ChatError("profile", 409)
+            if not profile_ready(current["profile"]):
+                raise ChatError("profile_incomplete", 409)
             last_calls[:] = [v for v in last_calls if time.monotonic()-v < 60]
             if count[0] >= max_calls or len(last_calls) >= 6 or len(current["history"]) >= 200:
                 raise ChatError("limit", 429)
@@ -294,7 +316,8 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
             try:
                 reply = ask_ai("Learner", str(p["grade"]), COUNTRIES[p["country"]], lang, message,
                                storage=buffered, ai_client=client, model=claude_model, web_policy=True, intent=intent,
-                               subject=p.get("subject", "math"), units=p.get("units"))
+                               subject=p.get("subject", "math"), units=p.get("units"),
+                               target_units=p.get("target_units"))
                 usage = getattr(client, 'usage', None)
                 store.commit(rid, buffered.state, reply, usage=usage)
             except Exception as error:

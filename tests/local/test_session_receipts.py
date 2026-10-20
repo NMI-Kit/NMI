@@ -41,7 +41,7 @@ class SessionReceiptTests(unittest.TestCase):
     def unlock(self):
         self.get('/api/session/preflight')
         self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
-        self.post('/api/profile',{'country':'US','grade':10})
+        self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':4})
     def body(self,**changes):return dict(request_id=str(uuid4()),message='ما معنى الكسر؟',language='ar',intent='question')|changes
 
     def test_blocked_cookie_does_not_consume_owner_claim(self):

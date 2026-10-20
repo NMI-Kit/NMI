@@ -182,7 +182,7 @@ class ClaudeWebTests(unittest.TestCase):
         self.fixture = SyntheticClaude()
         self.factory = Mock(side_effect=lambda model:ClaudeProvider(model, sdk_factory=self.fixture.client))
         self.setup_app()
-        self.assertEqual(self.post('/api/profile', {'country':'US','grade':10}).status_code, 200)
+        self.assertEqual(self.post('/api/profile', {'country':'IL','grade':10,'subject':'math','units':4}).status_code, 200)
 
     def setup_app(self, **options):
         args = dict(data_path=self.db, access_token=CAPABILITY, enabled=True,
@@ -310,7 +310,7 @@ class ClaudeWebTests(unittest.TestCase):
         directory=Path(self.temp.name)/'launcher'
         app=build_app(directory,CAPABILITY,acceptance=True,environ={})
         store=app.extensions['nmi_store']
-        self.assertEqual(store.load()['profile'],{'country':'US','grade':10})
+        self.assertEqual(store.load()['profile'],{'country':'IL','grade':10,'subject':'math','units':4})
         self.assertEqual(store.load()['history'],[])
         client=app.test_client();client.get('/api/session/preflight',base_url=ORIGIN)
         response=client.post('/api/session',json={'token':CAPABILITY},base_url=ORIGIN,headers={'Origin':ORIGIN})
@@ -319,7 +319,7 @@ class ClaudeWebTests(unittest.TestCase):
         self.assertFalse(value['enabled']);self.assertFalse(value['claude_enabled'])
         self.assertEqual(value['remaining'],1)
         with self.assertRaises(ValueError):build_app(directory,CAPABILITY,acceptance=True,environ={})
-        self.assertEqual(store.load()['profile'],{'country':'US','grade':10})
+        self.assertEqual(store.load()['profile'],{'country':'IL','grade':10,'subject':'math','units':4})
 
 
 if __name__ == '__main__': unittest.main()

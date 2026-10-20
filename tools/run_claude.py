@@ -47,7 +47,7 @@ def build_app(directory, capability, *, acceptance=False, max_calls=1, environ=N
         allow_claude=settings.get('NMI_ENABLE_ANTHROPIC_PAID') == '1',
         max_calls=1 if acceptance else max_calls)
     if acceptance:
-        app.extensions['nmi_store'].set_profile({'country':'US','grade':10})
+        app.extensions['nmi_store'].set_profile({'country':'IL','grade':10,'subject':'math','units':4})
     return app
 
 

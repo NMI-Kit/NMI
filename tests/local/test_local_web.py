@@ -46,7 +46,7 @@ class LocalWebTests(unittest.TestCase):
             self.stack.enter_context(patch.object(ai_test, name, side_effect=AssertionError('Shared JSON forbidden')))
         self.app = self.make_app(); self.client = self.app.test_client()
         self.csrf = self.post('/api/session', {'token':TOKEN}).json['csrf']
-        self.assertEqual(self.post('/api/profile', {'country':'US','grade':10}).status_code, 200)
+        self.assertEqual(self.post('/api/profile', {'country':'IL','grade':10,'subject':'math','units':4}).status_code, 200)
 
     def make_app(self, **kwargs):
         return create_app(data_path=self.db, access_token=TOKEN, enabled=True, claude_model=MODEL,
@@ -78,7 +78,7 @@ class LocalWebTests(unittest.TestCase):
         self.assertIn(ai_test.rules_for_subject('math'),args['instructions'])
         self.assertTrue(args['instructions'].startswith(args['cache_prefix']))
         self.assertTrue(args['instructions'].endswith(ai_test.FINAL_CHECK))
-        self.assertIn('Do not invent curriculum requirements',args['instructions'])
+        self.assertIn('رياضيات، الصف العاشر، 4 وحدات',args['cache_prefix'])
 
     def test_correct_incorrect_and_persistence_restart(self):
         self.chat()
@@ -175,7 +175,10 @@ class LocalWebTests(unittest.TestCase):
             self.assertEqual(self.post('/api/chat',body).status_code,400)
         for value in ({'country':'US','grade':8},{'country':'XX','grade':10},{'country':[],'grade':10},{'country':'US','grade':True}):
             self.assertEqual(self.post('/api/profile',value).status_code,400)
-        self.assertEqual(self.post('/api/profile',{'country':'US','grade':11}).status_code,409)
+        # A profile can be edited at any time; it is not immutable any more (see test_profile_edit_keeps_the_conversation).
+        self.assertEqual(self.post('/api/profile',{'country':'US','grade':11}).status_code,200)
+        self.assertEqual(self.state()['profile'],{'country':'US','grade':11})
+        self.assertFalse(self.state()['profile_ready'])
         self.assertEqual(self.client.post('/api/chat',data='x'*21000,base_url=ORIGIN,headers={'Origin':ORIGIN,'Content-Type':'application/json','X-NMI-CSRF':self.csrf}).status_code,413)
         self.factory.assert_not_called()
 
@@ -193,7 +196,7 @@ class LocalWebTests(unittest.TestCase):
         self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
         self.assertEqual(self.post('/api/chat',self.body()).json['error'],'locked');self.factory.assert_not_called()
         app=create_app(data_path=other,access_token=TOKEN,enabled=True,claude_model=MODEL,allow_claude=True,claude_factory=self.factory)
-        self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf'];self.post('/api/profile',{'country':'US','grade':9})
+        self.client=app.test_client();self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf'];self.post('/api/profile',{'country':'IL','grade':10,'units':3})
         self.assertEqual(self.chat().status_code,200)
         self.assertEqual(self.chat().json['error'],'limit');self.assertEqual(self.ai.responses.parse.call_count,1)
 
@@ -293,9 +296,99 @@ class LocalWebTests(unittest.TestCase):
         self.db=Path(self.temp.name)/'israel-old.sqlite3'
         self.app=self.make_app();self.client=self.app.test_client()
         self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+        # An older Israel profile without units is still valid and readable, but it cannot chat until it is completed.
         self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10}).status_code,200)
+        state=self.state();self.assertEqual(state['profile'],{'country':'IL','grade':10});self.assertFalse(state['profile_ready'])
+        refused=self.chat();self.assertEqual((refused.status_code,refused.json['error']),(409,'profile_incomplete'))
+        self.ai.responses.parse.assert_not_called();self.factory.assert_not_called()
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'units':3}).status_code,200)
         self.assertEqual(self.chat().status_code,200)
-        self.assertIn('level (units) is unknown',self.ai.responses.parse.call_args.kwargs['instructions'])
+        self.assertIn('رياضيات، الصف العاشر، 3 وحدات',self.ai.responses.parse.call_args.kwargs['instructions'])
+
+    def fresh_server(self, name):
+        self.db=Path(self.temp.name)/name
+        self.app=self.make_app();self.client=self.app.test_client()
+        self.csrf=self.post('/api/session',{'token':TOKEN}).json['csrf']
+
+    def test_no_profile_means_no_chat_and_not_ready(self):
+        self.fresh_server('empty.sqlite3')
+        state=self.state();self.assertIsNone(state['profile']);self.assertFalse(state['profile_ready'])
+        refused=self.chat();self.assertEqual((refused.status_code,refused.json['error']),(409,'profile'))
+        self.ai.responses.parse.assert_not_called();self.factory.assert_not_called()
+
+    def test_a_profile_without_a_curriculum_country_must_be_completed_before_chatting(self):
+        self.fresh_server('us.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'US','grade':9}).status_code,200)  # the old saved shape
+        self.assertFalse(self.state()['profile_ready'])
+        refused=self.chat()
+        self.assertEqual((refused.status_code,refused.json['error']),(409,'profile_incomplete'))
+        self.assertIn('الدولة والصف والوحدات',self.post('/api/chat',self.body(),headers={'X-NMI-Language':'ar'}).json['message'])
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':3}).status_code,200)
+        self.assertTrue(self.state()['profile_ready'])
+        self.assertEqual(self.chat().status_code,200)
+
+    def test_profile_edit_keeps_the_conversation_and_the_next_message_loads_the_new_curriculum(self):
+        self.fresh_server('edit.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':3}).status_code,200)
+        self.assertEqual(self.chat().status_code,200)
+        self.assertIn('رياضيات، الصف العاشر، 3 وحدات',self.ai.responses.parse.call_args.kwargs['cache_prefix'])
+        before=self.state()
+        self.assertEqual(len(before['history']),2)
+        # Edit: another level and a target. Same endpoint, no 409 any more.
+        edited={'country':'IL','grade':10,'subject':'math','units':3,'target_units':5}
+        self.assertEqual(self.post('/api/profile',edited).status_code,200)
+        after=self.state()
+        self.assertEqual(after['profile'],edited);self.assertTrue(after['profile_ready'])
+        self.assertEqual((after['history'],after['attempts']),(before['history'],before['attempts']))
+        self.assertEqual(self.chat().status_code,200)
+        prefix=self.ai.responses.parse.call_args.kwargs['cache_prefix']
+        self.assertIn('رياضيات، الصف العاشر، 3 وحدات',prefix);self.assertIn('رياضيات، الصف العاشر، 5 وحدات',prefix)
+        self.assertIn('# TARGET LEVEL CURRICULUM (5 units)',prefix)
+        # Move to another level and drop the target: only the new curriculum is loaded.
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':11,'subject':'math','units':4}).status_code,200)
+        self.assertEqual(self.chat().status_code,200)
+        prefix=self.ai.responses.parse.call_args.kwargs['cache_prefix']
+        self.assertIn('رياضيات، الصف الحادي عشر، 4 وحدات',prefix);self.assertNotIn('TARGET LEVEL',prefix);self.assertNotIn('3 وحدات (3',prefix)
+        self.assertEqual(len(self.state()['history']),6)
+        self.factory.assert_called()
+
+    def test_profile_edit_is_refused_while_a_request_runs(self):
+        self.fresh_server('busy.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'units':3}).status_code,200)
+        started=threading.Event();release=threading.Event()
+        def slow(**kwargs):
+            started.set();release.wait(3)
+            return SimpleNamespace(output_parsed=parsed(),status='completed')
+        self.ai.responses.parse.side_effect=slow
+        first=self.app.test_client()
+        cookie=self.client.get_cookie(self.app.config['SESSION_COOKIE_NAME'],domain='127.0.0.1')
+        first.set_cookie(self.app.config['SESSION_COOKIE_NAME'],cookie.value,domain='127.0.0.1')
+        worker=threading.Thread(target=lambda:first.post('/api/chat',json=self.body(),base_url=ORIGIN,headers={'Origin':ORIGIN,'X-NMI-CSRF':self.csrf}))
+        worker.start();self.assertTrue(started.wait(2))
+        try:
+            self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'units':4}).json['error'],'busy')
+        finally:release.set();worker.join(4)
+        self.assertEqual(self.state()['profile']['units'],3)  # nothing changed mid-request
+
+    def test_profile_edit_never_overwrites_unreadable_data(self):
+        self.fresh_server('unreadable.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'units':3}).status_code,200)
+        with contextlib.closing(sqlite3.connect(self.db)) as db, db:db.execute('UPDATE state SET payload=?',('[]',))
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'units':4}).json['error'],'storage')
+        with contextlib.closing(sqlite3.connect(self.db)) as db:self.assertEqual(db.execute('SELECT payload FROM state').fetchone()[0],'[]')
+
+    def test_target_units_validation(self):
+        from local_web import valid_profile
+        base={'country':'IL','grade':10,'subject':'math','units':3}
+        for target in (4,5):self.assertTrue(valid_profile(base|{'target_units':target}))
+        self.assertTrue(valid_profile({'country':'IL','grade':10,'units':4,'target_units':5}))
+        for bad in (3,2,6,'5',True,None,5.0):self.assertFalse(valid_profile(base|{'target_units':bad}),bad)
+        self.assertFalse(valid_profile({'country':'IL','grade':10,'units':5,'target_units':4}))  # not higher
+        self.assertFalse(valid_profile({'country':'IL','grade':10,'target_units':5}))  # no current level
+        self.assertFalse(valid_profile({'country':'US','grade':10,'target_units':5}))
+        for body in (base|{'target_units':3},base|{'target_units':9}):
+            self.assertEqual(self.post('/api/profile',body).status_code,400)
+        self.assertEqual(self.post('/api/profile',base|{'target_units':5}).status_code,200)
 
     def test_rate_limit_and_identical_text_distinct_requests(self):
         for _ in range(6):self.assertEqual(self.chat().status_code,200)

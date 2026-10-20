@@ -75,6 +75,22 @@ class LocalStore:
         with closing(self.connect()) as db, db:
             db.execute("INSERT INTO state(id,payload) VALUES(1,?)", (json.dumps(state),))
 
+    def update_profile(self, profile):
+        """Replace the profile only. History and attempts are kept; unreadable data is never overwritten."""
+        with closing(self.connect()) as db, db:
+            row = db.execute("SELECT payload FROM state WHERE id=1").fetchone()
+            if row is None:
+                state = {"profile": profile, "history": [], "attempts": []}
+                db.execute("INSERT INTO state(id,payload) VALUES(1,?)", (json.dumps(state, ensure_ascii=False),))
+                return
+            try:
+                state = json.loads(row[0])
+                assert isinstance(state, dict) and set(state) == {"profile", "history", "attempts"}
+            except (ValueError, TypeError, AssertionError) as error:
+                raise StoreError() from error
+            state["profile"] = profile
+            db.execute("UPDATE state SET payload=? WHERE id=1", (json.dumps(state, ensure_ascii=False),))
+
     def request(self, request_id):
         with closing(self.connect()) as db:
             row = db.execute("SELECT fingerprint,status,reply,error FROM requests WHERE id=?", (request_id,)).fetchone()

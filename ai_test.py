@@ -4,7 +4,7 @@ import re
 
 from pydantic import ValidationError
 
-from curriculum import get_curriculum
+from curriculum import NOT_READY, get_curriculum
 from learning_result import LearningResult, has_reply_text
 from progress import load_progress, record_attempt
 from chat_history import load_history, save_history
@@ -22,6 +22,32 @@ Before you send the reply, check it:
 - Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it.
 - The question asks for one single thing. If it lists several things to find or compute (with "and", "then" or commas), keep only the first one.
 - The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations."""
+
+
+# Part of the variable section of the instructions (the student's dialect is seen only in the conversation).
+DIALECT_RULE = """# LANGUAGE AND DIALECT
+
+Reply in the same dialect as the student's own messages (for example Palestinian Arabic if the student writes in it), and keep that dialect for the whole conversation.
+If the student's dialect is not clear, use simple Arabic close to Palestinian.
+Do not use Egyptian Arabic (for example "هنبدأ", "إيه", "عشان كده", "دلوقتي", "كده", "أوي") unless the student wrote in it.
+When the preferred language is English, reply in English."""
+
+LEVEL_TRANSITION = """# LEVEL TRANSITION
+
+The student studies {units} units now and wants to move up to {target} units. The two curriculum files above are the current level and the target level.
+Help the student cover the difference between them step by step. Start with the topics that are in the target level file and not in the current level file, one topic at a time, using the topic names and ids of the target file.
+When the student asks what to learn, give a short ordered plan from the target file's topics (name each topic with its id), then ask which topic to start with.
+Do not invent topics that are not in the files."""
+
+
+def target_curriculum(country, grade, subject, units, target_units):
+    """The target level's curriculum text, or None when there is no real higher-level file to add."""
+    if target_units in (None, "") or str(target_units) == str(units):
+        return None
+    target = get_curriculum(country, grade, subject=subject, units=target_units)
+    if target == NOT_READY or target.startswith("The student's level (units) is unknown"):
+        return None
+    return target
 
 
 # Construct only when a conversation is explicitly requested, never on import.
@@ -61,7 +87,7 @@ def rules_for_subject(subject, rules=None):
 
 def ask_ai(name, grade, country, language, message, *, storage=None,
            ai_client=None, model=None, web_policy=False, intent="question",
-           subject="math", units=None):
+           subject="math", units=None, target_units=None):
 
     # Flask may supply its explicitly selected provider. Direct calls use Claude.
     # Import lazily because the adapter shares InvalidAIResponse from this module.
@@ -110,7 +136,12 @@ Preferred language: {language}
     # Two parts. The stable part (rules, then curriculum) is the same for every request of this
     # student, so the provider may cache it. The variable part follows and ends with FINAL CHECK.
     stable_instructions = rules_for_subject(subject) + "\n\n# STUDENT CURRICULUM\n" + curriculum
-    instructions = student_context + "\n\n" + progress_context
+    target = target_curriculum(country, grade, subject, units, target_units) if curriculum != NOT_READY else None
+    if target is not None:
+        # Moving up a level: both files and the transition rules belong to the cached stable part.
+        stable_instructions += (f"\n\n# TARGET LEVEL CURRICULUM ({target_units} units)\n" + target + "\n\n"
+                                + LEVEL_TRANSITION.format(units=units, target=target_units))
+    instructions = student_context + "\n\n" + progress_context + "\n\n" + DIALECT_RULE
     if web_policy:
         instructions += """
 \n# LOCAL WEBSITE SAFETY AND ASSESSMENT BOUNDARY
