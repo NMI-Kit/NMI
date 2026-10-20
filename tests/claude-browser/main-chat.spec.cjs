@@ -17,24 +17,70 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
   await page.goto('/#local-access=synthetic-local-unlock-not-a-real-secret');
   await expect(page).toHaveURL(ORIGIN+'/');
   await expect(page.locator('#live-gate')).not.toContainText('private');
-  await page.locator('#open-live').click();
-  // Units are asked only for Israel from Grade 10, next to the grade.
-  await expect(page.locator('#live-units-field')).toBeHidden();
+  const dialog=page.locator('#live-onboarding'), profile=async()=>(await (await page.request.get('/api/state')).json());
+  const values=selector=>page.locator(selector).evaluate(select=>[...select.options].map(option=>option.value));
+  // First visit, no profile: the profile dialog is the first thing, it cannot be dismissed, nothing is preselected,
+  // and chatting is impossible until it is complete.
+  await expect(dialog).toBeVisible();
+  expect((await profile()).profile).toBeNull();
+  expect((await profile()).profile_ready).toBe(false);
+  await expect(page.locator('#live-profile-cancel')).toBeHidden();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeVisible();
+  for(const id of ['country','grade'])await expect(page.locator('#live-'+id)).toHaveValue('');
   await expect(page.locator('#live-subject-field')).toBeHidden();
-  await expect(page.locator('#live-grade option')).toHaveText(['9','10','11','12']);
-  await page.locator('#live-country').selectOption('IL');
-  // Options come from the server's curriculum folders: math, grades 10-12, units 3/4/5.
-  await expect(page.locator('#live-subject-field')).toBeVisible();
-  await expect(page.locator('#live-subject option')).toHaveCount(1);
-  await expect(page.locator('#live-subject')).toHaveValue('math');
-  await expect(page.locator('#live-grade option')).toHaveText(['10','11','12']);
-  await expect(page.locator('#live-units-field')).toBeVisible();
-  await expect(page.locator('#live-units option')).toHaveCount(3);
+  await expect(page.locator('#live-units-field')).toBeHidden();
+  await expect(page.locator('#live-target-field')).toBeHidden();
+  await expect(page.locator('#live-profile-save')).toBeDisabled();
+  await expect(page.locator('#send')).toBeDisabled();
+  await expect(page.locator('#live-edit-profile')).toBeVisible();
+  // A country without a curriculum cannot be saved; the student is told why.
+  await page.locator('#live-country').selectOption('US');
+  expect(await values('#live-grade')).toEqual(['','9','10','11','12']);
   await page.locator('#live-grade').selectOption('10');
+  await expect(page.locator('#live-profile-error')).not.toHaveText('');
+  await expect(page.locator('#live-profile-save')).toBeDisabled();
+  await expect(page.locator('#live-units-field')).toBeHidden();
+  // Israel: options come from the server's curriculum folders: math, grades 10-12, units 3/4/5. The grade is kept only if offered.
+  await page.locator('#live-country').selectOption('IL');
+  await expect(page.locator('#live-profile-error')).toHaveText('');
+  await expect(page.locator('#live-subject-field')).toBeVisible();
+  expect(await values('#live-subject')).toEqual(['','math']);
+  await expect(page.locator('#live-subject')).toHaveValue('math');  // the only subject is selected for the student
+  expect(await values('#live-grade')).toEqual(['','10','11','12']);
+  await expect(page.locator('#live-grade')).toHaveValue('10');
+  await expect(page.locator('#live-units-field')).toBeVisible();
+  expect(await values('#live-units')).toEqual(['','3','4','5']);
+  await expect(page.locator('#live-units')).toHaveValue('');
+  await expect(page.locator('#live-target-field')).toBeHidden();
+  await expect(page.locator('#live-profile-save')).toBeDisabled();  // units still missing
+  await page.locator('#live-units').selectOption('3');
+  await expect(page.locator('#live-target-field')).toBeVisible();
+  expect(await values('#live-target-units')).toEqual(['','4','5']);  // only higher levels, empty = no move
+  await page.locator('#live-target-units').selectOption('5');
+  await expect(page.locator('#live-profile-save')).toBeEnabled();
+  await page.locator('#live-profile-save').click();
+  await expect(dialog).toBeHidden();
+  expect((await profile()).profile).toEqual({country:'IL',grade:10,subject:'math',units:3,target_units:5});
+  expect((await profile()).profile_ready).toBe(true);
+  // The profile can be opened and edited at any time, with the saved values filled in.
+  await page.locator('#live-edit-profile').click();
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#live-profile-cancel')).toBeVisible();
+  for(const [id,value] of [['country','IL'],['subject','math'],['grade','10'],['units','3'],['target-units','5']])await expect(page.locator('#live-'+id)).toHaveValue(value);
+  await page.locator('#live-profile-cancel').click();
+  await expect(dialog).toBeHidden();
+  await page.locator('#live-edit-profile').click();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();  // an edit can be dismissed
+  expect((await profile()).profile.units).toBe(3);
+  await page.locator('#live-edit-profile').click();
   await page.locator('#live-units').selectOption('4');
-  await page.locator('#live-profile button').click();
-  await expect(page.locator('#live-profile')).toBeHidden();
-  expect((await (await page.request.get('/api/state')).json()).profile).toEqual({country:'IL',grade:10,subject:'math',units:4});
+  expect(await values('#live-target-units')).toEqual(['','5']);
+  await page.locator('#live-target-units').selectOption('');
+  await page.locator('#live-profile-save').click();
+  await expect(dialog).toBeHidden();
+  expect((await profile()).profile).toEqual({country:'IL',grade:10,subject:'math',units:4});
   await page.locator('#open-live').click();
   await expect(page.locator('#live-provider-field')).toHaveCount(0);
   await expect(page.locator('#live-signin')).toHaveCount(0);

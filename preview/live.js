@@ -26,7 +26,7 @@
       uncertain:'The request outcome is not confirmed. Do not send another request. Check its saved status again or ask the owner to inspect it.',
       reconcile:'Check saved request status', refresh:'Refresh connection status', setup:'Local test profile',
       privacy:'Use fictional test information only. This local prototype has one owner and one saved conversation.',
-      country:'Country of study', grade:'Grade', subject:'Subject', subject_math:'Mathematics', units:'Study level (units)', unitsOption:'units', save:'Save local test profile', profileSaved:'Local test profile saved.',
+      country:'Country of study', grade:'Grade', subject:'Subject', subject_math:'Mathematics', saveProfile:'Save profile', profileTitle:'Student profile', profileIntro:'Choose your country, grade and units. NMI cannot chat before the profile is complete.', profileNeeds:'Your saved profile is incomplete. Complete it before you continue.', choose:'Choose…', targetUnits:'Do you want to move up to a higher level?', noTarget:'No', editProfile:'Edit profile', cancelProfile:'Cancel', unsupportedCountry:'The curriculum is available for Israel only for now. Choose Israel to continue.', units:'Study level (units)', unitsOption:'units', save:'Save local test profile', profileSaved:'Local test profile saved.',
       
       
       validate:'Use a message of 1–4,000 characters.', user:'You', conversation:'Saved conversation',
@@ -37,7 +37,6 @@
       profileName:'Local learner', ask:'Question', answer:'Answer to an exercise', hint:'Request a hint', confusion:'I am confused', intent:'Message type',
       blocked:'Scripted replies are disabled here. Use the main composer after connecting the tutor.', local:'Local tutor',
       storage:'This conversation is saved on the local Flask server, separate from the static demo. No real replies are saved in browser demo storage.',
-      readonly:'The existing profile is preserved. Profile editing and multiple conversations are pending.',
       missing:'No saved receipt was found yet. This does not prove that the request cannot still finish. Do not resend.',
       
     },
@@ -63,7 +62,7 @@
       uncertain:'لم تُؤكّد نتيجة الطلب. لا تُرسِل طلبًا آخر. تحقّق من حالته المحفوظة مجددًا أو اطلب من صاحب المشروع فحصها.',
       reconcile:'التحقّق من حالة الطلب المحفوظ', refresh:'تحديث حالة الاتصال', setup:'ملف اختبار محلي',
       privacy:'استخدم معلومات اختبار افتراضية فقط. يدعم هذا النموذج المحلي مستخدمًا واحدًا ومحادثة محفوظة واحدة.',
-      country:'بلد الدراسة', grade:'الصف الدراسي', subject:'المادة', subject_math:'الرياضيات', units:'مستوى الدراسة (وحدات)', unitsOption:'وحدات', save:'حفظ ملف الاختبار المحلي', profileSaved:'حُفظ ملف الاختبار المحلي.',
+      country:'بلد الدراسة', grade:'الصف الدراسي', subject:'المادة', subject_math:'الرياضيات', saveProfile:'حفظ البروفايل', profileTitle:'ملف الطالب', profileIntro:'اختر الدولة والصف والوحدات. لا تبدأ المحادثة قبل اكتمال الملف.', profileNeeds:'ملفك المحفوظ غير مكتمل. أكمله قبل أن تتابع.', choose:'اختر…', targetUnits:'بدك تنتقل لمستوى أعلى؟', noTarget:'لا', editProfile:'تعديل البروفايل', cancelProfile:'إلغاء', unsupportedCountry:'المنهاج متوفر حاليًا لإسرائيل فقط. اختر إسرائيل لتتابع.', units:'مستوى الدراسة (وحدات)', unitsOption:'وحدات', save:'حفظ ملف الاختبار المحلي', profileSaved:'حُفظ ملف الاختبار المحلي.',
       
       
       validate:'استخدم رسالة من حرف واحد إلى 4000 حرف.', user:'أنت', conversation:'المحادثة المحفوظة',
@@ -74,7 +73,6 @@
       profileName:'المتعلّم المحلي', ask:'سؤال', answer:'إجابة عن تمرين', hint:'طلب تلميح', confusion:'لم أفهم', intent:'نوع الرسالة',
       blocked:'الردود التجريبية معطّلة هنا. استخدم مربع المحادثة الرئيسي بعد توصيل المعلّم.', local:'المعلّم المحلي',
       storage:'تُحفظ هذه المحادثة في خادم Flask المحلي منفصلةً عن المعاينة التجريبية. لا تُحفظ الردود الحقيقية في تخزين المعاينة بالمتصفح.',
-      readonly:'الملف الحالي محفوظ. تعديل الملف وإضافة محادثات متعددة غير متاحين بعد.',
       missing:'لم يُعثر على سجل محفوظ للطلب بعد. قد يكون الطلب ما زال قيد التنفيذ. لا تُعِد الإرسال.',
       
     }
@@ -95,9 +93,22 @@
   $('#main').before(banner);
   const usageNote=node('p',undefined,'page-note');usageNote.id='live-usage';usageNote.hidden=true;banner.append(usageNote);
   const connection=node('section',undefined,'live-connection');connection.id='live-connection';
-  connection.innerHTML=`<h2 data-live="connection"></h2>
-    <form id="live-profile" class="live-profile"><h3 data-live="setup"></h3><p data-live="privacy"></p><div class="field"><label for="live-country" data-live="country"></label><select id="live-country" required></select></div><div class="field" id="live-subject-field" hidden><label for="live-subject" data-live="subject"></label><select id="live-subject"></select></div><div class="field"><label for="live-grade" data-live="grade"></label><select id="live-grade" required></select></div><div class="field" id="live-units-field" hidden><label for="live-units" data-live="units"></label><select id="live-units"></select></div><button type="submit" class="primary-button" data-live="save"></button></form><p id="live-profile-note"></p>`;
+  connection.innerHTML=`<h2 data-live="connection"></h2>`;
   $('#settings').append(connection);
+  // Student profile: a dialog that opens first (nothing preselected) and can be reopened to edit.
+  const profileDialog=node('dialog');profileDialog.id='live-onboarding';profileDialog.setAttribute('aria-labelledby','live-profile-title');
+  profileDialog.innerHTML=`<div class="onboarding-brand"><img src="assets/nmi-mark-light.svg" width="38" height="38" alt="NMI"></div>
+    <h2 id="live-profile-title" data-live="profileTitle"></h2><p id="live-profile-intro" class="page-note"></p>
+    <form id="live-profile" novalidate><div class="onboarding-grid">
+      <div class="field"><label for="live-country" data-live="country"></label><select id="live-country" required></select></div>
+      <div class="field" id="live-subject-field" hidden><label for="live-subject" data-live="subject"></label><select id="live-subject"></select></div>
+      <div class="field"><label for="live-grade" data-live="grade"></label><select id="live-grade" required></select></div>
+      <div class="field" id="live-units-field" hidden><label for="live-units" data-live="units"></label><select id="live-units"></select></div>
+      <div class="field" id="live-target-field" hidden><label for="live-target-units" data-live="targetUnits"></label><select id="live-target-units"></select></div>
+    </div><p id="live-profile-error" class="form-status error" role="status"></p>
+    <div class="onboarding-actions"><button type="button" id="live-profile-cancel" class="context-button" data-live="cancelProfile" hidden></button><button type="submit" id="live-profile-save" class="primary-button" data-live="saveProfile"></button></div></form>`;
+  document.body.append(profileDialog);
+  const editProfileButton=node('button',undefined,'context-button');editProfileButton.id='live-edit-profile';editProfileButton.type='button';banner.append(editProfileButton);
   const consent=node('label',undefined,'live-consent');
   consent.innerHTML='<input id="live-consent" type="checkbox"><span id="live-consent-text"></span>';
   $('#question-form').before(consent);
@@ -132,7 +143,53 @@
     finally {if(current===revision)render();}
   }
   // Subject, grade and units for the curriculum country come from the server's curriculum/ folders.
-  function fill(select,values,label){const kept=select.value;select.replaceChildren(...values.map(v=>{const n=node('option',label(v));n.value=String(v);return n;}));if(values.map(String).includes(kept))select.value=kept;}
+  // Every select starts empty ("Choose…"): the student picks, nothing is preselected.
+  let profileMode=null; // 'forced' cannot be dismissed (no complete profile yet); 'edit' can
+  function fillSelect(select,values,label,wanted,empty){
+    const keep=wanted!==undefined?String(wanted):select.value, list=values.map(String);
+    select.replaceChildren(...['',...list].map(v=>{const n=node('option',v===''?(empty||tr('choose')):label(v));n.value=v;return n;}));
+    // The only subject is not a choice: it is selected for the student.
+    select.value=list.includes(keep)?keep:(select.id==='live-subject'&&list.length===1?list[0]:'');
+  }
+  function fillForm(want){
+    const w=want||{}, country=$('#live-country');
+    fillSelect(country,LIVE_COUNTRIES.map(c=>c.code),code=>LIVE_COUNTRIES.find(c=>c.code===code)[lang()],w.country);
+    const curriculum=!!country.value&&country.value===state?.curriculum?.country, tree=curriculum?state.curriculum.options:{};
+    $('#live-subject-field').hidden=!curriculum;$('#live-units-field').hidden=!curriculum;
+    fillSelect($('#live-subject'),Object.keys(tree),s=>tr('subject_'+s)||s,w.subject);
+    fillSelect($('#live-grade'),curriculum?Object.keys(tree[$('#live-subject').value]||{}):country.value?SUPPORTED_GRADES:[],g=>String(g),w.grade);
+    const units=curriculum?tree[$('#live-subject').value]?.[$('#live-grade').value]||[]:[];
+    fillSelect($('#live-units'),units,u=>`${u} ${tr('unitsOption')}`,w.units);
+    const higher=units.filter(u=>u>(Number($('#live-units').value)||Infinity));
+    $('#live-target-field').hidden=!curriculum||!higher.length;
+    fillSelect($('#live-target-units'),higher,u=>`${u} ${tr('unitsOption')}`,w.target_units,tr('noTarget'));
+    $('#live-profile-error').textContent=country.value&&!curriculum?tr('unsupportedCountry'):'';
+    $('#live-profile-save').disabled=busy||!formBody();
+  }
+  // The profile to send, or null while a required choice is missing (or the country has no curriculum).
+  function formBody(){
+    if($('#live-units-field').hidden)return null;
+    const subject=$('#live-subject').value, grade=$('#live-grade').value, units=$('#live-units').value;
+    if(!subject||!grade||!units)return null;
+    const target=$('#live-target-field').hidden?'':$('#live-target-units').value;
+    return {country:$('#live-country').value,grade:Number(grade),subject,units:Number(units),...(target?{target_units:Number(target)}:{})};
+  }
+  function openProfile(mode){
+    if(!state)return;
+    profileMode=mode;const p=state.profile;
+    fillForm(p?{country:p.country,subject:p.subject||'math',grade:p.grade,units:p.units??'',target_units:p.target_units??''}
+      :{country:'',subject:'',grade:'',units:'',target_units:''});
+    $('#live-profile-cancel').hidden=mode==='forced';
+    $('#live-profile-intro').textContent=tr(mode==='forced'&&p?'profileNeeds':'profileIntro');
+    if(!profileDialog.open)profileDialog.showModal();
+    $('#live-country').focus();
+  }
+  // No complete profile: the dialog opens first and stays until it is saved. A complete one closes it.
+  function syncProfileDialog(){
+    if(!state||unlocking)return;
+    if(!state.profile_ready){if(profileMode!=='forced'||!profileDialog.open)openProfile('forced');}
+    else if(profileMode==='forced'){profileMode=null;if(profileDialog.open)profileDialog.close();}
+  }
   function chatVisible(){return !['#settings','#profile','#progress','#curriculum','#library'].includes(location.hash);}
   function openSettings(){location.hash='settings';connection.scrollIntoView({block:'nearest'});}
   function renderHistory() {
@@ -168,25 +225,20 @@
     connectionButton.textContent=tr('connection');$('#live-refresh').textContent=tr('refresh');$('#live-retry').textContent=tr('reconcile');
     $('#live-refresh').disabled=busy||unlocking;$('#live-retry').hidden=!pendingRequest||busy;
     $('#live-gate').textContent=tr(!state?'access':!state.enabled?'disabled':!state.claude_enabled?'claudeDisabled':!state.claude_configured?'claudeModel':!state.remaining?'limit':'claudeReady');
-    $('#live-profile').hidden=!state||!!state.profile;
-    $('#live-profile-note').textContent=state?.profile?tr('readonly'):'';
-    fill($('#live-country'),LIVE_COUNTRIES.map(c=>c.code),code=>LIVE_COUNTRIES.find(c=>c.code===code)[lang()]);
-    const curriculum=$('#live-country').value===state?.curriculum?.country, tree=curriculum?state.curriculum.options:{};
-    $('#live-subject-field').hidden=!curriculum;$('#live-units-field').hidden=!curriculum;
-    fill($('#live-subject'),Object.keys(tree),s=>tr('subject_'+s)||s);
-    fill($('#live-grade'),curriculum?Object.keys(tree[$('#live-subject').value]||{}):SUPPORTED_GRADES,g=>String(g));
-    fill($('#live-units'),curriculum?tree[$('#live-subject').value]?.[$('#live-grade').value]||[]:[],u=>`${u} ${tr('unitsOption')}`);
+    editProfileButton.textContent=tr('editProfile');editProfileButton.hidden=!state;
+    profileDialog.querySelector('img').src=`assets/nmi-mark-${document.documentElement.dataset.theme}.svg`;
+    fillForm();
     $('#live-consent-text').textContent=tr('claudeConsent');
     $('#live-consent').disabled=busy||!!pendingRequest;$('#live-intent').disabled=busy||!!pendingRequest;
     $('#send').hidden=false;$('#stop').hidden=true;
-    $('#send').disabled=busy||!!pendingRequest||!state?.profile||!state?.enabled||!state.remaining||!$('#live-consent').checked||!state?.claude_enabled||!state?.claude_configured;
+    $('#send').disabled=busy||!!pendingRequest||!state?.profile_ready||!state?.enabled||!state.remaining||!$('#live-consent').checked||!state?.claude_enabled||!state?.claude_configured;
     question.disabled=busy||!!pendingRequest;form.setAttribute('aria-busy',String(busy));
     $('#composer-help').textContent=tr('safety');$('#suggestions').hidden=true;
     $('.demo-badge [data-i18n="demo"]').textContent=tr('claude');$('.workspace-label small').textContent=tr('local');
     usageNote.hidden=!state?.last_usage;
     if(!usageNote.hidden){const u=state.last_usage,n=v=>Number.isSafeInteger(v)?new Intl.NumberFormat(lang()).format(v):'—';usageNote.textContent=`${tr('tokens')}: ${tr('inputTokens')} ${n(u.input_tokens)} · ${tr('outputTokens')} ${n(u.output_tokens)} · ${tr('cacheRead')} ${n(u.cache_read_input_tokens)} · ${tr('cacheWrite')} ${n(u.cache_creation_input_tokens)}${u.complete?'':` · ${tr('partialUsage')}`}`;}
-    $('#profile-name').textContent=tr('profileName');$('#profile-avatar').hidden=true;$('#edit-profile').textContent=tr('connection');
-    $('#profile-meta').textContent=state?.profile?`${tr('grade')} ${state.profile.grade} · ${LIVE_COUNTRIES.find(c=>c.code===state.profile.country)?.[lang()]||''}${state.profile.units?` · ${state.profile.units} ${tr('unitsOption')}`:''}`:tr('setup');
+    $('#profile-name').textContent=tr('profileName');$('#profile-avatar').hidden=true;$('#edit-profile').textContent=tr('editProfile');
+    $('#profile-meta').textContent=state?.profile?`${tr('grade')} ${state.profile.grade} · ${LIVE_COUNTRIES.find(c=>c.code===state.profile.country)?.[lang()]||''}${state.profile.units?` · ${state.profile.units} ${tr('unitsOption')}`:''}${state.profile.target_units?` → ${state.profile.target_units} ${tr('unitsOption')}`:''}`:tr('setup');
     $('#profile [data-i18n="demoProfile"]').textContent=tr('setup');
     $('#profile [data-i18n="demoHistoryNote"]').textContent=tr('oneChat');
     $('#profile [data-i18n="progressBody"]').textContent=tr('noScore');
@@ -194,7 +246,7 @@
     $('#progress [data-i18n="progressBody"]').textContent=tr('safety');
     progress.textContent=`${tr('noScore')} ${new Intl.NumberFormat(lang()).format(state?.attempts?.length||0)}`;
     $('#library-list').textContent=tr('blocked');
-    renderHistory();renderSearch();renderStatus();
+    renderHistory();renderSearch();renderStatus();syncProfileDialog();
   }
   async function connectionAction(path,body){
     if(busy||pendingRequest)return null;busy=true;status('connecting');render();
@@ -237,15 +289,21 @@
     pendingRequest={request_id:crypto.randomUUID(),message,language:lang(),intent:$('#live-intent').value};void send(pendingRequest);
   },true);
   connectionButton.addEventListener('click',openSettings);
-  window.addEventListener('nmi-open-connection',openSettings);window.addEventListener('nmi-open-live',openSettings);
+  window.addEventListener('nmi-open-connection',()=>openProfile('edit'));window.addEventListener('nmi-open-live',openSettings);
   window.addEventListener('nmi-demo-blocked',()=>status('blocked',true));
   window.addEventListener('nmi-render',render);window.addEventListener('nmi-search',renderSearch);
   $('#new-chat').addEventListener('click',()=>status('oneChat'));
   $('#live-consent').addEventListener('change',render);
-  $('#live-country').addEventListener('change',render);$('#live-subject').addEventListener('change',render);$('#live-grade').addEventListener('change',render);
+  for(const id of ['country','subject','grade','units','target-units'])$('#live-'+id).addEventListener('change',()=>fillForm());
+  editProfileButton.addEventListener('click',()=>openProfile('edit'));
+  $('#live-profile-cancel').addEventListener('click',()=>{profileMode=null;profileDialog.close();});
+  profileDialog.addEventListener('cancel',event=>{if(profileMode==='forced')event.preventDefault();else profileMode=null;});
   $('#live-refresh').addEventListener('click',async()=>{try{await refresh();status();}catch(e){status(e.code?'':'failure',true,e.code?e.message:'');}});
   $('#live-retry').addEventListener('click',()=>void reconcile());
-  $('#live-profile').addEventListener('submit',event=>{event.preventDefault();void connectionAction('/api/profile',{country:$('#live-country').value,grade:Number($('#live-grade').value),...($('#live-units-field').hidden?{}:{subject:$('#live-subject').value,...($('#live-units').value?{units:Number($('#live-units').value)}:{})})}).then(result=>{if(result){status('profileSaved');location.hash='new';}});});
+  $('#live-profile').addEventListener('submit',event=>{
+    event.preventDefault();const body=formBody();if(!body||busy)return;
+    void connectionAction('/api/profile',body).then(result=>{if(result){profileMode=null;if(profileDialog.open)profileDialog.close();status('profileSaved');location.hash='new';render();}});
+  });
   window.addEventListener('beforeunload',event=>{if(busy||pendingRequest||question.value.trim()){event.preventDefault();event.returnValue='';}});
   async function unlock(){
     if(!location.hash.startsWith('#local-access')||unlocking)return;
