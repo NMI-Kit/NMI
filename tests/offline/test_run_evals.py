@@ -18,6 +18,7 @@ from claude_provider import ClaudeError
 from learning_result import LearningResult
 from tools import run_evals as ev
 import hard_solutions
+from local_web import valid_profile
 
 MODEL = 'claude-fake-tutor'
 JUDGE_MODEL = 'claude-fake-judge'
@@ -58,10 +59,10 @@ class CaseFileTests(unittest.TestCase):
         cls.cases = ev.load_cases()
 
     def test_twenty_five_arabic_math_cases_mostly_three_units(self):
-        base = [c for c in self.cases if c.get('tier') != 'hard']
+        base = [c for c in self.cases if 'tier' not in c]
         self.assertEqual(len(base), 25)
-        self.assertEqual(len(self.cases), 52)
-        self.assertEqual(len({c['id'] for c in self.cases}), 52)
+        self.assertEqual(len(self.cases), 55)  # 25 basic + 27 hard + 3 conversation
+        self.assertEqual(len({c['id'] for c in self.cases}), 55)
         units = [c['profile']['units'] for c in base]
         self.assertGreater(units.count(3), len(units) / 2)
         self.assertTrue(set(units) <= {3, 4, 5} and 5 in units)
@@ -206,6 +207,100 @@ class HardCaseTests(unittest.TestCase):
                     self.assertTrue(ev.check_math(reply, c['math'])['revealed'], reply)
 
 
+EGYPTIAN_REPLY = 'هنبدأ بمعادلات الدرجة الأولى. إيه رأيك نشوف مثال؟ عشان كده لازم نفهم الفكرة'
+PALESTINIAN_REPLY = 'أهلين! خلّينا نبدأ بمعادلة بسيطة. شو بتتوقع يكون x لو 2x = 10؟'
+
+
+class ConversationCaseTests(unittest.TestCase):
+    """Three cases from the owner's own session: dialect, moving from 3 to 5 units, a consistent quadratic example."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {c['id']: c for c in ev.load_cases() if c.get('tier') == 'conversation'}
+
+    def test_the_three_cases_and_their_profiles(self):
+        self.assertEqual(set(self.cases), {'conv-dialect-01', 'conv-target-01', 'conv-quadratic-01'})
+        for c in self.cases.values():
+            with self.subTest(case=c['id']):
+                self.assertEqual([m['role'] for m in c['conversation']], ['user'])
+                self.assertRegex(c['conversation'][0]['content'], '[\u0600-\u06FF]')
+                self.assertEqual((c['intent'], c['expect_attempt'], c['math']), ('question', {'recorded': False}, None))
+                self.assertIn('سؤال واحد', c['expected_behavior'])
+                self.assertIn('فلسطيني', c['expected_behavior'])
+                self.assertIn('محادثة المالك', c['provenance'])
+                # The profile is one the website itself would accept, so its curriculum file really loads.
+                server_profile = {'country': 'IL', 'grade': c['profile']['grade'], 'subject': 'math', 'units': c['profile']['units']}
+                if 'target_units' in c['profile']:
+                    server_profile['target_units'] = c['profile']['target_units']
+                self.assertTrue(valid_profile(server_profile), server_profile)
+        self.assertEqual(self.cases['conv-dialect-01']['profile']['units'], 3)
+        self.assertEqual((self.cases['conv-target-01']['profile']['units'], self.cases['conv-target-01']['profile']['target_units']), (3, 5))
+
+    def test_dialect_case_forbids_egyptian_words_only_as_whole_words(self):
+        case = self.cases['conv-dialect-01']
+        found = ev.check_text(EGYPTIAN_REPLY, case)
+        self.assertEqual(set(found['forbidden']), {'هنبدأ', 'إيه', 'عشان كده', 'كده'})  # كده is a word of its own too
+        self.assertFalse(found['ok'])
+        self.assertTrue(ev.check_text(PALESTINIAN_REPLY, case)['ok'])
+        # Egyptian "this" (ده, دي) as a word is caught, but not inside Palestinian words such as هاد or الدي...
+        self.assertEqual(ev.check_text('شو ده؟ وكمان دي', case)['forbidden'], ['ده', 'دي'])
+        self.assertEqual(ev.check_text('هاد منيح، وبعدين هاي كمان. بيده وعدّي والدين', case)['forbidden'], [])
+
+    def test_target_case_needs_three_topics_of_the_target_file_and_no_missing_curriculum_claim(self):
+        case = self.cases['conv-target-01']
+        five = (ROOT / 'curriculum' / 'math' / 'grade10' / '5units.md').read_text(encoding='utf-8')
+        three = (ROOT / 'curriculum' / 'math' / 'grade10' / '3units.md').read_text(encoding='utf-8')
+        words = case['must_mention']['any_of']
+        self.assertEqual(case['must_mention']['at_least'], 3)
+        for word in words:  # every keyword is a topic of the 5-unit file that the 3-unit file does not have
+            self.assertIn(word, five)
+            self.assertNotIn(word, three)
+        plan = 'خطة: أولاً الهندسة التحليلية، بعدين دوال القوة والتحويلات، وبعدها التفاضل. بأي موضوع بدك تبدأ؟'
+        self.assertEqual(ev.check_text(plan, case)['mentioned'], ['التحليلية', 'دوال القوة', 'التحويلات', 'التفاضل'])
+        self.assertTrue(ev.check_text(plan, case)['ok'])
+        thin = ev.check_text('لازم تتعلم التفاضل ودالة الجذر. شو بدك تبدأ؟', case)
+        self.assertEqual((len(thin['mentioned']), thin['plan_ok'], thin['ok']), (2, False, False))
+        denied = ev.check_text('للأسف ما عندي منهاج لـ 5 وحدات. التفاضل والدائرة وتاليس مهمين', case)
+        self.assertEqual(denied['forbidden'], ['ما عندي منهاج'])
+        self.assertFalse(denied['ok'])
+
+    def test_sympy_facts_for_the_quadratic_example(self):
+        for number, fact in enumerate(hard_solutions.CONVERSATION_SOLUTIONS['conv-quadratic-01']()['facts']):
+            self.assertTrue(bool(fact), f'fact {number} is false')
+
+    def test_the_tutor_receives_the_target_level_and_the_dialect_rule_for_these_cases(self):
+        client = tutor_returning(PALESTINIAN_REPLY, is_attempt=False, subject=None, topic=None, skill=None,
+                                 correct=None, hint_used=None, mistake_type=None)
+        result = ev.evaluate_case(self.cases['conv-target-01'], MODEL, lambda m: client, judge_returning(9))
+        kwargs = client.responses.parse.call_args.kwargs
+        self.assertIn('رياضيات، الصف العاشر، 3 وحدات', kwargs['cache_prefix'])
+        self.assertIn('# TARGET LEVEL CURRICULUM (5 units)', kwargs['cache_prefix'])
+        self.assertIn('رياضيات، الصف العاشر، 5 وحدات', kwargs['cache_prefix'])
+        self.assertIn('LANGUAGE AND DIALECT', kwargs['instructions'])
+        self.assertFalse(result['passed'])  # the Palestinian reply names no topic of the 5-unit file
+        self.assertIn('missing_plan', result['weaknesses'])
+
+    def test_egyptian_reply_fails_even_with_a_perfect_judge_score_and_shows_in_the_report(self):
+        client = tutor_returning(EGYPTIAN_REPLY, is_attempt=False, subject=None, topic=None, skill=None,
+                                 correct=None, hint_used=None, mistake_type=None)
+        judge = judge_returning(10)
+        result = ev.evaluate_case(self.cases['conv-dialect-01'], MODEL, lambda m: client, judge)
+        self.assertFalse(result['passed'])
+        self.assertIn('forbidden_phrase', result['weaknesses'])
+        self.assertIn('forbidden phrases: هنبدأ', judge.call_args.args[2])
+        meta = {'date': '2026-10-20', 'model': MODEL, 'judge_model': JUDGE_MODEL, 'curriculum': 'اختبار'}
+        self.assertIn('عبارات ممنوعة: هنبدأ', ev.render_report(meta, [result]))
+        self.assertNotIn('forbidden_phrase', ev.JUDGE_TAGS)  # found by code, not by the judge
+        good = tutor_returning(PALESTINIAN_REPLY, is_attempt=False, subject=None, topic=None, skill=None,
+                               correct=None, hint_used=None, mistake_type=None)
+        self.assertTrue(ev.evaluate_case(self.cases['conv-dialect-01'], MODEL, lambda m: good, judge_returning(9))['passed'])
+
+    def test_target_units_reach_ask_ai_through_the_runner(self):
+        self.assertEqual(ev.curriculum_options({'units': 3, 'subject': 'math', 'target_units': 5}),
+                         {'subject': 'math', 'units': 3, 'target_units': 5})
+        self.assertEqual(ev.curriculum_options({'units': 3, 'subject': 'math'}), {'subject': 'math', 'units': 3})
+
+
 class MathCheckTests(unittest.TestCase):
     def test_leaked_answer_is_detected_in_arabic_variable_and_digits(self):
         spec = {'expected': ['4'], 'mode': 'must_withhold'}
@@ -339,8 +434,8 @@ class LevelSelectionTests(unittest.TestCase):
         self.assertEqual({c['profile']['grade'] for c in ev.filter_cases(self.cases, grade=12)}, {12})
         self.assertEqual(len(ev.filter_cases(self.cases, grade=12)), 9)
         self.assertEqual({c['profile']['units'] for c in ev.filter_cases(self.cases, units=5)}, {5})
-        self.assertEqual(len(ev.filter_cases(self.cases)), 52)
-        self.assertEqual(len(ev.filter_cases(self.cases, grade=10, units=3)), 17 + 3)
+        self.assertEqual(len(ev.filter_cases(self.cases)), 55)
+        self.assertEqual(len(ev.filter_cases(self.cases, grade=10, units=3)), 17 + 3 + 2)  # + the dialect and target cases
 
     def test_asking_for_every_case_keeps_file_order(self):
         level = ev.filter_cases(self.cases, grade=11, units=4)

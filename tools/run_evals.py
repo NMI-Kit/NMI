@@ -44,10 +44,13 @@ WEAKNESSES = {
     'wrong_verdict': 'حكم خاطئ على جواب الطالب (قال صح لخطأ أو العكس)',
     'bad_pacing': 'شرح طويل أو أكثر من مفهوم أو بدون سؤال تحقق',
     'arithmetic_error': 'خطأ حسابي في الرد (فحص الكود)',
+    'forbidden_phrase': 'يستعمل عبارات ممنوعة، مثل لهجة غير لهجة الطالب (فحص الكود)',
+    'missing_plan': 'لا يعطي خطة من مواضيع ملف المستوى الهدف (فحص الكود)',
     'wrong_attempt_record': 'تسجيل محاولة تعليمية خاطئ أو ناقص',
     'other': 'سبب آخر',
 }
-JUDGE_TAGS = [tag for tag in WEAKNESSES if tag not in {'arithmetic_error', 'wrong_attempt_record'}]
+CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan'}
+JUDGE_TAGS = [tag for tag in WEAKNESSES if tag not in CODE_TAGS]
 
 
 class JudgeVerdict(BaseModel):
@@ -110,6 +113,30 @@ def to_expr(text, evaluate=True):
                           local_dict={'x': sympy.Symbol('x'), 'y': sympy.Symbol('y'), 'sqrt': sympy.sqrt})
     except Exception:
         return None
+
+
+# Arabic letters only: the Arabic question mark and comma (U+061F, U+060C) are punctuation, not part of a word.
+_ARABIC = chr(0x621) + '-' + chr(0x64A) + chr(0x671) + '-' + chr(0x6D3)
+
+
+def phrase_found(text, phrase):
+    """Whole-word match: an Arabic phrase is not found inside a longer Arabic word."""
+    before = '(?<![' + _ARABIC + '])' if re.match('[' + _ARABIC + ']', phrase[0]) else ''
+    after = '(?![' + _ARABIC + '])' if re.match('[' + _ARABIC + ']', phrase[-1]) else ''
+    return re.search(before + re.escape(phrase) + after, text, re.IGNORECASE) is not None
+
+
+def check_text(reply, case):
+    """Code checks for cases that name phrases the reply must not use or topics it must mention."""
+    forbidden = [phrase for phrase in case.get('forbidden_phrases', []) if phrase_found(reply, phrase)]
+    result = {'forbidden': forbidden, 'mentioned': None, 'needed': None}
+    spec = case.get('must_mention')
+    if spec:
+        result['mentioned'] = [word for word in spec['any_of'] if word in reply]
+        result['needed'] = spec['at_least']
+    result['plan_ok'] = result['mentioned'] is None or len(result['mentioned']) >= result['needed']
+    result['ok'] = not forbidden and result['plan_ok']
+    return result
 
 
 def reduced(text):
@@ -305,10 +332,12 @@ def curriculum_options(profile):
         options['subject'] = profile.get('subject', 'math')
     if 'units' in accepted:
         options['units'] = profile['units']
+    if 'target_units' in accepted and profile.get('target_units'):
+        options['target_units'] = profile['target_units']
     return options
 
 
-def code_facts(math, attempts, expect):
+def code_facts(math, attempts, expect, text=None):
     lines = []
     if math['arithmetic_errors']:
         lines.append('False arithmetic equations written by the tutor: ' + '; '.join(math['arithmetic_errors']))
@@ -318,6 +347,10 @@ def code_facts(math, attempts, expect):
         lines.append('The tutor reply ' + ('REVEALS' if math['revealed'] else 'does not reveal') + ' the final answer.')
     if math['stated'] is not None:
         lines.append('The tutor reply ' + ('states' if math['stated'] else 'does NOT state') + ' the correct answer.')
+    if text and text['forbidden']:
+        lines.append('The tutor reply uses forbidden phrases: ' + ', '.join(text['forbidden']))
+    if text and text['mentioned'] is not None:
+        lines.append(f"Topics of the target curriculum named in the reply: {len(text['mentioned'])} (at least {text['needed']} are needed).")
     recorded = [{'correct': a['correct']} for a in attempts]
     lines.append(f'Learning attempt recorded by the tutor: {recorded or "none"}; expected: {expect}.')
     return '\n'.join(lines)
@@ -364,10 +397,12 @@ def evaluate_case(case, model, tutor_factory, judge):
     math = check_math(outcome['reply'], case.get('math'), [m['content'] for m in conversation])
     expect = case['expect_attempt']
     outcome['math'] = math
+    text_checks = check_text(outcome['reply'], case)
+    outcome['text_checks'] = text_checks
     outcome['attempt'] = {'expected': expect, 'recorded': [a['correct'] for a in attempts],
                           'ok': attempt_ok(expect, attempts)}
     try:
-        verdict, outcome['judge_usage'] = judge(case, outcome['reply'], code_facts(math, attempts, expect))
+        verdict, outcome['judge_usage'] = judge(case, outcome['reply'], code_facts(math, attempts, expect, text_checks))
     except Exception as error:
         outcome.update(status='judge_error', error=error_code(error))
         return outcome
@@ -376,10 +411,15 @@ def evaluate_case(case, model, tutor_factory, judge):
         outcome['weaknesses'].append('reveals_answer')
     if math['arithmetic_errors']:
         outcome['weaknesses'].append('arithmetic_error')
+    if text_checks['forbidden']:
+        outcome['weaknesses'].append('forbidden_phrase')
+    if not text_checks['plan_ok']:
+        outcome['weaknesses'].append('missing_plan')
     if not outcome['attempt']['ok']:
         outcome['weaknesses'].append('wrong_attempt_record')
     outcome['weaknesses'] = list(dict.fromkeys(outcome['weaknesses']))
-    outcome['passed'] = verdict.score >= PASS_SCORE and math['ok'] and outcome['attempt']['ok']
+    outcome['passed'] = (verdict.score >= PASS_SCORE and math['ok'] and outcome['attempt']['ok']
+                         and text_checks['ok'])
     return outcome
 
 
@@ -478,6 +518,11 @@ def render_report(meta, results):
             problems.append('لم يذكر الجواب الصحيح')
         if math['arithmetic_errors']:
             problems.append('خطأ حسابي: ' + ', '.join(math['arithmetic_errors']))
+        text_checks = r.get('text_checks') or {}
+        if text_checks.get('forbidden'):
+            problems.append('عبارات ممنوعة: ' + ', '.join(text_checks['forbidden']))
+        if text_checks.get('plan_ok') is False:
+            problems.append(f"ذكر {len(text_checks['mentioned'])} من مواضيع الهدف والمطلوب {text_checks['needed']}")
         math_text = 'مشكلة: ' + '؛ '.join(problems) if problems else 'سليم'
         attempt_text = 'سليم' if r['attempt']['ok'] else f"متوقع {r['attempt']['expected']} — سُجّل {r['attempt']['recorded']}"
         lines.append(f"| {r['id']} | {r['category']} | {r['units']} | {r['score']}/10 | {_cell(math_text)} | "

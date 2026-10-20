@@ -1,6 +1,6 @@
 # Tutor evals
 
-`tutor_cases.json` has 52 Arabic math cases: 25 basic Grade 10 cases (17 for 3 units, 4 for 4 units, 4 for 5 units) and 27 hard cases (see below). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
+`tutor_cases.json` has 55 Arabic math cases: 25 basic Grade 10 cases (17 for 3 units, 4 for 4 units, 4 for 5 units), 27 hard cases and 3 conversation cases (see below). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
 
 ## Hard cases (`tier: "hard"`)
 
@@ -11,6 +11,17 @@
 - `hard_trap`: a trap (two roots and a domain, an ambiguous case, a hole instead of an asymptote, a tangent, a negative ratio).
 
 The correct answer of every hard case is computed independently with sympy in `hard_solutions.py` (`SOLUTIONS["h11u4-3"]()`). The offline test fails if `math.expected` differs from that result, if a recorded fact is false (for example the student's wrong step is not actually wrong), or if the conversation already contains the withheld answer. `h12u4-3` has no numeric answer (the correct result is that there is no minimum), so its facts are checked but `math` is null.
+
+## Conversation cases (`tier: "conversation"`)
+
+Three cases taken from the owner's own session with the website (ids `conv-...`): a student who writes Palestinian Arabic (the tutor must answer in that dialect, not Egyptian), a 3-unit student whose target is 5 units and who asks what to learn (the tutor must give a plan from `5units.md`), and a question about the quadratic function (the example must agree with the shape it describes: y = x² opens upward, y = −x² downward; the sympy facts are in `hard_solutions.CONVERSATION_SOLUTIONS`).
+
+Two optional fields are checked by code, not by the judge:
+
+- `forbidden_phrases`: whole words the reply must not contain (for example Egyptian words, or a claim that no curriculum is loaded). A hit fails the case (`forbidden_phrase`).
+- `must_mention`: `{"any_of": [...], "at_least": N}`; the reply must name at least N of these topic words (`missing_plan`).
+
+A profile may carry `target_units`; the runner passes it to `ask_ai`, which adds the target level's file to the cached part of the prompt.
 
 `legacy_cases.json` keeps the earlier 22 unevaluated behavior specifications unchanged. `tools/run_evals.py` does not use it.
 

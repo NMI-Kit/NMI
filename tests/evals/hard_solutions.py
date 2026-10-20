@@ -249,3 +249,16 @@ def h12u5_3():  # m12-5-05: y = x + sqrt(13) is tangent to x^2/9 + y^2/4 = 1
 
 # Case ids use dashes (h10u3-1); function names use underscores.
 SOLUTIONS = {name.replace('_', '-'): fn for name, fn in globals().items() if name.startswith('h1') and callable(fn)}
+
+
+# ------------------------------------------------- conversation cases (tier "conversation")
+def conv_quadratic_01():  # m10-4-02: the shape word must match the sign of a
+    up, down = x**2, -x**2
+    return _case([], [sp.diff(up, x, 2) > 0, sp.diff(down, x, 2) < 0,   # a > 0 opens upward (U), a < 0 downward
+                      sp.solve(sp.diff(up, x), x) == [0], up.subs(x, 0) == 0,
+                      all(up.subs(x, k) >= up.subs(x, 0) for k in range(-3, 4)),       # y = x^2: the vertex is the minimum
+                      all(down.subs(x, k) <= down.subs(x, 0) for k in range(-3, 4)),   # y = -x^2: the vertex is the maximum
+                      up.subs(x, -2) == up.subs(x, 2) == 4])
+
+
+CONVERSATION_SOLUTIONS = {'conv-quadratic-01': conv_quadratic_01}
