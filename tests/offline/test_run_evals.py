@@ -501,6 +501,63 @@ class ModeCaseTests(unittest.TestCase):
         self.assertIsNone(ClaudeProvider(MODEL).last_result)
 
 
+class NoFilesInAnyModeTests(unittest.TestCase):
+    """The student never hears "الملف" or "ملف المنهاج", in any mode; plan ids and exam numbers stay allowed."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = ev.load_cases()
+
+    def test_the_two_phrases_are_forbidden_for_every_case_of_every_kind(self):
+        self.assertEqual(ev.ALWAYS_FORBIDDEN, ('الملف', 'ملف المنهاج'))
+        for case in self.cases:
+            for phrase in ('حسب الملف', 'من ملف المنهاج', 'بالملف'):
+                with self.subTest(case=case['id'], phrase=phrase):
+                    found = ev.check_text('رد عادي. ' + phrase, case)
+                    self.assertFalse(found['ok'])
+                    self.assertTrue(found['forbidden'])
+        # cases from a file without any forbidden list (the basic and hard ones) are covered too
+        plain = next(c for c in self.cases if 'tier' not in c)
+        self.assertNotIn('forbidden_substrings', plain)
+        self.assertEqual(ev.check_text('حسب الملف', plain)['forbidden'], ['الملف'])
+        self.assertEqual(ev.check_text('من ملف المنهاج', plain)['forbidden'], ['ملف المنهاج'])
+        self.assertEqual(ev.check_text('رد عادي بدون ذكر', plain)['forbidden'], [])
+
+    def test_a_phrase_is_reported_once_even_when_the_case_lists_it_too(self):
+        explain = next(c for c in self.cases if c['id'] == 'mode-explain-slope-01')
+        self.assertEqual(ev.check_text('حسب الملف', explain)['forbidden'], ['الملف', 'ملف'])
+
+    def test_plan_replies_keep_their_ids_and_exam_numbers_but_not_the_file_words(self):
+        plan = next(c for c in self.cases if c['id'] == 'mode-plan-01')
+        self.assertTrue(ev.check_text(PLAN_REPLY, plan)['ok'])  # ids, 35173, 35371 and "بجروت" are allowed
+        for phrase in ('حسب الملف', 'من ملف المنهاج'):
+            self.assertFalse(ev.check_text(PLAN_REPLY + ' ' + phrase, plan)['ok'])
+        # "منهاجك" is the allowed way to say it
+        self.assertTrue(ev.check_text(PLAN_REPLY + ' هاد من منهاجك.', plan)['ok'])
+
+    def test_a_reply_that_names_the_file_fails_even_with_a_perfect_judge_score_and_shows_in_the_report(self):
+        plan = next(c for c in self.cases if c['id'] == 'mode-plan-01')
+        client = tutor_returning(PLAN_REPLY + ' كل هاد من ملف المنهاج', is_attempt=False, subject=None, topic=None,
+                                 skill=None, correct=None, hint_used=None, mistake_type=None)
+        result = ev.evaluate_case(plan, MODEL, lambda m: client, judge_returning(10))
+        self.assertFalse(result['passed'])
+        self.assertIn('forbidden_phrase', result['weaknesses'])
+        meta = {'date': '2026-10-21', 'model': MODEL, 'judge_model': JUDGE_MODEL, 'curriculum': 'اختبار'}
+        self.assertIn('عبارات ممنوعة: ملف المنهاج', ev.render_report(meta, [result]))
+
+    def test_the_rule_is_in_the_tutor_instructions_and_the_judge_rules_for_every_mode(self):
+        import ai_test
+        from learning_result import LearningResult
+        self.assertIn('In every mode: never write the words "الملف", "ملف المنهاج" or "the file"', ai_test.FINAL_CHECK)
+        self.assertIn('منهاجك', ai_test.FINAL_CHECK)
+        self.assertIn('topic ids and the exam form number are allowed', ai_test.FINAL_CHECK)
+        description = LearningResult.model_json_schema()['properties']['explanation']['description']
+        self.assertIn("In every mode it never writes the words 'الملف' or 'ملف المنهاج'", description)
+        self.assertIn("say 'منهاجك'", description)
+        self.assertIn('In every mode, penalise the words "الملف" and "ملف المنهاج"', ev.JUDGE_SYSTEM)
+        self.assertIn('topic ids and the\nexam form number are allowed in a plan', ev.JUDGE_SYSTEM)
+
+
 class MathCheckTests(unittest.TestCase):
     def test_leaked_answer_is_detected_in_arabic_variable_and_digits(self):
         spec = {'expected': ['4'], 'mode': 'must_withhold'}

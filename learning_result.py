@@ -48,7 +48,8 @@ class LearningResult(BaseModel):
         "or asks to start or learn a topic. 'practice': the student sends a solution, an answer or an exercise. "
         "'plan': the student asks for a study plan for the Bagrut or an exam."))
     explanation: str = Field(description=(
-        "The teaching part of the reply, in the student's own dialect, written in Markdown. It contains NO question "
+        "The teaching part of the reply, in the student's own dialect, written in Markdown. In every mode it never "
+        "writes the words 'الملف' or 'ملف المنهاج' (or 'the file'): say 'منهاجك' or name the topic. It contains NO question "
         "marks at all (neither ? nor ؟) and asks nothing: the only question goes in `question`. It must never "
         "state the final answer of the student's own exercise. What it contains depends on the mode. "
         "PRACTICE: short, with bullet points. Name the exact mistake and why it happened. It must never calculate, "

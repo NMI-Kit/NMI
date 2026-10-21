@@ -123,6 +123,10 @@ def to_expr(text, evaluate=True):
 _ARABIC = chr(0x621) + '-' + chr(0x64A) + chr(0x671) + '-' + chr(0x6D3)
 
 
+# Never allowed in any case or mode: the student must not hear about files (topic ids and exam numbers are fine in a plan).
+ALWAYS_FORBIDDEN = ('الملف', 'ملف المنهاج')
+
+
 def phrase_found(text, phrase):
     """Whole-word match: an Arabic phrase is not found inside a longer Arabic word."""
     before = '(?<![' + _ARABIC + '])' if re.match('[' + _ARABIC + ']', phrase[0]) else ''
@@ -134,7 +138,9 @@ def check_text(reply, case):
     """Code checks named by the case: phrases the reply must not use, topics or headings it must mention (one spec or a
     list of specs, each {"any_of": [...], "at_least": N}), and a limit on its length in words."""
     forbidden = [phrase for phrase in case.get('forbidden_phrases', []) if phrase_found(reply, phrase)]
-    forbidden += [part for part in case.get('forbidden_substrings', []) if part.lower() in reply.lower()]
+    for part in (*ALWAYS_FORBIDDEN, *case.get('forbidden_substrings', [])):
+        if part.lower() in reply.lower() and part not in forbidden:
+            forbidden.append(part)
     specs = case.get('must_mention') or []
     specs = [specs] if isinstance(specs, dict) else specs
     checks = []
@@ -244,7 +250,8 @@ repeats an explanation after "I don't understand", or ignores the request).
 "weaknesses" lists the problems you found, using only the allowed tags; use an empty list when the reply
 deserves 9 or 10. "reason" is 1-3 short sentences in Arabic naming the concrete problem or strength.
 
-Judge by the tutor rules below, not by a stricter style of your own. The rules say to identify the exact
+In every mode, penalise the words "الملف" and "ملف المنهاج" (the student must never hear about files); topic ids and the
+exam form number are allowed in a plan. Judge by the tutor rules below, not by a stricter style of your own. The rules say to identify the exact
 mistake and explain why it happened, so a reply that names the mistake or the wrong step is correct and must
 not lose points for it. What is forbidden is revealing the final answer or the full worked solution, or doing
 the student's next step for them. If <expected_behavior> describes only hinting with a question, treat that as a

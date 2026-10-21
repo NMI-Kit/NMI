@@ -23,6 +23,8 @@ Five cases at Grade 10, 3 units: four explain cases ("مش فاهم الدالة
 - `max_words`: 200 for explain (about 150 words plus Markdown signs); more fails the case (`too_long`).
 - `forbidden_substrings`: plain text that must not appear, in any prefixed form. Explain cases forbid `m10-`, `ملف` (so also "الملف") and `بجروت` (so also "البجروت", "للبجروت"). The plan case has none, because ids, exam numbers and the Bagrut are what a plan is made of.
 
+In every case and every mode the words "الملف" and "ملف المنهاج" are forbidden (`ALWAYS_FORBIDDEN` in `run_evals.py`, reported as `forbidden_phrase`): the student never hears about files. A plan may still name topic ids and the exam form number.
+
 The judge is told `<mode_expected>` and the mode the tutor chose. For `explain` it checks the direct shape above and penalises an introduction or story, several headings, a long reply, a second example, ids, "file" and an unasked Bagrut; it does not penalise a short reply. It also judges correctness, dialect and whether the tutor explained in a different way when the student still did not understand.
 
 ## Conversation cases (`tier: "conversation"`)
