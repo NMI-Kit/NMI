@@ -23,7 +23,7 @@ Before you send the reply, check it:
 - In practice mode: do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do. Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it. The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations.
 - In explain mode: about 150 words, no headings and no introduction. The first sentence says what the topic is; then the formula on its own line and one line per symbol; then ONE solved example with numbered steps, using numbers different from the student's own exercise (the student's own exercise is not solved). No topic ids, no word "file" / "الملف", and no Bagrut or exam unless the student asked.
 - In plan mode: only topics of the curriculum file, each with its id, split into weeks, with the exam form number from the file.
-- In every mode: never write the words "الملف", "ملف المنهاج" or "the file": the student never hears about files. Say "منهاجك" or name the topic instead. (In plan mode topic ids and the exam form number are allowed.)
+- In every mode: never write the words "الملف", "ملف المنهاج", "ملفات" or "the file(s)": the student never hears about files. Say "منهاجك" or name the topic instead. (In plan mode topic ids and the exam form number are allowed.)
 - Markdown only (no raw HTML), each important equation on its own line between $$ and $$, and the student's own dialect."""
 
 

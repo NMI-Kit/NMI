@@ -124,7 +124,7 @@ _ARABIC = chr(0x621) + '-' + chr(0x64A) + chr(0x671) + '-' + chr(0x6D3)
 
 
 # Never allowed in any case or mode: the student must not hear about files (topic ids and exam numbers are fine in a plan).
-ALWAYS_FORBIDDEN = ('الملف', 'ملف المنهاج')
+ALWAYS_FORBIDDEN = ('الملف', 'ملف المنهاج', 'ملفات')
 
 
 def phrase_found(text, phrase):
@@ -250,7 +250,7 @@ repeats an explanation after "I don't understand", or ignores the request).
 "weaknesses" lists the problems you found, using only the allowed tags; use an empty list when the reply
 deserves 9 or 10. "reason" is 1-3 short sentences in Arabic naming the concrete problem or strength.
 
-In every mode, penalise the words "الملف" and "ملف المنهاج" (the student must never hear about files); topic ids and the
+In every mode, penalise the words "الملف", "ملف المنهاج" and "ملفات" (the student must never hear about files); topic ids and the
 exam form number are allowed in a plan. Judge by the tutor rules below, not by a stricter style of your own. The rules say to identify the exact
 mistake and explain why it happened, so a reply that names the mistake or the wrong step is correct and must
 not lose points for it. What is forbidden is revealing the final answer or the full worked solution, or doing

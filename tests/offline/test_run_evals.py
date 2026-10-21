@@ -378,6 +378,23 @@ class ModeCaseTests(unittest.TestCase):
                 with self.subTest(case=case['id']):
                     self.assertIn('بالظبط', case['forbidden_phrases'])
 
+    def test_yabqa_is_an_egyptian_word_in_every_dialect_list(self):
+        # Said by the tutor in a real session: "يبقى أنا ماشي معك صح".
+        with_list = [c for c in ev.load_cases() if c.get('forbidden_phrases')]
+        self.assertEqual(len(with_list), 8)  # 3 conversation + 5 mode cases
+        for case in with_list:
+            with self.subTest(case=case['id']):
+                self.assertIn('يبقى', case['forbidden_phrases'])
+                found = ev.check_text('يبقى أنا ماشي معك صح', case)
+                self.assertEqual(found['forbidden'], ['يبقى'])
+                self.assertFalse(found['ok'])
+        case = self.cases['mode-explain-slope-01']
+        # Whole word only: it is not found inside another word, and the Palestinian words are untouched.
+        self.assertEqual(ev.check_text(EXPLAIN_REPLY + ' ويبقى ما بيبقى المبقى', case)['forbidden'], [])
+        self.assertEqual(ev.check_text(EXPLAIN_REPLY + ' بدي أضيف: يبقى', case)['forbidden'], ['يبقى'])
+        dialect_case = next(c for c in ev.load_cases() if c['id'] == 'conv-dialect-01')
+        self.assertTrue(ev.check_text(PALESTINIAN_REPLY, dialect_case)['ok'])  # a Palestinian reply still passes
+
     def test_a_good_explain_reply_passes_the_code_checks(self):
         case = self.cases['mode-explain-slope-01']
         good = ev.check_text(EXPLAIN_REPLY, case)
@@ -509,9 +526,9 @@ class NoFilesInAnyModeTests(unittest.TestCase):
         cls.cases = ev.load_cases()
 
     def test_the_two_phrases_are_forbidden_for_every_case_of_every_kind(self):
-        self.assertEqual(ev.ALWAYS_FORBIDDEN, ('الملف', 'ملف المنهاج'))
+        self.assertEqual(ev.ALWAYS_FORBIDDEN, ('الملف', 'ملف المنهاج', 'ملفات'))
         for case in self.cases:
-            for phrase in ('حسب الملف', 'من ملف المنهاج', 'بالملف'):
+            for phrase in ('حسب الملف', 'من ملف المنهاج', 'بالملف', 'من ملفات المنهاج عندي'):
                 with self.subTest(case=case['id'], phrase=phrase):
                     found = ev.check_text('رد عادي. ' + phrase, case)
                     self.assertFalse(found['ok'])
@@ -523,6 +540,16 @@ class NoFilesInAnyModeTests(unittest.TestCase):
         self.assertEqual(ev.check_text('من ملف المنهاج', plain)['forbidden'], ['ملف المنهاج'])
         self.assertEqual(ev.check_text('رد عادي بدون ذكر', plain)['forbidden'], [])
 
+    def test_the_real_session_phrase_with_ملفات_is_caught_in_every_case(self):
+        # Said by the tutor in a real session: "من ملفات المنهاج عندي".
+        for case in self.cases:
+            with self.subTest(case=case['id']):
+                found = ev.check_text('أنا ماشي معك من ملفات المنهاج عندي', case)
+                self.assertIn('ملفات', found['forbidden'])
+                self.assertFalse(found['ok'])
+        plain = next(c for c in self.cases if 'tier' not in c)
+        self.assertEqual(ev.check_text('من ملفات المنهاج عندي', plain)['forbidden'], ['ملفات'])
+
     def test_a_phrase_is_reported_once_even_when_the_case_lists_it_too(self):
         explain = next(c for c in self.cases if c['id'] == 'mode-explain-slope-01')
         self.assertEqual(ev.check_text('حسب الملف', explain)['forbidden'], ['الملف', 'ملف'])
@@ -530,7 +557,7 @@ class NoFilesInAnyModeTests(unittest.TestCase):
     def test_plan_replies_keep_their_ids_and_exam_numbers_but_not_the_file_words(self):
         plan = next(c for c in self.cases if c['id'] == 'mode-plan-01')
         self.assertTrue(ev.check_text(PLAN_REPLY, plan)['ok'])  # ids, 35173, 35371 and "بجروت" are allowed
-        for phrase in ('حسب الملف', 'من ملف المنهاج'):
+        for phrase in ('حسب الملف', 'من ملف المنهاج', 'من ملفات المنهاج عندي'):
             self.assertFalse(ev.check_text(PLAN_REPLY + ' ' + phrase, plan)['ok'])
         # "منهاجك" is the allowed way to say it
         self.assertTrue(ev.check_text(PLAN_REPLY + ' هاد من منهاجك.', plan)['ok'])
@@ -548,13 +575,13 @@ class NoFilesInAnyModeTests(unittest.TestCase):
     def test_the_rule_is_in_the_tutor_instructions_and_the_judge_rules_for_every_mode(self):
         import ai_test
         from learning_result import LearningResult
-        self.assertIn('In every mode: never write the words "الملف", "ملف المنهاج" or "the file"', ai_test.FINAL_CHECK)
+        self.assertIn('In every mode: never write the words "الملف", "ملف المنهاج", "ملفات" or "the file(s)"', ai_test.FINAL_CHECK)
         self.assertIn('منهاجك', ai_test.FINAL_CHECK)
         self.assertIn('topic ids and the exam form number are allowed', ai_test.FINAL_CHECK)
         description = LearningResult.model_json_schema()['properties']['explanation']['description']
-        self.assertIn("In every mode it never writes the words 'الملف' or 'ملف المنهاج'", description)
+        self.assertIn("In every mode it never writes the words 'الملف', 'ملف المنهاج' or 'ملفات'", description)
         self.assertIn("say 'منهاجك'", description)
-        self.assertIn('In every mode, penalise the words "الملف" and "ملف المنهاج"', ev.JUDGE_SYSTEM)
+        self.assertIn('In every mode, penalise the words "الملف", "ملف المنهاج" and "ملفات"', ev.JUDGE_SYSTEM)
         self.assertIn('topic ids and the\nexam form number are allowed in a plan', ev.JUDGE_SYSTEM)
 
 
