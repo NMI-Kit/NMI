@@ -1,6 +1,6 @@
 # Tutor evals
 
-`tutor_cases.json` has 55 Arabic math cases: 25 basic Grade 10 cases (17 for 3 units, 4 for 4 units, 4 for 5 units), 27 hard cases and 3 conversation cases (see below). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
+`tutor_cases.json` has 60 Arabic math cases: 25 basic Grade 10 cases (17 for 3 units, 4 for 4 units, 4 for 5 units), 27 hard cases, 3 conversation cases and 5 mode cases (see below). Each case has `profile`, `conversation` (ends with the student's message), `intent`, `expected_behavior`, `math` (reference answer and `must_withhold` or `must_state`, or null) and `expect_attempt` (should the tutor record a learning attempt, and was it correct). All are synthetic, not student records. The topic placement (for example derivatives and logarithms in Grade 11) follows the owner's brief and must be checked against the curriculum files when they exist.
 
 ## Hard cases (`tier: "hard"`)
 
@@ -11,6 +11,18 @@
 - `hard_trap`: a trap (two roots and a domain, an ambiguous case, a hole instead of an asymptote, a tangent, a negative ratio).
 
 The correct answer of every hard case is computed independently with sympy in `hard_solutions.py` (`SOLUTIONS["h11u4-3"]()`). The offline test fails if `math.expected` differs from that result, if a recorded fact is false (for example the student's wrong step is not actually wrong), or if the conversation already contains the withheld answer. `h12u4-3` has no numeric answer (the correct result is that there is no minimum), so its facts are checked but `math` is null.
+
+## Mode cases (`tier: "mode"`) and the judge
+
+The tutor works in one of three modes, chosen by the model from the student's message in the same request (no extra call) and returned in the `mode` field: `explain` (a full, ordered Markdown explanation of about 400 words with six fixed headings), `practice` (short, no answer, one question) and `plan` (a weekly plan from the curriculum file with topic ids and the exam form number).
+
+Five cases at Grade 10, 3 units: four explain cases ("مش فاهم الدالة التربيعية", "مش فاهم الدالة الخطية", "شو يعني ميل ولشو منستعمله", "شو يعني رقم ثابت وشو هو y") and one plan case ("بدي خطة للبجروت"). Each carries the mode it expects and code checks:
+
+- `mode`: the expected mode. The mode the model chose is read from the provider (`last_result`); a different mode fails the case (`wrong_mode`). A client that does not report its mode is not held against the tutor.
+- `must_mention`: one spec or a list of specs `{"any_of": [...], "at_least": N}`; the explain cases need all six headings, the plan case needs 6 topic ids, an exam form number and the word "week" (`missing_parts`).
+- `max_words`: 520 for explain (400 words plus Markdown signs); more fails the case (`too_long`).
+
+The judge is told `<mode_expected>` and the mode the tutor chose. For `explain` a long, complete, ordered reply is correct: length, headings, lists and the number of ideas are never penalised (the older one-idea limits in `hard_why` expectations are ignored). It still judges correctness, dialect, honesty about the curriculum (a topic that is not in the student's file must not be presented as being in it), worked examples with other numbers than the student's exercise, and the single closing question.
 
 ## Conversation cases (`tier: "conversation"`)
 

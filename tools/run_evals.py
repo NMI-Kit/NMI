@@ -23,6 +23,7 @@ sys.path.insert(0, str(ROOT))
 from ai_test import ask_ai, InvalidAIResponse, tutor_rules
 from claude_provider import (ClaudeProvider, ClaudeError, DEFAULT_EFFORT, USAGE_FIELDS, resolve_effort,
                              safe_error, sdk_client, valid_model)
+from learning_result import MODES
 from local_store import BufferedConversation
 
 CASES_FILE = ROOT / 'tests' / 'evals' / 'tutor_cases.json'
@@ -46,10 +47,13 @@ WEAKNESSES = {
     'arithmetic_error': 'خطأ حسابي في الرد (فحص الكود)',
     'forbidden_phrase': 'يستعمل عبارات ممنوعة، مثل لهجة غير لهجة الطالب (فحص الكود)',
     'missing_plan': 'لا يعطي خطة من مواضيع ملف المستوى الهدف (فحص الكود)',
+    'missing_parts': 'ينقصه أقسام أو مواضيع مطلوبة بالوضع (فحص الكود)',
+    'wrong_mode': 'اختار وضعاً غير المطلوب: شرح أو تمرين أو خطة (فحص الكود)',
+    'too_long': 'الرد أطول من الحد المسموح لهذا الوضع (فحص الكود)',
     'wrong_attempt_record': 'تسجيل محاولة تعليمية خاطئ أو ناقص',
     'other': 'سبب آخر',
 }
-CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan'}
+CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan', 'missing_parts', 'wrong_mode', 'too_long'}
 JUDGE_TAGS = [tag for tag in WEAKNESSES if tag not in CODE_TAGS]
 
 
@@ -127,15 +131,22 @@ def phrase_found(text, phrase):
 
 
 def check_text(reply, case):
-    """Code checks for cases that name phrases the reply must not use or topics it must mention."""
+    """Code checks named by the case: phrases the reply must not use, topics or headings it must mention (one spec or a
+    list of specs, each {"any_of": [...], "at_least": N}), and a limit on its length in words."""
     forbidden = [phrase for phrase in case.get('forbidden_phrases', []) if phrase_found(reply, phrase)]
-    result = {'forbidden': forbidden, 'mentioned': None, 'needed': None}
-    spec = case.get('must_mention')
-    if spec:
-        result['mentioned'] = [word for word in spec['any_of'] if word in reply]
-        result['needed'] = spec['at_least']
-    result['plan_ok'] = result['mentioned'] is None or len(result['mentioned']) >= result['needed']
-    result['ok'] = not forbidden and result['plan_ok']
+    specs = case.get('must_mention') or []
+    specs = [specs] if isinstance(specs, dict) else specs
+    checks = []
+    for spec in specs:
+        mentioned = [word for word in spec['any_of'] if word in reply]
+        checks.append({'mentioned': mentioned, 'needed': spec['at_least'], 'ok': len(mentioned) >= spec['at_least']})
+    words = len(reply.split())
+    result = {'forbidden': forbidden, 'checks': checks, 'words': words, 'max_words': case.get('max_words'),
+              # the first spec, for readers of the older single-spec shape
+              'mentioned': checks[0]['mentioned'] if checks else None, 'needed': checks[0]['needed'] if checks else None}
+    result['plan_ok'] = all(check['ok'] for check in checks)
+    result['short_enough'] = result['max_words'] is None or words <= result['max_words']
+    result['ok'] = not forbidden and result['plan_ok'] and result['short_enough']
     return result
 
 
@@ -240,6 +251,19 @@ preferred style, not a rule: do not lower the score when the reply names the mis
 the correction to the student. Use "reveals_answer" only when the final answer or the full solution is revealed.
 The rules also require the reply to end with exactly one question; more than one question is a "bad_pacing" flaw.
 
+Every reply has a mode (explain, practice or plan). <mode_expected> is the mode the case wants and <code_facts> says
+which mode the tutor chose. Judge the reply by the mode the case expects (by the chosen mode when none is given).
+- explain: the student asked to be taught. A long, complete, well-ordered Markdown explanation of up to about 400 words,
+  with the required headings, two worked examples and one light closing question, is CORRECT. Never lower the score for
+  length, headings, bullets, tables or the number of ideas, and never use "bad_pacing" for it; if <expected_behavior>
+  asks for brevity or a single idea in an explain case, ignore that limit. Judge instead: is the content correct and
+  simple, is it in the student's own dialect, is it honest about the curriculum (it must not say a topic is in the
+  curriculum file when it is not), are the worked examples correct with numbers different from the student's own
+  exercise, and does the reply end with exactly one light question.
+- plan: a plan built only from the topics of the curriculum file, split into weeks, with topic ids and the exam
+  form number from the file; it ends with one question.
+- practice: as described above: no answer, the exact mistake named, one question.
+
 # TUTOR RULES
 """ + tutor_rules
 
@@ -247,6 +271,7 @@ The rules also require the reply to end with exactly one question; more than one
 def judge_prompt(case, reply, facts):
     conversation = '\n'.join(f"[{m['role']}] {m['content']}" for m in case['conversation'])
     topic = f"<topic>{case['topic']}</topic>\n" if case.get('topic') else ''
+    topic += f"<mode_expected>{case['mode']}</mode_expected>\n" if case.get('mode') else ''
     return (f"<case_id>{case['id']}</case_id>\n{topic}<expected_behavior>{case['expected_behavior']}</expected_behavior>\n"
             f"<profile>{json.dumps(case['profile'], ensure_ascii=False)}</profile>\n"
             f"<conversation>\n{conversation}\n</conversation>\n<tutor_reply>\n{reply}\n</tutor_reply>\n"
@@ -337,7 +362,7 @@ def curriculum_options(profile):
     return options
 
 
-def code_facts(math, attempts, expect, text=None):
+def code_facts(math, attempts, expect, text=None, mode=None, expected_mode=None):
     lines = []
     if math['arithmetic_errors']:
         lines.append('False arithmetic equations written by the tutor: ' + '; '.join(math['arithmetic_errors']))
@@ -349,8 +374,12 @@ def code_facts(math, attempts, expect, text=None):
         lines.append('The tutor reply ' + ('states' if math['stated'] else 'does NOT state') + ' the correct answer.')
     if text and text['forbidden']:
         lines.append('The tutor reply uses forbidden phrases: ' + ', '.join(text['forbidden']))
-    if text and text['mentioned'] is not None:
-        lines.append(f"Topics of the target curriculum named in the reply: {len(text['mentioned'])} (at least {text['needed']} are needed).")
+    for check in (text or {}).get('checks', []):
+        lines.append(f"Required words or topics named in the reply: {len(check['mentioned'])} (at least {check['needed']} are needed).")
+    if text and text['max_words'] is not None:
+        lines.append(f"The reply has {text['words']} words (limit {text['max_words']}).")
+    if mode:
+        lines.append(f"The tutor chose the mode: {mode}" + (f" (the case expects: {expected_mode})." if expected_mode else '.'))
     recorded = [{'correct': a['correct']} for a in attempts]
     lines.append(f'Learning attempt recorded by the tutor: {recorded or "none"}; expected: {expect}.')
     return '\n'.join(lines)
@@ -399,10 +428,14 @@ def evaluate_case(case, model, tutor_factory, judge):
     outcome['math'] = math
     text_checks = check_text(outcome['reply'], case)
     outcome['text_checks'] = text_checks
+    chosen = getattr(getattr(client, 'last_result', None), 'mode', None)
+    chosen = chosen if chosen in MODES else None
+    outcome['mode'] = {'expected': case.get('mode'), 'chosen': chosen,
+                       'ok': not (case.get('mode') and chosen and chosen != case['mode'])}
     outcome['attempt'] = {'expected': expect, 'recorded': [a['correct'] for a in attempts],
                           'ok': attempt_ok(expect, attempts)}
     try:
-        verdict, outcome['judge_usage'] = judge(case, outcome['reply'], code_facts(math, attempts, expect, text_checks))
+        verdict, outcome['judge_usage'] = judge(case, outcome['reply'], code_facts(math, attempts, expect, text_checks, chosen, case.get('mode')))
     except Exception as error:
         outcome.update(status='judge_error', error=error_code(error))
         return outcome
@@ -414,12 +447,16 @@ def evaluate_case(case, model, tutor_factory, judge):
     if text_checks['forbidden']:
         outcome['weaknesses'].append('forbidden_phrase')
     if not text_checks['plan_ok']:
-        outcome['weaknesses'].append('missing_plan')
+        outcome['weaknesses'].append('missing_plan' if case.get('category') == 'level_transition' else 'missing_parts')
+    if not text_checks['short_enough']:
+        outcome['weaknesses'].append('too_long')
+    if not outcome['mode']['ok']:
+        outcome['weaknesses'].append('wrong_mode')
     if not outcome['attempt']['ok']:
         outcome['weaknesses'].append('wrong_attempt_record')
     outcome['weaknesses'] = list(dict.fromkeys(outcome['weaknesses']))
     outcome['passed'] = (verdict.score >= PASS_SCORE and math['ok'] and outcome['attempt']['ok']
-                         and text_checks['ok'])
+                         and text_checks['ok'] and outcome['mode']['ok'])
     return outcome
 
 
@@ -521,8 +558,14 @@ def render_report(meta, results):
         text_checks = r.get('text_checks') or {}
         if text_checks.get('forbidden'):
             problems.append('عبارات ممنوعة: ' + ', '.join(text_checks['forbidden']))
-        if text_checks.get('plan_ok') is False:
-            problems.append(f"ذكر {len(text_checks['mentioned'])} من مواضيع الهدف والمطلوب {text_checks['needed']}")
+        for check in text_checks.get('checks', []):
+            if not check['ok']:
+                problems.append(f"ذكر {len(check['mentioned'])} من المطلوب ({check['needed']})")
+        if text_checks.get('short_enough') is False:
+            problems.append(f"{text_checks['words']} كلمة والحد {text_checks['max_words']}")
+        mode = r.get('mode') or {}
+        if mode.get('ok') is False:
+            problems.append(f"الوضع {mode['chosen']} والمطلوب {mode['expected']}")
         math_text = 'مشكلة: ' + '؛ '.join(problems) if problems else 'سليم'
         attempt_text = 'سليم' if r['attempt']['ok'] else f"متوقع {r['attempt']['expected']} — سُجّل {r['attempt']['recorded']}"
         lines.append(f"| {r['id']} | {r['category']} | {r['units']} | {r['score']}/10 | {_cell(math_text)} | "
