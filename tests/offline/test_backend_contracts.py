@@ -142,11 +142,14 @@ class BackendContracts(unittest.TestCase):
                 self.assertLess(instructions.index(ai.rules_for_subject("math")), instructions.index("# FINAL CHECK"))
         self.assertIn("exactly one question", ai.FINAL_CHECK)
         self.assertIn("delete every question except the last one", ai.FINAL_CHECK)
-        self.assertIn("Do not do the student's next step for them", ai.FINAL_CHECK)
+        self.assertIn("do not do the student's next step for them", ai.FINAL_CHECK)
         self.assertIn("factor, substitute or calculate", ai.FINAL_CHECK)
         self.assertIn("Do not write the corrected version of the student's wrong step", ai.FINAL_CHECK)
         self.assertIn("The question asks for one single thing", ai.FINAL_CHECK)
         self.assertIn("at most five sentences) and about one idea", ai.FINAL_CHECK)
+        for part in ("In practice mode", "In explain mode", "In plan mode", "all six headings", "about 400 words at most",
+                     "numbers different from the student's own exercise", "exam form number", "no raw HTML", "between $$ and $$"):
+            self.assertIn(part, ai.FINAL_CHECK)
 
     def test_only_the_current_subject_section_of_the_rules_is_sent(self):
         full = ai.tutor_rules
@@ -195,18 +198,35 @@ class BackendContracts(unittest.TestCase):
         self.assertNotIn("LOCAL WEBSITE SAFETY", prefix)
         self.assertNotEqual(send("again", units=3)["cache_prefix"], prefix)  # another curriculum, another prefix
 
-    def test_dialect_rule_is_in_the_variable_part_and_forbids_egyptian_unless_the_student_uses_it(self):
+    def test_modes_formatting_and_dialect_are_in_the_cached_rules_once(self):
         ai.client.responses.parse.reset_mock()
         ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "بدي أتعلم", units=4)
         call = ai.client.responses.parse.call_args.kwargs
-        variable = call["instructions"][len(call["cache_prefix"]) + 2:]
-        self.assertIn(ai.DIALECT_RULE, variable)
-        self.assertNotIn("LANGUAGE AND DIALECT", call["cache_prefix"])
-        self.assertTrue(variable.endswith(ai.FINAL_CHECK))
-        for part in ("same dialect as the student's own messages", "Palestinian", "keep that dialect for the whole conversation",
-                     "simple Arabic close to Palestinian", "Do not use Egyptian Arabic", "هنبدأ", "إيه", "عشان كده",
-                     "unless the student wrote in it", "preferred language is English"):
-            self.assertIn(part, ai.DIALECT_RULE)
+        for heading in ("# TEACHING MODES", "# FORMATTING", "# LANGUAGE AND DIALECT"):
+            self.assertEqual(call["cache_prefix"].count(heading), 1, heading)  # in the cached part, and only once
+            self.assertNotIn(heading, call["instructions"][len(call["cache_prefix"]):])
+        self.assertFalse(hasattr(ai, "DIALECT_RULE"))
+        rules = ai.tutor_rules
+        for part in ("EXPLAIN mode", "PRACTICE mode", "PLAN mode", '"mode" field', "about\n400 words at most".replace("\\n", "\n"),
+                     "## الفكرة ببساطة", "## المصطلحات", "## مثال من الحياة", "## مثالين محلولين خطوة خطوة",
+                     "## الغلطة الشائعة", "## كيف بييجي بالبجروت", "exam form number", "m10-3-12",
+                     "between $$ and $$", "Never write raw\nHTML".replace("\\n", "\n"),
+                     "Palestinian dialect", "هنبدأ", "كده", "إيه", "بالظبط", "unless the student writes in Egyptian"):
+            self.assertIn(part, rules)
+        # The three subject-independent sections are kept for every subject, and nothing existing was changed.
+        for subject in ("math", "physics", "unknown"):
+            self.assertIn("# TEACHING MODES", ai.rules_for_subject(subject))
+        self.assertTrue(rules.startswith(rules.split("# TEACHING MODES")[0]))
+        self.assertIn("- Ask one question at a time.", rules)
+        self.assertIn("# LEARNING RESULT DATA", rules)
+
+    def test_intent_label_is_only_a_hint_for_the_mode(self):
+        ai.client.responses.parse.reset_mock()
+        ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "مش فاهم", units=4, web_policy=True, intent="confusion")
+        variable = ai.client.responses.parse.call_args.kwargs["instructions"]
+        self.assertIn("Student-selected intent: confusion", variable)
+        self.assertIn("confusion usually means explain", variable)
+        self.assertIn("the student's message decides", variable)
 
     def test_moving_up_a_level_sends_both_curriculum_files_in_the_cached_part(self):
         def send(**options):

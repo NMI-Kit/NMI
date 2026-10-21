@@ -98,7 +98,7 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(len(fixture.posts), 1)
         self.assertEqual(body['model'], MODEL); self.assertTrue(body['stream'])
         self.assertEqual(body['system'], 'Synthetic tutor instructions')
-        self.assertEqual(body['max_tokens'], 1800)
+        self.assertEqual(body['max_tokens'], 3200)
         self.assertEqual(body['output_config']['format']['type'], 'json_schema')
         self.assertEqual(body['thinking'], {'type':'between_tools'})
         self.assertEqual(body['output_config']['effort'], 'medium')

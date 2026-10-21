@@ -17,20 +17,14 @@ TUTOR_RULES_FILE = BASE_DIR / "tutor_rules.txt"
 FINAL_CHECK = """# FINAL CHECK
 
 Before you send the reply, check it:
-- The reply ends with exactly one question. If it contains more than one question mark (? or ؟), delete every question except the last one.
-- Do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do.
-- Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it.
+- The mode matches the student's latest message (explain, practice or plan) and the reply follows that mode.
+- The reply ends with exactly one question (the question field). If it contains more than one question mark (? or ؟), delete every question except the last one.
 - The question asks for one single thing. If it lists several things to find or compute (with "and", "then" or commas), keep only the first one.
-- The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations."""
+- In practice mode: do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do. Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it. The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations.
+- In explain mode: all six headings are there, in order, about 400 words at most. The worked examples use numbers different from the student's own exercise, and the student's own exercise is not solved.
+- In plan mode: only topics of the curriculum file, each with its id, split into weeks, with the exam form number from the file.
+- Markdown only (no raw HTML), each important equation on its own line between $$ and $$, and the student's own dialect."""
 
-
-# Part of the variable section of the instructions (the student's dialect is seen only in the conversation).
-DIALECT_RULE = """# LANGUAGE AND DIALECT
-
-Reply in the same dialect as the student's own messages (for example Palestinian Arabic if the student writes in it), and keep that dialect for the whole conversation.
-If the student's dialect is not clear, use simple Arabic close to Palestinian.
-Do not use Egyptian Arabic (for example "هنبدأ", "إيه", "عشان كده", "دلوقتي", "كده", "أوي") unless the student wrote in it.
-When the preferred language is English, reply in English."""
 
 LEVEL_TRANSITION = """# LEVEL TRANSITION
 
@@ -141,7 +135,7 @@ Preferred language: {language}
         # Moving up a level: both files and the transition rules belong to the cached stable part.
         stable_instructions += (f"\n\n# TARGET LEVEL CURRICULUM ({target_units} units)\n" + target + "\n\n"
                                 + LEVEL_TRANSITION.format(units=units, target=target_units))
-    instructions = student_context + "\n\n" + progress_context + "\n\n" + DIALECT_RULE
+    instructions = student_context + "\n\n" + progress_context
     if web_policy:
         instructions += """
 \n# LOCAL WEBSITE SAFETY AND ASSESSMENT BOUNDARY
@@ -169,7 +163,9 @@ sexual content involving minors. For immediate danger or self-harm concerns,
 encourage a trusted adult and appropriate local emergency help; do not invent numbers.
 Do not claim to be a human, a therapist, or an authoritative source of official curricula.
 """
-        instructions += f"\nStudent-selected intent: {intent}. This label alone is not assessment evidence."
+        instructions += (f"\nStudent-selected intent: {intent}. This label alone is not assessment evidence. "
+                         "It is only a hint for the mode: confusion usually means explain, answer and hint usually "
+                         "mean practice; the student's message decides.")
 
     instructions = stable_instructions + "\n\n" + instructions + "\n\n" + FINAL_CHECK
 
@@ -183,7 +179,7 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
 
     # Send conversation + context to NMI Tutor
     try:
-        options = {"store": False, "max_output_tokens": 1800} if web_policy else {}
+        options = {"store": False, "max_output_tokens": 3200} if web_policy else {}
         response = active_client.responses.parse(
             model=active_model,
             instructions=instructions,

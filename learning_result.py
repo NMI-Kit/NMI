@@ -1,15 +1,17 @@
 import re
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, model_validator
 
 QUESTION_MARKS = "?؟？"
+MODES = ("explain", "practice", "plan")
 _QUESTION_MARK = re.compile("[" + QUESTION_MARKS + "]")
 # End of a sentence: a question/exclamation mark, a line break, or a full stop that is not a decimal point.
 _SENTENCE_END = re.compile("[!" + QUESTION_MARKS + r"\n]|\.(?=\s|$)")
 
 
 def strip_question_marks(text):
-    """An explanation asks nothing: every question mark becomes a full stop."""
+    """A short practice explanation asks nothing: every question mark becomes a full stop."""
     return re.sub("\\s*[" + QUESTION_MARKS + "]+", ".", text)
 
 
@@ -40,22 +42,35 @@ def has_reply_text(raw):
 class LearningResult(BaseModel):
     model_config = ConfigDict(revalidate_instances="always")
 
+    mode: Literal["explain", "practice", "plan"] = Field(description=(
+        "The mode of this reply, chosen from the student's latest message (the intent label is only a hint). "
+        "'explain': the student does not understand, asks for an explanation, asks what something means or why, "
+        "or asks to start or learn a topic. 'practice': the student sends a solution, an answer or an exercise. "
+        "'plan': the student asks for a study plan for the Bagrut or an exam."))
     explanation: str = Field(description=(
-        "The teaching part of the reply, in the student's language. It contains NO question marks at all "
-        "(neither ? nor ؟) and asks nothing. Name the exact mistake if there is one, explain why it happened, "
-        "and give at most one small hint. It must never calculate, factor, substitute or otherwise do the step "
-        "that the question asks the student to do, and it must never state the final answer. When the student's "
+        "The teaching part of the reply, in the student's own dialect, written in Markdown. It contains NO question "
+        "marks at all (neither ? nor ؟) and asks nothing: the only question goes in `question`. It must never "
+        "state the final answer of the student's own exercise. What it contains depends on the mode. "
+        "PRACTICE: short, with bullet points. Name the exact mistake and why it happened. It must never calculate, "
+        "factor, substitute or otherwise do the step that the question asks the student to do. When the student's "
         "step is wrong, say which step is wrong and what kind of mistake it is, but never write the corrected "
         "version of that step (the right expression, value, formula or list of right terms), not even partly: "
         "the student writes the correction in answer to the question. Keep it short: at most five sentences and "
         "ONE idea. No second idea, no side remark such as 'we can also...', no extra analogy on top of the main "
-        "one, and no derivation or proof unless the student asked for one."))
+        "one, and no derivation or proof unless the student asked for one. "
+        "EXPLAIN: a complete, well-ordered explanation of about 400 words at most, with exactly these Markdown "
+        "headings in this order: '## الفكرة ببساطة' (a definition in simple words), '## المصطلحات' (one line for "
+        "each term), '## مثال من الحياة', '## مثالين محلولين خطوة خطوة' (two worked examples with numbered steps, "
+        "using numbers different from the student's own exercise), '## الغلطة الشائعة', '## كيف بييجي بالبجروت' "
+        "(from the student's curriculum file only; say honestly if the topic is not in it). "
+        "PLAN: a study plan split into weeks, as a table or a numbered list: the week, the topic with its id from "
+        "the curriculum file, and what to do; with the exam form number given in the file. Only topics of the file."))
     question: str = Field(description=(
-        "Exactly one short question for the student, with a single question mark. It asks for ONE small next "
-        "step (for example one substitution, one factorisation or one value), not a whole solution. It must not "
-        "contain the answer to that step and must not open a second topic. It asks for one value or one step "
-        "only: never join two requests with 'and', 'then', 'after that' or 'how' (in Arabic: و, وبعدها, وكيف, ثم). "
-        "If two steps are needed, ask only about the first one."))
+        "Exactly one short question for the student, in every mode, with a single question mark. It asks for ONE "
+        "small next step (for example one substitution, one factorisation or one value), not a whole solution; in "
+        "explain and plan mode it is one light question. It must not contain the answer to that step and must not "
+        "open a second topic. It asks for one value or one step only: never join two requests with 'and', 'then', "
+        "'after that' or 'how' (in Arabic: و, وبعدها, وكيف, ثم). If two steps are needed, ask only about the first one."))
 
     is_attempt: bool
 
@@ -69,10 +84,14 @@ class LearningResult(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def accept_single_reply(cls, data):
+    def accept_older_shapes(cls, data):
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        # Results saved or produced before modes existed are practice replies.
+        data.setdefault("mode", "practice")
         # Older callers and tests supply one `reply` string: its last question becomes `question`.
-        if isinstance(data, dict) and "reply" in data and "explanation" not in data and "question" not in data:
-            data = dict(data)
+        if "reply" in data and "explanation" not in data and "question" not in data:
             reply = data.pop("reply")
             if isinstance(reply, str):
                 bounds = _last_question_bounds(reply)
@@ -83,15 +102,14 @@ class LearningResult(BaseModel):
                     data["question"] = reply[bounds[0]:bounds[1]].strip()
         return data
 
-    @field_validator("explanation")
-    @classmethod
-    def explanation_has_no_question(cls, value):
-        return strip_question_marks(value)
-
-    @field_validator("question")
-    @classmethod
-    def question_is_one_question(cls, value):
-        return last_question(value)
+    @model_validator(mode="after")
+    def normalise_text(self):
+        # Practice replies are short, so a stray question mark is turned into a full stop. Explain and plan replies
+        # are Markdown (headings, tables): their text is left as the model wrote it. The question is always one.
+        if self.mode == "practice":
+            self.explanation = strip_question_marks(self.explanation)
+        self.question = last_question(self.question)
+        return self
 
     @property
     def reply(self):

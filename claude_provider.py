@@ -94,7 +94,7 @@ def system_blocks(instructions, cache_prefix):
 
 class ClaudeProvider:
     """Adapt ask_ai.responses.parse while retaining NMI's result/storage contracts."""
-    def __init__(self, model, *, sdk_factory=sdk_client, deadline=90, max_tokens=1800, effort=None):
+    def __init__(self, model, *, sdk_factory=sdk_client, deadline=90, max_tokens=3200, effort=None):
         if not valid_model(model):
             raise ClaudeError('claude_model')
         # Reasoning effort: NMI_CLAUDE_EFFORT (owner-set), default medium. An unknown value stops before any request.
@@ -103,7 +103,7 @@ class ClaudeProvider:
             raise ValueError('Invalid Claude request limits')
         self.model, self.sdk_factory = model, sdk_factory
         self.deadline, self.max_tokens = deadline, max_tokens
-        self.responses, self.usage = self, None
+        self.responses, self.usage, self.last_result = self, None, None
 
     def capture_usage(self, value, *, complete=False):
         self.usage = {'provider': 'claude', 'complete': complete}
@@ -165,6 +165,7 @@ class ClaudeProvider:
                             or not has_reply_text(raw)):
                         raise InvalidAIResponse()
                     result = LearningResult.model_validate(raw)
+                    self.last_result = result  # the evals read the mode the model chose
                     return SimpleNamespace(status='completed', output_parsed=result)
 
     def close(self):

@@ -17,7 +17,7 @@ from learning_result import LearningResult, has_reply_text, last_question, strip
 
 
 def make(**values):
-    return LearningResult(**({"explanation": "شرح.", "question": "شو الخطوة؟", "is_attempt": False} | values))
+    return LearningResult(**({"explanation": "شرح.", "question": "شو الخطوة؟", "is_attempt": False, "mode": "practice"} | values))
 
 
 class SchemaTests(unittest.TestCase):
@@ -54,6 +54,48 @@ class SchemaTests(unittest.TestCase):
         for joiner in ("'and'", "'then'", "'after that'", "'how'", "و", "وبعدها", "وكيف", "ثم"):
             self.assertIn(joiner, question)
         self.assertIn("ask only about the first one", question)
+
+
+class ModeTests(unittest.TestCase):
+    def test_mode_is_required_in_the_schema_with_three_values_and_a_description(self):
+        schema = LearningResult.model_json_schema()
+        self.assertIn("mode", schema["required"])
+        self.assertEqual(schema["properties"]["mode"]["enum"], ["explain", "practice", "plan"])
+        description = schema["properties"]["mode"]["description"]
+        for part in ("'explain'", "does not understand", "asks what something means or why", "start or learn a topic",
+                     "'practice'", "sends a solution, an answer or an exercise", "'plan'", "study plan", "only a hint"):
+            self.assertIn(part, description)
+        self.assertLess(list(schema["properties"]).index("mode"), list(schema["properties"]).index("explanation"))
+
+    def test_explanation_description_defines_each_mode(self):
+        text = LearningResult.model_json_schema()["properties"]["explanation"]["description"]
+        for part in ("Markdown", "PRACTICE:", "EXPLAIN:", "PLAN:", "about 400 words at most", "## الفكرة ببساطة", "## المصطلحات",
+                     "## مثال من الحياة", "## مثالين محلولين خطوة خطوة", "## الغلطة الشائعة", "## كيف بييجي بالبجروت",
+                     "numbers different from the student's own exercise", "the exam form number", "Only topics of the file"):
+            self.assertIn(part, text)
+        self.assertLess(text.index("## الفكرة ببساطة"), text.index("## كيف بييجي بالبجروت"))
+
+    def test_unknown_or_missing_mode(self):
+        self.assertEqual(LearningResult(reply="x", is_attempt=False).mode, "practice")
+        self.assertEqual(LearningResult(explanation="a", question="b", is_attempt=False).mode, "practice")
+        with self.assertRaises(ValueError):
+            make(mode="chat")
+
+    def test_practice_turns_question_marks_into_full_stops_but_explain_and_plan_keep_the_markdown(self):
+        markdown = "## ما هو الميل؟\n- النقطة الأولى\n| الأسبوع | الموضوع؟ |\n|---|---|"
+        self.assertEqual(make(mode="practice", explanation=markdown).explanation.count("؟"), 0)
+        for mode in ("explain", "plan"):
+            result = make(mode=mode, explanation=markdown)
+            self.assertEqual(result.explanation, markdown)
+            self.assertEqual(result.reply, markdown + "\n\nشو الخطوة؟")
+        # the question is one question in every mode
+        for mode in ("explain", "practice", "plan"):
+            self.assertEqual(make(mode=mode, question="أ؟ ب؟").question, "ب؟")
+
+    def test_a_long_explain_reply_is_kept_whole(self):
+        body = "\n\n".join(f"## قسم {n}\n" + "كلمة " * 60 for n in range(6))
+        self.assertEqual(make(mode="explain", explanation=body).explanation, body)
+        self.assertEqual(LearningResult.model_validate(make(mode="explain", explanation=body)).explanation, body)
 
 
 class ExplanationTests(unittest.TestCase):

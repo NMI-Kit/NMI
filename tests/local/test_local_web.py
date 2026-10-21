@@ -74,7 +74,7 @@ class LocalWebTests(unittest.TestCase):
         self.assertEqual(len(self.state()['history']),2); self.assertEqual(self.state()['attempts'],[])
         args=self.ai.responses.parse.call_args.kwargs
         self.assertIs(args['text_format'], ai_test.LearningResult)
-        self.assertFalse(args['store']); self.assertEqual(args['max_output_tokens'],1800)
+        self.assertFalse(args['store']); self.assertEqual(args['max_output_tokens'],3200)
         self.assertIn(ai_test.rules_for_subject('math'),args['instructions'])
         self.assertTrue(args['instructions'].startswith(args['cache_prefix']))
         self.assertTrue(args['instructions'].endswith(ai_test.FINAL_CHECK))
