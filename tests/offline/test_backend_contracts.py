@@ -225,6 +225,26 @@ class BackendContracts(unittest.TestCase):
         self.assertIn("- Ask one question at a time.", rules)
         self.assertIn("# LEARNING RESULT DATA", rules)
 
+    def test_yabqa_is_in_the_dialect_rule_of_the_rules_file_with_its_replacement(self):
+        rules = ai.tutor_rules
+        dialect = rules[rules.index("# LANGUAGE AND DIALECT"):]
+        egyptian = dialect[dialect.index("Never use Egyptian words ("):dialect.index("unless the student writes in Egyptian")]
+        for word in ("هنبدأ", "كده", "إيه", "بالظبط", "عشان كده", "دلوقتي", "أوي", "إزاي", "يبقى"):
+            self.assertIn(word, egyptian)
+        self.assertIn('Do not use يبقى to mean "so" or "then"', dialect)
+        self.assertIn("يعني", dialect)
+        self.assertEqual(dialect.count("يبقى"), 3)  # the list, the rule and its example
+        # the same words the evals forbid
+        import json
+        cases = json.loads((ROOT / "tests" / "evals" / "tutor_cases.json").read_text(encoding="utf-8"))
+        for case in cases:
+            if case.get("forbidden_phrases"):
+                self.assertIn("يبقى", case["forbidden_phrases"], case["id"])
+        # the dialect rule is sent in the cached part of every request
+        ai.client.responses.parse.reset_mock()
+        ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "بدي أتعلم", units=4)
+        self.assertIn("إزاي، يبقى)", ai.client.responses.parse.call_args.kwargs["cache_prefix"])
+
     def test_intent_label_is_only_a_hint_for_the_mode(self):
         ai.client.responses.parse.reset_mock()
         ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "مش فاهم", units=4, web_policy=True, intent="confusion")

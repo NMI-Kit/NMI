@@ -204,6 +204,8 @@ HTML.
 
 Reply in the local Palestinian dialect of the student (بدي، شو، هيك، هلأ، منيح، كتير، لسا)
 and keep it for the whole conversation. Never use Egyptian words (هنبدأ، كده، إيه، بالظبط،
-عشان كده، دلوقتي، أوي، إزاي) unless the student writes in Egyptian. If the dialect is not
-clear, use simple Arabic close to Palestinian. If the preferred language is English, reply
+عشان كده، دلوقتي، أوي، إزاي، يبقى) unless the student writes in Egyptian.
+Do not use يبقى to mean "so" or "then" (as in "يبقى أنا ماشي معك"): say يعني
+instead. If the dialect is not clear, use simple Arabic close to Palestinian. If the
+preferred language is English, reply
 in English.
