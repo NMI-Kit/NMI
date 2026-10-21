@@ -11,7 +11,7 @@ from uuid import uuid4
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from claude_provider import check_model, ClaudeError
-from local_web import create_app
+from local_web import create_app, DEFAULT_MAX_CALLS
 
 
 @contextmanager
@@ -36,7 +36,7 @@ def exclusive_store(directory):
             msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
 
 
-def build_app(directory, capability, *, acceptance=False, max_calls=1, environ=None):
+def build_app(directory, capability, *, acceptance=False, max_calls=DEFAULT_MAX_CALLS, environ=None):
     settings = os.environ if environ is None else environ
     path = Path(directory)/('synthetic.sqlite3' if acceptance else 'tutor.sqlite3')
     if acceptance and path.exists():
@@ -51,14 +51,21 @@ def build_app(directory, capability, *, acceptance=False, max_calls=1, environ=N
     return app
 
 
-def main(argv=None):
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--acceptance',action='store_true',help='Fresh synthetic profile and storage, one attempt.')
-    parser.add_argument('--max-calls',type=int,default=1,help='Attempts per launch, 1-100; default 1.')
+    parser.add_argument('--max-calls',type=int,default=DEFAULT_MAX_CALLS,help='Attempts per launch, 1-100; default '+str(DEFAULT_MAX_CALLS)+'.')
     parser.add_argument('--check-model',action='store_true',help='Explicit account model metadata GET only; no inference.')
     args = parser.parse_args(argv)
-    if not 1 <= args.max_calls <= 100 or (args.acceptance and args.max_calls != 1):
-        parser.error('Use 1-100 attempts; acceptance permits exactly one.')
+    if args.acceptance:
+        args.max_calls = 1  # acceptance is exactly one attempt, whatever the default is
+    if not 1 <= args.max_calls <= 100:
+        parser.error('Use 1-100 attempts.')
+    return args
+
+
+def main(argv=None):
+    args = parse_args(argv)
     if args.check_model:
         try:
             result = check_model(os.environ.get('NMI_CLAUDE_MODEL',''))

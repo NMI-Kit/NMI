@@ -27,28 +27,22 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
   await expect(page.locator('#live-profile-cancel')).toBeHidden();
   await page.keyboard.press('Escape');
   await expect(dialog).toBeVisible();
-  for(const id of ['country','grade'])await expect(page.locator('#live-'+id)).toHaveValue('');
-  await expect(page.locator('#live-subject-field')).toBeHidden();
-  await expect(page.locator('#live-units-field')).toBeHidden();
+  // The only country is written in the form, not chosen from a list; grade and units start empty.
+  await expect(page.locator('#live-country')).toHaveCount(0);
+  await expect(page.locator('#live-country-text')).toHaveValue('Israel');
+  await expect(page.locator('#live-country-text')).toHaveJSProperty('readOnly',true);
+  await expect(page.locator('#live-grade')).toHaveValue('');
+  await expect(page.locator('#live-units')).toHaveValue('');
   await expect(page.locator('#live-target-field')).toBeHidden();
   await expect(page.locator('#live-profile-save')).toBeDisabled();
   await expect(page.locator('#send')).toBeDisabled();
   await expect(page.locator('#live-edit-profile')).toBeVisible();
-  // A country without a curriculum cannot be saved; the student is told why.
-  await page.locator('#live-country').selectOption('US');
-  expect(await values('#live-grade')).toEqual(['','9','10','11','12']);
-  await page.locator('#live-grade').selectOption('10');
-  await expect(page.locator('#live-profile-error')).not.toHaveText('');
-  await expect(page.locator('#live-profile-save')).toBeDisabled();
-  await expect(page.locator('#live-units-field')).toBeHidden();
-  // Israel: options come from the server's curriculum folders: math, grades 10-12, units 3/4/5. The grade is kept only if offered.
-  await page.locator('#live-country').selectOption('IL');
-  await expect(page.locator('#live-profile-error')).toHaveText('');
+  // Options come from the server's curriculum folders: math, grades 10-12, units 3/4/5.
   await expect(page.locator('#live-subject-field')).toBeVisible();
   expect(await values('#live-subject')).toEqual(['','math']);
   await expect(page.locator('#live-subject')).toHaveValue('math');  // the only subject is selected for the student
   expect(await values('#live-grade')).toEqual(['','10','11','12']);
-  await expect(page.locator('#live-grade')).toHaveValue('10');
+  await page.locator('#live-grade').selectOption('10');
   await expect(page.locator('#live-units-field')).toBeVisible();
   expect(await values('#live-units')).toEqual(['','3','4','5']);
   await expect(page.locator('#live-units')).toHaveValue('');
@@ -67,7 +61,8 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
   await page.locator('#live-edit-profile').click();
   await expect(dialog).toBeVisible();
   await expect(page.locator('#live-profile-cancel')).toBeVisible();
-  for(const [id,value] of [['country','IL'],['subject','math'],['grade','10'],['units','3'],['target-units','5']])await expect(page.locator('#live-'+id)).toHaveValue(value);
+  await expect(page.locator('#live-country-text')).toHaveValue('Israel');
+  for(const [id,value] of [['subject','math'],['grade','10'],['units','3'],['target-units','5']])await expect(page.locator('#live-'+id)).toHaveValue(value);
   await page.locator('#live-profile-cancel').click();
   await expect(dialog).toBeHidden();
   await page.locator('#live-edit-profile').click();
@@ -100,6 +95,9 @@ test('Claude in main chat: unlock, Arabic/English, themes, context, usage, error
     await expect(page.locator('#question-form')).toHaveAttribute('aria-busy','true');
     await expect(page.locator('#messages article')).toHaveCount(++count*2);
     await expect(page.locator('#messages article').last()).toContainText('Synthetic Claude reply: '+message);
+    // Tutor replies are rendered as Markdown blocks; the student's own messages stay plain text.
+    await expect(page.locator('#messages article[data-role="assistant"]').last().locator('.live-message-content.md')).toHaveCount(1);
+    await expect(page.locator('#messages article[data-role="user"] .md')).toHaveCount(0);
     await expect(page.locator('#question-form')).toHaveAttribute('aria-busy','false');
     await expect(page.locator('#live-usage')).toContainText(new Intl.NumberFormat(language).format(120));
     await expect(page.locator('#live-usage')).toContainText(new Intl.NumberFormat(language).format(80));
@@ -130,4 +128,75 @@ test('a failed live adapter cannot produce demo fallback',async({page})=>{
   await page.locator('#question').fill('Any normal question');await page.locator('#send').click();
   await expect(page.locator('#form-status')).toContainText('connection did not start');
   await expect(page.locator('#messages article')).toHaveCount(0);
+});
+
+test('tutor replies render as safe Markdown: structure, RTL text with LTR equations, no raw HTML or script links', async ({page}) => {
+  await page.goto('/');
+  const sample = [
+    '## الفكرة ببساطة', 'الميل **معدل التغيّر** و `y = mx + b` وكمان *إيه*', '',
+    '## المصطلحات', '- **المتغير**: رقم بيتغيّر', '- الثابت: رقم ما بيتغيّر', '',
+    '1. أول خطوة', '2. تاني خطوة', '',
+    '$$ y = 2x + 3 $$', 'x^2 + 3x = 5', 'المعادلة x + 1 = 3 هي مثال', '',
+    '| الأسبوع | الموضوع |', '|---|---|', '| 1 | m10-3-12 **النموذج الخطي** |', '',
+    '<script>window.hacked=1</script> <img src=x onerror="window.hacked=2"> <b>غامق خام</b>',
+    '[رابط](https://example.com/a) و [سيئ](javascript:window.hacked=3) و [بيانات](data:text/html,x)',
+    '---', 'سعر 5$ فقط'].join('\n');
+  const facts = await page.evaluate(markdown => {
+    const root = window.nmiRenderMarkdown(markdown);
+    document.body.append(root);
+    const direction = element => getComputedStyle(element).direction;
+    const result = {
+      headings: [...root.querySelectorAll('h3,h4,h5,h6')].map(h => [h.tagName, h.textContent, h.dir]),
+      strong: [...root.querySelectorAll('strong')].map(n => n.textContent),
+      code: [...root.querySelectorAll('code')].map(n => [n.textContent, n.dir]),
+      em: [...root.querySelectorAll('em')].map(n => n.textContent),
+      ul: [...root.querySelectorAll('ul > li')].map(n => n.textContent),
+      ol: [...root.querySelectorAll('ol > li')].map(n => n.textContent),
+      math: [...root.querySelectorAll('.md-math')].map(n => [n.textContent, n.dir, direction(n)]),
+      th: [...root.querySelectorAll('th')].map(n => n.textContent),
+      td: [...root.querySelectorAll('td')].map(n => n.textContent),
+      tdStrong: root.querySelectorAll('td strong').length,
+      dangerous: root.querySelectorAll('script,img,b,iframe,style,form,input').length,
+      anchors: [...root.querySelectorAll('a')].map(a => [a.textContent, a.href, a.rel, a.target]),
+      hr: root.querySelectorAll('hr').length,
+      paragraphs: [...root.querySelectorAll('p')].map(n => [n.textContent, n.dir]),
+      text: root.textContent,
+      hacked: window.hacked,
+      onerror: [...root.querySelectorAll('*')].some(n => n.getAttributeNames().some(name => name.startsWith('on'))),
+    };
+    root.remove();
+    return result;
+  }, sample);
+  expect(facts.headings).toEqual([['H4', 'الفكرة ببساطة', 'auto'], ['H4', 'المصطلحات', 'auto']]);
+  expect(facts.strong).toEqual(['معدل التغيّر', 'المتغير', 'النموذج الخطي']);
+  expect(facts.code).toEqual([['y = mx + b', 'ltr']]);
+  expect(facts.em).toEqual(['إيه']);
+  expect(facts.ul).toEqual(['المتغير: رقم بيتغيّر', 'الثابت: رقم ما بيتغيّر']);
+  expect(facts.ol).toEqual(['أول خطوة', 'تاني خطوة']);
+  // Equations get their own line, left to right, even inside right-to-left text.
+  expect(facts.math).toEqual([['y = 2x + 3', 'ltr', 'ltr'], ['x^2 + 3x = 5', 'ltr', 'ltr']]);
+  expect(facts.paragraphs.map(p => p[0])).toContain('المعادلة x + 1 = 3 هي مثال');  // Arabic words: not an equation line
+  expect(facts.paragraphs.every(p => p[1] === 'auto')).toBe(true);
+  expect(facts.th).toEqual(['الأسبوع', 'الموضوع']);
+  expect(facts.td).toEqual(['1', 'm10-3-12 النموذج الخطي']);
+  expect(facts.tdStrong).toBe(1);
+  expect(facts.hr).toBe(1);
+  // Nothing from the reply becomes an element, an event handler or a script link.
+  expect(facts.dangerous).toBe(0);
+  expect(facts.onerror).toBe(false);
+  expect(facts.hacked).toBeUndefined();
+  expect(facts.text).toContain('<script>window.hacked=1</script>');
+  expect(facts.text).toContain('<img src=x onerror="window.hacked=2">');
+  expect(facts.text).toContain('<b>غامق خام</b>');
+  expect(facts.anchors).toHaveLength(1);
+  expect(facts.anchors[0][0]).toBe('رابط');
+  expect(facts.anchors[0][1]).toBe('https://example.com/a');
+  expect(facts.anchors[0][2]).toContain('noopener');
+  expect(facts.text).toContain('سيئ (javascript:window.hacked=3)');
+  expect(facts.text).toContain('بيانات (data:text/html,x)');
+  expect(facts.text).toContain('سعر 5$ فقط');
+  // Plain text, an empty reply and a very long line do not break the renderer.
+  const edge = await page.evaluate(() => [window.nmiRenderMarkdown('').childElementCount, window.nmiRenderMarkdown('نص عادي').textContent,
+    window.nmiRenderMarkdown('x'.repeat(20000)).textContent.length, window.nmiRenderMarkdown('|a|b|\n|--|--|').querySelectorAll('th').length]);
+  expect(edge).toEqual([0, 'نص عادي', 20000, 2]);
 });

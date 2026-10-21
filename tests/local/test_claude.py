@@ -52,6 +52,23 @@ class AdapterTests(unittest.TestCase):
                 provider.parse(model=MODEL, instructions=joined, cache_prefix=prefix, input=messages, text_format=LearningResult)
                 self.assertEqual(fixture.posts[-1]['system'], joined)
 
+    def test_launch_limit_is_20_attempts_and_acceptance_stays_one(self):
+        from local_web import DEFAULT_MAX_CALLS
+        from tools.run_claude import build_app, parse_args
+        self.assertEqual(DEFAULT_MAX_CALLS, 20)
+        self.assertEqual(parse_args([]).max_calls, 20)
+        self.assertEqual(parse_args(['--max-calls', '5']).max_calls, 5)
+        self.assertEqual(parse_args(['--acceptance']).max_calls, 1)
+        for bad in (['--max-calls', '0'], ['--max-calls', '101']):
+            with self.subTest(bad=bad), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                parse_args(bad)
+        directory = Path(tempfile.mkdtemp(dir=ROOT / '.cache'))
+        self.addCleanup(lambda: __import__('shutil').rmtree(directory, ignore_errors=True))
+        app = build_app(directory / 'normal', CAPABILITY, environ={})
+        client = app.test_client(); client.get('/api/session/preflight', base_url=ORIGIN)
+        self.assertEqual(client.post('/api/session', json={'token': CAPABILITY}, base_url=ORIGIN, headers={'Origin': ORIGIN}).status_code, 200)
+        self.assertEqual(client.get('/api/state', base_url=ORIGIN).json['remaining'], 20)
+
     def test_effort_comes_from_the_environment_and_defaults_to_medium(self):
         for env, kwargs, expected in ((None, {}, 'medium'), ('', {}, 'medium'), ('low', {}, 'low'), (' High ', {}, 'high'),
                                       ('medium', {'effort': 'low'}, 'low'), (None, {'effort': 'high'}, 'high')):

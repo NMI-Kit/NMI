@@ -24,6 +24,7 @@ COUNTRIES = dict(US="United States", GB="United Kingdom", CA="Canada", DE="Germa
                  CH="Switzerland", SG="Singapore", AU="Australia", NL="Netherlands",
                  QA="Qatar", AE="United Arab Emirates", IL="Israel")
 CURRICULUM_COUNTRY = "IL"  # the only country with curriculum files so far
+DEFAULT_MAX_CALLS = 20  # paid attempts per launch of the local server (NMI_MAX_CALLS overrides)
 ASSETS = {"tokens.css", "styles.css", "preview.js", "live.js", "live.css"} | {
     f"assets/nmi-mark{suffix}.svg" for suffix in ("", "-light", "-dark", "-white", "-black")}
 ERRORS = {
@@ -356,7 +357,7 @@ def main():
         claude_model = os.environ.get('NMI_CLAUDE_MODEL', '')
         allow_claude = os.environ.get('NMI_ENABLE_ANTHROPIC_PAID') == '1'
         try:
-            max_calls = int(os.environ.get('NMI_MAX_CALLS', '1'))
+            max_calls = int(os.environ.get('NMI_MAX_CALLS', str(DEFAULT_MAX_CALLS)))
             if not 1 <= max_calls <= 100:
                 raise ValueError()
         except ValueError:
