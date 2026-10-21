@@ -14,15 +14,16 @@ The correct answer of every hard case is computed independently with sympy in `h
 
 ## Mode cases (`tier: "mode"`) and the judge
 
-The tutor works in one of three modes, chosen by the model from the student's message in the same request (no extra call) and returned in the `mode` field: `explain` (a full, ordered Markdown explanation of about 400 words with six fixed headings), `practice` (short, no answer, one question) and `plan` (a weekly plan from the curriculum file with topic ids and the exam form number).
+The tutor works in one of three modes, chosen by the model from the student's message in the same request (no extra call) and returned in the `mode` field: `explain` (a direct answer of about 150 words in light Markdown: what the topic is in the first sentence, the formula on its own line with one line per symbol, ONE solved example with numbered steps, ONE easy question; no headings, no topic ids, no "file", no Bagrut unless asked), `practice` (short, no answer, one question) and `plan` (a weekly plan from the curriculum file with topic ids and the exam form number).
 
 Five cases at Grade 10, 3 units: four explain cases ("مش فاهم الدالة التربيعية", "مش فاهم الدالة الخطية", "شو يعني ميل ولشو منستعمله", "شو يعني رقم ثابت وشو هو y") and one plan case ("بدي خطة للبجروت"). Each carries the mode it expects and code checks:
 
 - `mode`: the expected mode. The mode the model chose is read from the provider (`last_result`); a different mode fails the case (`wrong_mode`). A client that does not report its mode is not held against the tutor.
-- `must_mention`: one spec or a list of specs `{"any_of": [...], "at_least": N}`; the explain cases need all six headings, the plan case needs 6 topic ids, an exam form number and the word "week" (`missing_parts`).
-- `max_words`: 520 for explain (400 words plus Markdown signs); more fails the case (`too_long`).
+- `must_mention`: one spec or a list of specs `{"any_of": [...], "at_least": N}`. Explain cases need bold (`**`), the word "مثال" and, where there is a formula, a `$$` line (`missing_parts`). The plan case needs 6 topic ids, an exam form number and the word "week".
+- `max_words`: 200 for explain (about 150 words plus Markdown signs); more fails the case (`too_long`).
+- `forbidden_substrings`: plain text that must not appear, in any prefixed form. Explain cases forbid `m10-`, `ملف` (so also "الملف") and `بجروت` (so also "البجروت", "للبجروت"). The plan case has none, because ids, exam numbers and the Bagrut are what a plan is made of.
 
-The judge is told `<mode_expected>` and the mode the tutor chose. For `explain` a long, complete, ordered reply is correct: length, headings, lists and the number of ideas are never penalised (the older one-idea limits in `hard_why` expectations are ignored). It still judges correctness, dialect, honesty about the curriculum (a topic that is not in the student's file must not be presented as being in it), worked examples with other numbers than the student's exercise, and the single closing question.
+The judge is told `<mode_expected>` and the mode the tutor chose. For `explain` it checks the direct shape above and penalises an introduction or story, several headings, a long reply, a second example, ids, "file" and an unasked Bagrut; it does not penalise a short reply. It also judges correctness, dialect and whether the tutor explained in a different way when the student still did not understand.
 
 ## Conversation cases (`tier: "conversation"`)
 

@@ -21,7 +21,7 @@ Before you send the reply, check it:
 - The reply ends with exactly one question (the question field). If it contains more than one question mark (? or ؟), delete every question except the last one.
 - The question asks for one single thing. If it lists several things to find or compute (with "and", "then" or commas), keep only the first one.
 - In practice mode: do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do. Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it. The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations.
-- In explain mode: all six headings are there, in order, about 400 words at most. The worked examples use numbers different from the student's own exercise, and the student's own exercise is not solved.
+- In explain mode: about 150 words, no headings and no introduction. The first sentence says what the topic is; then the formula on its own line and one line per symbol; then ONE solved example with numbered steps, using numbers different from the student's own exercise (the student's own exercise is not solved). No topic ids, no word "file" / "الملف", and no Bagrut or exam unless the student asked.
 - In plan mode: only topics of the curriculum file, each with its id, split into weeks, with the exam form number from the file.
 - Markdown only (no raw HTML), each important equation on its own line between $$ and $$, and the student's own dialect."""
 

@@ -301,31 +301,20 @@ class ConversationCaseTests(unittest.TestCase):
         self.assertEqual(ev.curriculum_options({'units': 3, 'subject': 'math'}), {'subject': 'math', 'units': 3})
 
 
-SECTIONS = ['## الفكرة ببساطة', '## المصطلحات', '## مثال من الحياة', '## مثالين محلولين خطوة خطوة', '## الغلطة الشائعة', '## كيف بييجي بالبجروت']
-EXPLAIN_REPLY = """## الفكرة ببساطة
-الميل بيقلك قديش بتتغيّر y لما x بتزيد واحد.
+EXPLAIN_REPLY = """**الميل** هو رقم بيقلك قديش بتتغيّر y لما x بتزيد واحد.
 
-## المصطلحات
-- **المتغير**: رقم بيتغيّر
-- **الثابت**: رقم ما بيتغيّر
-- **الميل**: معدل التغيّر
+$$ m = (y2 - y1) / (x2 - x1) $$
 
-## مثال من الحياة
-كل ساعة شغل بتزيد 40 شيكل.
+- **m**: الميل
+- **y2 و y1**: قيمتين y للنقطتين
+- **x2 و x1**: قيمتين x للنقطتين
 
-## مثالين محلولين خطوة خطوة
-1. من (0, 5) إلى (2, 9): الفرق بـ y هو 4
-2. الفرق بـ x هو 2
+**مثال:** النقطتين (0, 5) و(2, 9).
+1. y2 - y1 = 9 - 5 = 4
+2. x2 - x1 = 2 - 0 = 2
+3. m = 4 / 2 = 2
 
-$$ m = 4 / 2 = 2 $$
-
-## الغلطة الشائعة
-قلب ترتيب الطرح.
-
-## كيف بييجي بالبجروت
-بالنموذج الخطي m10-3-12.
-
-شو رأيك نجرب مثال تاني؟"""
+يعني كل ما x بتزيد واحد، y بتزيد 2. إذا النقطتين (1, 3) و(3, 11)، قديش الميل؟"""
 PLAN_REPLY = """افترضت إنه عندك 8 أسابيع.
 
 | الأسبوع | الموضوع | شو بتعمل |
@@ -345,7 +334,7 @@ PLAN_REPLY = """افترضت إنه عندك 8 أسابيع.
 
 
 class ModeCaseTests(unittest.TestCase):
-    """Five cases for the explain and plan modes; the judge is told the mode and code checks the headings and length."""
+    """Five cases for the explain and plan modes; the judge is told the mode and code checks the shape and the length."""
 
     @classmethod
     def setUpClass(cls):
@@ -366,7 +355,22 @@ class ModeCaseTests(unittest.TestCase):
                 self.assertIn('فلسطينية', case['expected_behavior'])
                 self.assertIn('سؤال واحد', case['expected_behavior'])
                 self.assertTrue(valid_profile({'country': 'IL', 'grade': 10, 'subject': 'math', 'units': 3}))
-        self.assertEqual([c['mode'] for cid, c in self.cases.items()], ['explain'] * 4 + ['plan'])
+        self.assertEqual([c['mode'] for c in self.cases.values()], ['explain'] * 4 + ['plan'])
+
+    def test_explain_cases_describe_the_direct_150_word_answer(self):
+        for case in self.cases.values():
+            if case['mode'] != 'explain':
+                continue
+            with self.subTest(case=case['id']):
+                behavior = case['expected_behavior']
+                for part in ('150 كلمة', 'أول جملة تقول شو هو الموضوع', 'بدون مقدمات وبدون قصص', 'القانون بسطر لحاله',
+                             'سطر لكل رمز', 'مثال واحد محلول خطوة خطوة', 'سؤال واحد سهل', 'عريض ونقاط', 'بدون عناوين كتير',
+                             'ممنوع أرقام المواضيع', 'الملف', 'البجروت'):
+                    self.assertIn(part, behavior)
+                for old in ('400 كلمة', 'مثالين محلولين', 'الغلطة الشائعة', 'كيف بييجي بالبجروت', 'الفكرة ببساطة'):
+                    self.assertNotIn(old, behavior)
+                self.assertEqual(case['max_words'], 200)
+                self.assertEqual(case['forbidden_substrings'], ['m10-', 'الملف', 'ملف', 'بجروت'])
 
     def test_every_dialect_list_forbids_the_egyptian_bil_zabt(self):
         for case in ev.load_cases():
@@ -374,26 +378,46 @@ class ModeCaseTests(unittest.TestCase):
                 with self.subTest(case=case['id']):
                     self.assertIn('بالظبط', case['forbidden_phrases'])
 
-    def test_explain_cases_need_all_six_headings_and_at_most_the_word_limit(self):
+    def test_a_good_explain_reply_passes_the_code_checks(self):
         case = self.cases['mode-explain-slope-01']
-        self.assertEqual(case['max_words'], 520)  # 400 words and the Markdown signs
         good = ev.check_text(EXPLAIN_REPLY, case)
         self.assertTrue(good['ok'], good)
-        self.assertEqual(len(good['checks'][0]['mentioned']), 6)
-        self.assertEqual([check['ok'] for check in good['checks']], [True, True])  # headings, and m10-3-12
-        missing = ev.check_text(EXPLAIN_REPLY.replace('## الغلطة الشائعة', '## ملاحظة'), case)
-        self.assertEqual((missing['plan_ok'], missing['ok']), (False, False))
-        self.assertNotIn('الغلطة الشائعة', missing['checks'][0]['mentioned'])
-        no_topic = ev.check_text(EXPLAIN_REPLY.replace('m10-3-12', 'm10-9-99').replace('النموذج الخطي', 'x'), case)
-        self.assertEqual([check['ok'] for check in no_topic['checks']], [True, False])
-        long_reply = EXPLAIN_REPLY + ' كلمة' * 600
-        long = ev.check_text(long_reply, case)
+        self.assertEqual([check['ok'] for check in good['checks']], [True, True, True])  # bold, an example, the formula line
+        self.assertLessEqual(good['words'], 200)
+        self.assertEqual(good['forbidden'], [])
+
+    def test_explain_replies_without_bold_example_or_formula_are_incomplete(self):
+        case = self.cases['mode-explain-slope-01']
+        no_formula = ev.check_text(EXPLAIN_REPLY.replace('$$', ''), case)
+        self.assertEqual([check['ok'] for check in no_formula['checks']], [True, True, False])
+        self.assertFalse(no_formula['ok'])
+        no_bold = ev.check_text(EXPLAIN_REPLY.replace('**', ''), case)
+        self.assertEqual([check['ok'] for check in no_bold['checks']], [False, True, True])
+        no_example = ev.check_text(EXPLAIN_REPLY.replace('مثال', 'تطبيق'), case)
+        self.assertEqual([check['ok'] for check in no_example['checks']], [True, False, True])
+        # The constant / y case has no formula line to require.
+        self.assertEqual(len(self.cases['mode-explain-constant-y-01']['must_mention']), 2)
+
+    def test_explain_replies_over_200_words_fail(self):
+        case = self.cases['mode-explain-slope-01']
+        long = ev.check_text(EXPLAIN_REPLY + ' كلمة' * 200, case)
         self.assertEqual((long['short_enough'], long['ok']), (False, False))
-        self.assertGreater(long['words'], 520)
-        self.assertLessEqual(good['words'], 520)
+        self.assertGreater(long['words'], 200)
+
+    def test_ids_the_word_file_and_the_bagrut_are_forbidden_in_explain_replies_in_any_prefixed_form(self):
+        case = self.cases['mode-explain-slope-01']
+        for word in ('m10-3-12', 'M10-3-12', 'حسب الملف', 'من ملف المنهاج', 'بالملفات', 'البجروت', 'بالبجروت', 'للبجروت', 'وبجروت'):
+            with self.subTest(word=word):
+                found = ev.check_text(EXPLAIN_REPLY + ' ' + word, case)
+                self.assertFalse(found['ok'])
+                self.assertTrue(found['forbidden'])
+        self.assertTrue(ev.check_text(EXPLAIN_REPLY + ' بالظبط', case)['forbidden'])
+        # Words that merely look similar are fine.
+        self.assertEqual(ev.check_text(EXPLAIN_REPLY + ' مختلف وألف وكل شي', case)['forbidden'], [])
 
     def test_plan_case_needs_topic_ids_exam_number_and_weeks(self):
         case = self.cases['mode-plan-01']
+        self.assertNotIn('forbidden_substrings', case)  # ids, exam numbers and the Bagrut are what a plan is made of
         good = ev.check_text(PLAN_REPLY, case)
         self.assertTrue(good['ok'], good)
         self.assertEqual([len(check['mentioned']) for check in good['checks']], [8, 2, 2])
@@ -409,8 +433,6 @@ class ModeCaseTests(unittest.TestCase):
             self.assertIn(f'#### {word} ', text)
         self.assertIn('35173', text)
         self.assertIn('35371', text)
-        for word in self.cases['mode-explain-slope-01']['must_mention'][0]['any_of']:
-            self.assertIn(word if word != 'محلولين' else 'محلولين', ' '.join(SECTIONS))
 
     def explain_client(self, reply, chosen):
         client = tutor_returning(reply, is_attempt=False, subject=None, topic=None, skill=None,
@@ -425,7 +447,7 @@ class ModeCaseTests(unittest.TestCase):
         self.assertTrue(ok['passed'], ok)
         self.assertEqual(ok['mode'], {'expected': 'explain', 'chosen': 'explain', 'ok': True})
         self.assertIn('The tutor chose the mode: explain (the case expects: explain).', judge.call_args.args[2])
-        self.assertIn(f"The reply has {ok['text_checks']['words']} words (limit 520).", judge.call_args.args[2])
+        self.assertIn(f"The reply has {ok['text_checks']['words']} words (limit 200).", judge.call_args.args[2])
         wrong = ev.evaluate_case(case, MODEL, lambda m: self.explain_client(EXPLAIN_REPLY, 'practice'), judge_returning(10))
         self.assertFalse(wrong['passed'])
         self.assertIn('wrong_mode', wrong['weaknesses'])
@@ -436,34 +458,41 @@ class ModeCaseTests(unittest.TestCase):
         self.assertTrue(unknown['passed'])
         self.assertEqual(unknown['mode'], {'expected': 'explain', 'chosen': None, 'ok': True})
 
-    def test_missing_headings_or_length_fail_the_case_even_with_a_perfect_judge_score(self):
+    def test_incomplete_long_or_forbidden_replies_fail_even_with_a_perfect_judge_score(self):
         case = self.cases['mode-explain-slope-01']
         thin = ev.evaluate_case(case, MODEL, lambda m: self.explain_client('الميل هو معدل التغيّر. شو رأيك نجرب؟', 'explain'), judge_returning(10))
         self.assertFalse(thin['passed'])
         self.assertIn('missing_parts', thin['weaknesses'])
-        long = ev.evaluate_case(case, MODEL, lambda m: self.explain_client(EXPLAIN_REPLY + ' كلمة' * 600, 'explain'), judge_returning(10))
+        long = ev.evaluate_case(case, MODEL, lambda m: self.explain_client(EXPLAIN_REPLY + ' كلمة' * 200, 'explain'), judge_returning(10))
         self.assertFalse(long['passed'])
         self.assertIn('too_long', long['weaknesses'])
+        ids = ev.evaluate_case(case, MODEL, lambda m: self.explain_client(EXPLAIN_REPLY + ' (m10-3-12) وبييجي بالبجروت', 'explain'), judge_returning(10))
+        self.assertFalse(ids['passed'])
+        self.assertIn('forbidden_phrase', ids['weaknesses'])
         for tag in ('missing_parts', 'wrong_mode', 'too_long', 'missing_plan', 'forbidden_phrase'):
             self.assertNotIn(tag, ev.JUDGE_TAGS)
             self.assertIn(tag, ev.WEAKNESSES)
         meta = {'date': '2026-10-21', 'model': MODEL, 'judge_model': JUDGE_MODEL, 'curriculum': 'اختبار'}
-        report = ev.render_report(meta, [thin, long])
-        self.assertIn('كلمة والحد 520', report)
+        report = ev.render_report(meta, [thin, long, ids])
+        self.assertIn('كلمة والحد 200', report)
         self.assertIn('ذكر', report)
+        self.assertIn('عبارات ممنوعة: m10-', report)
 
-    def test_the_judge_prompt_and_rules_treat_a_long_explanation_as_correct(self):
+    def test_the_judge_prompt_and_rules_describe_the_direct_explanation(self):
         case = self.cases['mode-explain-linear-01']
         prompt = ev.judge_prompt(case, 'رد', 'facts')
         self.assertIn('<mode_expected>explain</mode_expected>', prompt)
         self.assertNotIn('<mode_expected>', ev.judge_prompt(case | {'mode': None}, 'رد', 'facts'))
         system = ev.JUDGE_SYSTEM
-        for part in ("Every reply has a mode (explain, practice or plan)", "mode the case expects",
-                     "A long, complete, well-ordered Markdown explanation of up to about 400 words",
-                     "is CORRECT", "Never lower the score for", "length, headings, bullets, tables or the number of ideas",
-                     'never use "bad_pacing" for it', "ignore that limit", "honest about the curriculum",
-                     "numbers different from the student's", "split into weeks", "form number from the file"):
+        for part in ("Every reply has a mode (explain, practice or plan)", "mode the case expects", "about 150 words",
+                     "the first sentence says what the topic is", "formula on a line of its own with one line per symbol",
+                     "ONE correct solved example with numbered steps", "ONE easy question", "Penalise an introduction or a story",
+                     "several\n  headings".replace("\\n", "\n"), "topic ids (like m10-3-12)", 'the word "file"', "the Bagrut or the exam",
+                     "Do not penalise a reply for being short", "explain in a\n  different way".replace("\\n", "\n"),
+                     "split into weeks", "form number from the file"):
             self.assertIn(part, system)
+        for gone in ("up to about 400 words", "is CORRECT", "Never lower the score for", "required headings"):
+            self.assertNotIn(gone, system)
         self.assertTrue(system.endswith(ev.tutor_rules))  # the judge still reads the approved rules, including the modes
         self.assertIn('# TEACHING MODES', system)
 

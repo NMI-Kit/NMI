@@ -147,8 +147,10 @@ class BackendContracts(unittest.TestCase):
         self.assertIn("Do not write the corrected version of the student's wrong step", ai.FINAL_CHECK)
         self.assertIn("The question asks for one single thing", ai.FINAL_CHECK)
         self.assertIn("at most five sentences) and about one idea", ai.FINAL_CHECK)
-        for part in ("In practice mode", "In explain mode", "In plan mode", "all six headings", "about 400 words at most",
-                     "numbers different from the student's own exercise", "exam form number", "no raw HTML", "between $$ and $$"):
+        for part in ("In practice mode", "In explain mode", "In plan mode", "about 150 words, no headings and no introduction",
+                     "The first sentence says what the topic is",
+                     "ONE solved example with numbered steps", "numbers different from the student's own exercise",
+                     "No topic ids", "Bagrut or exam unless the student asked", "exam form number", "no raw HTML", "between $$ and $$"):
             self.assertIn(part, ai.FINAL_CHECK)
 
     def test_only_the_current_subject_section_of_the_rules_is_sent(self):
@@ -207,12 +209,15 @@ class BackendContracts(unittest.TestCase):
             self.assertNotIn(heading, call["instructions"][len(call["cache_prefix"]):])
         self.assertFalse(hasattr(ai, "DIALECT_RULE"))
         rules = ai.tutor_rules
-        for part in ("EXPLAIN mode", "PRACTICE mode", "PLAN mode", '"mode" field', "about\n400 words at most".replace("\\n", "\n"),
-                     "## الفكرة ببساطة", "## المصطلحات", "## مثال من الحياة", "## مثالين محلولين خطوة خطوة",
-                     "## الغلطة الشائعة", "## كيف بييجي بالبجروت", "exam form number", "m10-3-12",
-                     "between $$ and $$", "Never write raw\nHTML".replace("\\n", "\n"),
+        for part in ("EXPLAIN mode", "PRACTICE mode", "PLAN mode", '"mode" field', "in about 150 words", "No introduction, no story, no headings",
+                     "The first sentence says what the topic is", "on a line of its own (between $$ and $$)", "one line for each",
+                     "ONE solved example, step by step, with numbered steps", "ONE easy question for the student, at the end",
+                     "**bold** for the key words and bullet points", "Never write topic", "unless the student asked about it",
+                     "explain it in a different way", "exam form number", "m10-3-12", "between $$ and $$",
                      "Palestinian dialect", "هنبدأ", "كده", "إيه", "بالظبط", "unless the student writes in Egyptian"):
             self.assertIn(part, rules)
+        for gone in ("## الفكرة ببساطة", "## المصطلحات", "## كيف بييجي بالبجروت", "about\n400 words", "two worked examples"):
+            self.assertNotIn(gone, rules)
         # The three subject-independent sections are kept for every subject, and nothing existing was changed.
         for subject in ("math", "physics", "unknown"):
             self.assertIn("# TEACHING MODES", ai.rules_for_subject(subject))

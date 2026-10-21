@@ -58,11 +58,13 @@ class LearningResult(BaseModel):
         "the student writes the correction in answer to the question. Keep it short: at most five sentences and "
         "ONE idea. No second idea, no side remark such as 'we can also...', no extra analogy on top of the main "
         "one, and no derivation or proof unless the student asked for one. "
-        "EXPLAIN: a complete, well-ordered explanation of about 400 words at most, with exactly these Markdown "
-        "headings in this order: '## الفكرة ببساطة' (a definition in simple words), '## المصطلحات' (one line for "
-        "each term), '## مثال من الحياة', '## مثالين محلولين خطوة خطوة' (two worked examples with numbered steps, "
-        "using numbers different from the student's own exercise), '## الغلطة الشائعة', '## كيف بييجي بالبجروت' "
-        "(from the student's curriculum file only; say honestly if the topic is not in it). "
+        "EXPLAIN: a short, direct explanation of about 150 words in light Markdown only (**bold** and bullet "
+        "points, no headings, no introduction, no story). The first sentence says what the topic is, in simple "
+        "words. Then the rule or formula on a line of its own between $$ and $$, and one bullet for each symbol "
+        "with its meaning. Then ONE solved example, step by step with numbered steps, using numbers different "
+        "from the student's own exercise. Never write topic ids or the word 'file', and never mention the Bagrut "
+        "or the exam unless the student asked about it. If the student still does not understand, explain it in "
+        "a different way, not with the same words. "
         "PLAN: a study plan split into weeks, as a table or a numbered list: the week, the topic with its id from "
         "the curriculum file, and what to do; with the exam form number given in the file. Only topics of the file."))
     question: str = Field(description=(

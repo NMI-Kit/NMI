@@ -134,6 +134,7 @@ def check_text(reply, case):
     """Code checks named by the case: phrases the reply must not use, topics or headings it must mention (one spec or a
     list of specs, each {"any_of": [...], "at_least": N}), and a limit on its length in words."""
     forbidden = [phrase for phrase in case.get('forbidden_phrases', []) if phrase_found(reply, phrase)]
+    forbidden += [part for part in case.get('forbidden_substrings', []) if part.lower() in reply.lower()]
     specs = case.get('must_mention') or []
     specs = [specs] if isinstance(specs, dict) else specs
     checks = []
@@ -253,13 +254,15 @@ The rules also require the reply to end with exactly one question; more than one
 
 Every reply has a mode (explain, practice or plan). <mode_expected> is the mode the case wants and <code_facts> says
 which mode the tutor chose. Judge the reply by the mode the case expects (by the chosen mode when none is given).
-- explain: the student asked to be taught. A long, complete, well-ordered Markdown explanation of up to about 400 words,
-  with the required headings, two worked examples and one light closing question, is CORRECT. Never lower the score for
-  length, headings, bullets, tables or the number of ideas, and never use "bad_pacing" for it; if <expected_behavior>
-  asks for brevity or a single idea in an explain case, ignore that limit. Judge instead: is the content correct and
-  simple, is it in the student's own dialect, is it honest about the curriculum (it must not say a topic is in the
-  curriculum file when it is not), are the worked examples correct with numbers different from the student's own
-  exercise, and does the reply end with exactly one light question.
+- explain: the student asked to be taught. The reply must be direct and to the point, about 150 words, in light
+  Markdown (bold and bullets, almost no headings): the first sentence says what the topic is in simple words, then the
+  formula on a line of its own with one line per symbol, then ONE correct solved example with numbered steps (numbers
+  different from the student's own exercise), then ONE easy question. Penalise an introduction or a story, several
+  headings, a long reply, a second example, topic ids (like m10-3-12), the word "file" / "الملف", and any mention of
+  the Bagrut or the exam when the student did not ask. Do not penalise a reply for being short or for having no
+  headings. If <expected_behavior> asks for something else about length or structure in an explain case, follow this
+  rule. Also judge: is the content correct and simple, is it in the student's own dialect, and did it explain in a
+  different way when the student said they still do not understand.
 - plan: a plan built only from the topics of the curriculum file, split into weeks, with topic ids and the exam
   form number from the file; it ends with one question.
 - practice: as described above: no answer, the exact mistake named, one question.

@@ -69,11 +69,14 @@ class ModeTests(unittest.TestCase):
 
     def test_explanation_description_defines_each_mode(self):
         text = LearningResult.model_json_schema()["properties"]["explanation"]["description"]
-        for part in ("Markdown", "PRACTICE:", "EXPLAIN:", "PLAN:", "about 400 words at most", "## الفكرة ببساطة", "## المصطلحات",
-                     "## مثال من الحياة", "## مثالين محلولين خطوة خطوة", "## الغلطة الشائعة", "## كيف بييجي بالبجروت",
-                     "numbers different from the student's own exercise", "the exam form number", "Only topics of the file"):
+        for part in ("Markdown", "PRACTICE:", "EXPLAIN:", "PLAN:", "about 150 words", "light Markdown only", "no headings, no introduction, no story",
+                     "says what the topic is, in simple words", "between $$ and $$", "one bullet for each symbol", "ONE solved example",
+                     "numbers different from the student's own exercise", "Never write topic ids", "word 'file'",
+                     "never mention the Bagrut or the exam unless the student asked", "explain it in a different way",
+                     "the exam form number", "Only topics of the file"):
             self.assertIn(part, text)
-        self.assertLess(text.index("## الفكرة ببساطة"), text.index("## كيف بييجي بالبجروت"))
+        for gone in ("about 400 words", "## الفكرة ببساطة", "## المصطلحات", "## كيف بييجي بالبجروت", "two worked examples"):
+            self.assertNotIn(gone, text)
 
     def test_unknown_or_missing_mode(self):
         self.assertEqual(LearningResult(reply="x", is_attempt=False).mode, "practice")
