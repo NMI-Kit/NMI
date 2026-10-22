@@ -324,6 +324,11 @@ class BackendContracts(unittest.TestCase):
                      "35172 أو 35173", "35571 (60%)"):
             self.assertIn(part, prefix)
 
+    def test_the_patterns_file_never_says_file_so_the_tutor_has_no_such_word_to_repeat(self):
+        text = (ROOT / "curriculum" / "math" / "bagrut_patterns.md").read_text(encoding="utf-8")
+        self.assertNotIn("ملف", text)  # also covers الملف, ملفات and ملف المنهاج
+        self.assertIn("هاد الدليل بيوصف **شكل** أسئلة البجروت.", text)
+
     def test_bagrut_mode_is_in_the_rules_the_final_check_and_the_schema(self):
         rules = ai.tutor_rules
         self.assertEqual(rules.count("BAGRUT mode:"), 1)
