@@ -324,6 +324,15 @@ class BackendContracts(unittest.TestCase):
                      "35172 أو 35173", "35571 (60%)"):
             self.assertIn(part, prefix)
 
+    def test_the_command_line_conversation_files_are_ignored_by_git(self):
+        lines = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+        for name in ("chat_history.json", "answer_key.json"):
+            self.assertIn(name, lines)
+        # the ignored names are the ones the command-line code really writes
+        source = (ROOT / "chat_history.py").read_text(encoding="utf-8")
+        self.assertIn('HISTORY_FILE = BASE_DIR / "chat_history.json"', source)
+        self.assertIn('ANSWER_KEY_FILE = BASE_DIR / "answer_key.json"', source)
+
     def test_no_curriculum_text_the_tutor_reads_says_file(self):
         # The tutor must not repeat "الملف", so the texts it reads do not use the word. SOURCES.md is for the teacher.
         root = ROOT / "curriculum"

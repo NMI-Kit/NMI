@@ -20,3 +20,7 @@ playwright-report/
 __pycache__/
 *.pyc
 tests/evals/report*.md
+
+# Command-line conversation files (student data: never commit)
+chat_history.json
+answer_key.json
