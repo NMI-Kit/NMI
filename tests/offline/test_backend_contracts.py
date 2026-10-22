@@ -324,14 +324,20 @@ class BackendContracts(unittest.TestCase):
                      "35172 أو 35173", "35571 (60%)"):
             self.assertIn(part, prefix)
 
-    def test_the_command_line_conversation_files_are_ignored_by_git(self):
+    def test_every_file_the_command_line_code_writes_is_ignored_by_git(self):
         lines = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
-        for name in ("chat_history.json", "answer_key.json"):
+        for name in ("chat_history.json", "answer_key.json", "progress.json", "student.json"):
             self.assertIn(name, lines)
-        # the ignored names are the ones the command-line code really writes
-        source = (ROOT / "chat_history.py").read_text(encoding="utf-8")
-        self.assertIn('HISTORY_FILE = BASE_DIR / "chat_history.json"', source)
-        self.assertIn('ANSWER_KEY_FILE = BASE_DIR / "answer_key.json"', source)
+        # the ignored names are the ones the code really writes, and no other module writes a data file
+        constants = {"chat_history.py": ('HISTORY_FILE = BASE_DIR / "chat_history.json"', 'ANSWER_KEY_FILE = BASE_DIR / "answer_key.json"'),
+                     "progress.py": ('PROGRESS_FILE = BASE_DIR / "progress.json"',),
+                     "student_profile.py": ('STUDENT_FILE = BASE_DIR / "student.json"',)}
+        for module, expected in constants.items():
+            source = (ROOT / module).read_text(encoding="utf-8")
+            for line in expected:
+                self.assertIn(line, source, module)
+        for folder in (".local-data/", ".cache/", "*.sqlite3", "*.sqlite3-*", ".env", "tests/evals/report*.md"):
+            self.assertIn(folder, lines)  # the web server's database, test data and eval reports
 
     def test_no_curriculum_text_the_tutor_reads_says_file(self):
         # The tutor must not repeat "الملف", so the texts it reads do not use the word. SOURCES.md is for the teacher.
