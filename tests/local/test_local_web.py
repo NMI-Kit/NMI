@@ -390,6 +390,64 @@ class LocalWebTests(unittest.TestCase):
             self.assertEqual(self.post('/api/profile',body).status_code,400)
         self.assertEqual(self.post('/api/profile',base|{'target_units':5}).status_code,200)
 
+    KEY = 'القسم أ: y = 120 + 40x و y = 70x. القسم ب: x = 4 شهور والتكلفة 280 ₪.'
+
+    def bagrut(self, **values):
+        return parsed(mode='bagrut', explanation='نادي رياضي بيعرض اشتراكين.', question='**القسم أ:** اكتب المعادلتين') | values
+
+    def test_the_hidden_answer_key_is_saved_but_never_reaches_the_browser(self):
+        self.fresh_server('answer-key.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':3}).status_code,200)
+        rid=str(uuid4())
+        response=self.chat(self.bagrut(answer_key=self.KEY),request_id=rid)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json['reply'],'نادي رياضي بيعرض اشتراكين.\n\n**القسم أ:** اكتب المعادلتين')
+        # not in the chat answer, the state, the receipt or the saved conversation shown to the page
+        state=self.state()
+        receipt=self.client.get(f'/api/requests/{rid}',base_url=ORIGIN).json
+        for shown in (json.dumps(response.json,ensure_ascii=False),json.dumps(state,ensure_ascii=False),json.dumps(receipt,ensure_ascii=False)):
+            self.assertNotIn('x = 4',shown);self.assertNotIn('280',shown);self.assertNotIn(self.KEY,shown)
+        self.assertNotIn('answer_key',state)
+        self.assertEqual(set(state)&{'answer_key'},set())
+        # but it is saved, with the conversation, for the tutor
+        store=self.app.extensions['nmi_store']
+        self.assertEqual(store.load()['answer_key'],self.KEY)
+        with contextlib.closing(sqlite3.connect(self.db)) as db:self.assertIn('answer_key',db.execute('SELECT payload FROM state').fetchone()[0])
+        # the next message gives it to the tutor, in the part that is not cached
+        self.assertEqual(self.chat(self.bagrut(explanation='صح.',question='**القسم ب:** جد بعد كم شهر',answer_key=None)).status_code,200)
+        call=self.ai.responses.parse.call_args.kwargs
+        self.assertIn(self.KEY,call['instructions'][len(call['cache_prefix']):])
+        self.assertNotIn(self.KEY,call['cache_prefix'])
+        self.assertNotIn(self.KEY,json.dumps(self.state(),ensure_ascii=False))
+        # editing the profile keeps the open question's key, still hidden
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':4}).status_code,200)
+        self.assertEqual(store.load()['answer_key'],self.KEY)
+        self.assertNotIn('answer_key',self.state())
+
+    def test_a_bagrut_reply_without_any_key_or_with_the_key_in_the_text_is_refused_and_nothing_is_saved(self):
+        self.fresh_server('answer-key-refused.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':3}).status_code,200)
+        for result in (self.bagrut(),self.bagrut(explanation='الجواب x = 4 شهور',answer_key='x = 4 شهور')):
+            with self.subTest(result=result['explanation']):
+                response=self.chat(result)
+                self.assertEqual((response.status_code,response.json['error']),(503,'response'))
+                state=self.state()
+                self.assertEqual((state['history'],state['attempts']),([],[]))
+                self.assertIsNone(self.app.extensions['nmi_store'].load().get('answer_key'))
+
+    def test_the_answer_key_field_is_checked_when_the_store_is_read(self):
+        self.fresh_server('answer-key-shape.sqlite3')
+        self.assertEqual(self.post('/api/profile',{'country':'IL','grade':10,'subject':'math','units':3}).status_code,200)
+        state=self.app.extensions['nmi_store'].load()
+        for bad in (5,['x'],'x'*12001):
+            with contextlib.closing(sqlite3.connect(self.db)) as db, db:
+                db.execute('UPDATE state SET payload=?',(json.dumps(state|{'answer_key':bad}),))
+            self.assertEqual(self.client.get('/api/state',base_url=ORIGIN).json['error'],'storage')
+        for fine in (None,'مفتاح'):
+            with contextlib.closing(sqlite3.connect(self.db)) as db, db:
+                db.execute('UPDATE state SET payload=?',(json.dumps(state|{'answer_key':fine}),))
+            self.assertNotIn('answer_key',self.client.get('/api/state',base_url=ORIGIN).json)
+
     def test_rate_limit_and_identical_text_distinct_requests(self):
         for _ in range(6):self.assertEqual(self.chat().status_code,200)
         self.assertEqual(self.chat().json['error'],'limit')

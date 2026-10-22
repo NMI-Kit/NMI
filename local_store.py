@@ -25,6 +25,12 @@ class BufferedConversation:
                                           correct=correct, hint_used=hint_used,
                                           mistake_type=mistake_type))
 
+    def load_answer_key(self):
+        return self.state.get("answer_key")
+
+    def save_answer_key(self, key):
+        self.state["answer_key"] = key
+
     def save_history(self, history):
         # ask_ai sees bounded context; keep the full prior local conversation.
         self.state["history"].extend(copy.deepcopy(history[-2:]))
@@ -54,7 +60,9 @@ class LocalStore:
             return {"profile": None, "history": [], "attempts": []}
         try:
             state = json.loads(row[0])
-            assert set(state) == {"profile", "history", "attempts"}
+            # "answer_key" is optional: the hidden solution of an open Bagrut question (older states have none).
+            assert set(state) in ({"profile", "history", "attempts"}, {"profile", "history", "attempts", "answer_key"})
+            assert state.get("answer_key") is None or (isinstance(state["answer_key"], str) and len(state["answer_key"]) <= 12000)
             assert isinstance(state["profile"], dict)
             assert isinstance(state["history"], list) and len(state["history"]) <= 200
             assert isinstance(state["attempts"], list) and len(state["attempts"]) <= 100
@@ -85,7 +93,7 @@ class LocalStore:
                 return
             try:
                 state = json.loads(row[0])
-                assert isinstance(state, dict) and set(state) == {"profile", "history", "attempts"}
+                assert isinstance(state, dict) and {"profile", "history", "attempts"} <= set(state) <= {"profile", "history", "attempts", "answer_key"}
             except (ValueError, TypeError, AssertionError) as error:
                 raise StoreError() from error
             state["profile"] = profile

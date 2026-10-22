@@ -102,6 +102,39 @@ class ModeTests(unittest.TestCase):
         self.assertEqual(make(mode="bagrut", question="(1) جد x؟ (2) جد y؟").question, "(2) جد y؟")  # two marks: only the last
         self.assertEqual(LearningResult.model_validate(result).reply, result.reply)
 
+    def test_answer_key_is_a_hidden_optional_field_with_a_clear_description(self):
+        schema = LearningResult.model_json_schema()
+        self.assertNotIn("answer_key", schema["required"])  # null in every reply but the one that writes a new question
+        description = schema["properties"]["answer_key"]["description"]
+        for part in ("HIDDEN", "never shown to the student", "In bagrut mode only", "NEW question",
+                     "the complete correct solution of EVERY section", "BEFORE you write the question",
+                     "If any number does not come out clean, change the numbers of the question and compute again before you send it",
+                     "Null in every other reply (the saved key stays)", "never copy any part of it into the explanation or the question"):
+            self.assertIn(part, description)
+        self.assertLess(list(schema["properties"]).index("question"), list(schema["properties"]).index("answer_key"))
+
+    def test_the_key_is_kept_only_in_bagrut_mode_and_never_becomes_part_of_the_reply(self):
+        key = "القسم أ: y = 2x + 3. القسم ب: x = 4"
+        result = make(mode="bagrut", explanation="قصة", question="القسم أ: اكتب المعادلة", answer_key="  " + key + "  ")
+        self.assertEqual(result.answer_key, key)  # trimmed
+        self.assertEqual(result.reply, "قصة\n\nالقسم أ: اكتب المعادلة")
+        self.assertNotIn("x = 4", result.reply)
+        self.assertEqual(result.model_dump()["answer_key"], key)  # saved with the result, not shown
+        self.assertEqual(LearningResult.model_validate(result).answer_key, key)
+        for mode in ("explain", "practice", "plan"):
+            self.assertIsNone(make(mode=mode, answer_key=key).answer_key)  # a key outside bagrut mode is dropped
+        for empty in (None, "", "   "):
+            self.assertIsNone(make(mode="bagrut", answer_key=empty).answer_key)
+        self.assertIsNone(make(mode="bagrut").answer_key)
+        self.assertIsNone(LearningResult(reply="x", is_attempt=False).answer_key)  # the older shapes have no key
+
+    def test_a_key_copied_into_the_reply_is_refused(self):
+        key = "x = 4 شهور"
+        with self.assertRaises(ValueError):
+            make(mode="bagrut", explanation="الجواب " + key + " للقسم ب", answer_key=key)
+        with self.assertRaises(ValueError):
+            make(mode="bagrut", question="جد " + key, answer_key=key)
+
     def test_unknown_or_missing_mode(self):
         self.assertEqual(LearningResult(reply="x", is_attempt=False).mode, "practice")
         self.assertEqual(LearningResult(explanation="a", question="b", is_attempt=False).mode, "practice")
@@ -180,6 +213,94 @@ class LegacyReplyTests(unittest.TestCase):
         self.assertTrue(has_reply_text({"explanation": "x", "question": ""}))
         for bad in ({}, {"explanation": "x"}, {"question": "x"}, {"reply": 1}, {"explanation": 1, "question": 2}, None, "x"):
             self.assertFalse(has_reply_text(bad), bad)
+
+
+class AnswerKeyFlowTests(unittest.TestCase):
+    """ask_ai saves the key of a new Bagrut question, gives it back to the tutor, and never shows it."""
+
+    KEY = "القسم أ: y = 120 + 40x. القسم ب: x = 4 شهور و280 ₪."
+
+    def setUp(self):
+        cache = ROOT / ".cache/offline"
+        cache.mkdir(parents=True, exist_ok=True)
+        temp = tempfile.TemporaryDirectory(dir=cache)
+        self.addCleanup(temp.cleanup)
+        base = Path(temp.name)
+        for module, name, filename in [(history, "HISTORY_FILE", "history.json"), (progress, "PROGRESS_FILE", "progress.json"),
+                                       (history, "ANSWER_KEY_FILE", "answer_key.json")]:
+            patcher = patch.object(module, name, base / filename)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        for target, attribute in ((socket.socket, "connect"), (socket, "create_connection")):
+            patcher = patch.object(target, attribute, side_effect=AssertionError("Network forbidden"))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        self.parse = Mock()
+        patcher = patch.object(ai, "client", SimpleNamespace(responses=SimpleNamespace(parse=self.parse)))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.key_file = base / "answer_key.json"
+
+    def ask(self, parsed, message="بدي سؤال بجروت", **options):
+        self.parse.return_value = SimpleNamespace(output_parsed=parsed, status="completed")
+        return ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", message, **options)
+
+    def bagrut(self, **values):
+        return {"mode": "bagrut", "explanation": "نادي رياضي بيعرض اشتراكين.", "question": "**القسم أ:** اكتب المعادلتين",
+                "is_attempt": False} | values
+
+    def test_a_new_question_saves_its_key_and_the_reply_never_contains_it(self):
+        reply = self.ask(self.bagrut(answer_key=self.KEY))
+        self.assertEqual(reply, "نادي رياضي بيعرض اشتراكين.\n\n**القسم أ:** اكتب المعادلتين")
+        self.assertEqual(history.load_answer_key(), self.KEY)
+        saved = "\n".join(m["content"] for m in history.load_history())
+        for secret in ("x = 4", "280", "القسم ب", self.KEY):
+            self.assertNotIn(secret, saved)  # neither the reply nor the saved history holds any of the key
+
+    def test_the_next_message_gives_the_key_to_the_tutor_in_the_uncached_part_only(self):
+        self.ask(self.bagrut(answer_key=self.KEY))
+        self.ask(self.bagrut(explanation="صح.", question="**القسم ب:** جد بعد كم شهر"), message="القسم أ: y = 120 + 40x")
+        call = self.parse.call_args.kwargs
+        variable = call["instructions"][len(call["cache_prefix"]) + 2:]
+        self.assertIn("# ANSWER KEY OF THE OPEN BAGRUT QUESTION (hidden)", variable)
+        self.assertIn(self.KEY, variable)
+        self.assertNotIn(self.KEY, call["cache_prefix"])  # the cached part is the same for every student
+        self.assertTrue(variable.endswith(ai.FINAL_CHECK))
+        for part in ("The student must never see it", "do not show it, quote it or hint at it", "to check the student's solution",
+                     "check the student's reasoning before you call it wrong"):
+            self.assertIn(part, ai.ANSWER_KEY_SECTION)
+        # the key is not in the messages either
+        self.assertNotIn(self.KEY, "".join(m["content"] for m in call["input"]))
+        self.assertEqual(history.load_answer_key(), self.KEY)  # a reply without a new key leaves the saved one
+
+    def test_a_new_question_replaces_the_old_key_and_without_an_open_question_no_section_is_shown(self):
+        self.ask(self.bagrut(answer_key=self.KEY))
+        self.ask(self.bagrut(answer_key="مفتاح السؤال الجديد"))
+        self.assertEqual(history.load_answer_key(), "مفتاح السؤال الجديد")
+        self.key_file.unlink()
+        before = history.load_history()
+        for web_policy in (False, True):
+            with self.subTest(web_policy=web_policy):
+                if web_policy:
+                    with self.assertRaises(ai.InvalidAIResponse):
+                        self.ask(self.bagrut(), web_policy=True)
+                else:
+                    self.assertIn("عذرًا", self.ask(self.bagrut(), message="x"))  # the Arabic apology: no reply was made
+                self.assertEqual(history.load_history(), before)  # nothing was saved
+                self.assertIsNone(history.load_answer_key())
+
+    def test_no_key_is_written_by_the_other_modes(self):
+        self.assertIn("شرح", self.ask({"mode": "explain", "explanation": "شرح", "question": "سؤال؟", "is_attempt": False,
+                                       "answer_key": "يجب أن يتجاهل"}))
+        self.assertFalse(self.key_file.exists())
+        self.assertIsNone(history.load_answer_key())
+
+    def test_the_command_line_files_hold_the_key(self):
+        self.assertIsNone(history.load_answer_key())
+        history.save_answer_key("مفتاح")
+        self.assertEqual(history.load_answer_key(), "مفتاح")
+        self.key_file.write_text("[1]", encoding="utf-8")
+        self.assertIsNone(history.load_answer_key())  # an unreadable shape is ignored, not trusted
 
 
 class AskAiTests(unittest.TestCase):

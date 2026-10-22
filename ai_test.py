@@ -8,7 +8,7 @@ import curriculum as curriculum_files
 from curriculum import NOT_READY, SUBJECT_NAMES, get_curriculum
 from learning_result import LearningResult, has_reply_text
 from progress import load_progress, record_attempt
-from chat_history import load_history, save_history
+from chat_history import load_history, save_history, load_answer_key, save_answer_key
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -24,10 +24,17 @@ Before you send the reply, check it:
 - In practice mode: do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do. Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it. The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations.
 - In explain mode: about 150 words, no headings and no introduction. The first sentence says what the topic is; then the formula on its own line and one line per symbol; then ONE solved example with numbered steps, using numbers different from the student's own exercise (the student's own exercise is not solved). No topic ids, no word "file" / "الملف", and no Bagrut or exam unless the student asked.
 - In plan mode: only topics of the curriculum file, each with its id, split into weeks, with the exam form number from the file.
-- In bagrut mode: a NEW question (never a real exam question) on a topic of the student's curriculum; the first reply has the story and section "القسم أ" only, with no answer and no later section. After a right solution: one or two lines of feedback and only the next section. After a wrong one: the exact mistake, one small hint, no new section.
+- In bagrut mode, when you write a new question, answer_key has the complete correct solution of every section, computed before you wrote the question; if a number is not clean, you changed the question and computed again. The key is never shown or hinted at. The question is a NEW question (never a real exam question) on a topic of the student's curriculum; the first reply has the story and section "القسم أ" only, with no answer and no later section. After a right solution: one or two lines of feedback and only the next section. After a wrong one: the exact mistake, one small hint, no new section.
 - In every mode: never write the words "الملف", "ملف المنهاج", "ملفات" or "the file(s)": the student never hears about files. Say "منهاجك" or name the topic instead. (In plan mode topic ids and the exam form number are allowed.)
 - Markdown only (no raw HTML), each important equation on its own line between $$ and $$, and the student's own dialect."""
 
+
+# The key the tutor wrote with a Bagrut question. It is shown only to the tutor, in the variable part of the instructions.
+ANSWER_KEY_SECTION = """# ANSWER KEY OF THE OPEN BAGRUT QUESTION (hidden)
+
+You wrote this key yourself when you wrote the question. The student must never see it: do not show it, quote it or hint at it beyond the PRACTICE rules. Use it only to check the student's solution of the section being answered and to write the next section. If the student's solution differs from the key, check the student's reasoning before you call it wrong.
+
+{key}"""
 
 LEVEL_TRANSITION = """# LEVEL TRANSITION
 
@@ -113,6 +120,8 @@ def ask_ai(name, grade, country, language, message, *, storage=None,
     read_history = storage.load_history if storage else load_history
     write_attempt = storage.record_attempt if storage else record_attempt
     write_history = storage.save_history if storage else save_history
+    read_key = storage.load_answer_key if storage else load_answer_key
+    write_key = storage.save_answer_key if storage else save_answer_key
 
     # Get curriculum
     curriculum = get_curriculum(country, grade, subject=subject, units=units)
@@ -152,6 +161,9 @@ Preferred language: {language}
     if patterns is not None:
         stable_instructions += "\n\n# BAGRUT QUESTION PATTERNS\n" + patterns
     instructions = student_context + "\n\n" + progress_context
+    stored_key = read_key()
+    if stored_key:
+        instructions += "\n\n" + ANSWER_KEY_SECTION.format(key=stored_key)
     if web_policy:
         instructions += """
 \n# LOCAL WEBSITE SAFETY AND ASSESSMENT BOUNDARY
@@ -220,6 +232,10 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
     except ValidationError:
         result = None
 
+    # A Bagrut reply needs a key to correct against: the saved one, or the one written with a new question.
+    if result is not None and result.mode == "bagrut" and not (result.answer_key or stored_key):
+        result = None
+
     if result is None:
         if web_policy:
             raise InvalidAIResponse()
@@ -243,6 +259,9 @@ Do not claim to be a human, a therapist, or an authoritative source of official 
             result.hint_used,
             result.mistake_type
         )
+
+    if result.mode == "bagrut" and result.answer_key:
+        write_key(result.answer_key)  # a new question: its key replaces the old one
 
     # Save NMI's reply to conversation history
     history.append(

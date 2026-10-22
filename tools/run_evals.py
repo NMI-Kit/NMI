@@ -51,10 +51,11 @@ WEAKNESSES = {
     'wrong_mode': 'اختار وضعاً غير المطلوب: شرح أو تمرين أو خطة (فحص الكود)',
     'too_long': 'الرد أطول من الحد المسموح لهذا الوضع (فحص الكود)',
     'extra_sections': 'يعطي أقساماً زيادة أو القسم الجاي قبل وقته في سؤال البجروت (فحص الكود)',
+    'missing_answer_key': 'كتب سؤال بجروت جديد بدون ما يحفظ مفتاح الحل المخفي (فحص الكود)',
     'wrong_attempt_record': 'تسجيل محاولة تعليمية خاطئ أو ناقص',
     'other': 'سبب آخر',
 }
-CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan', 'missing_parts', 'wrong_mode', 'too_long', 'extra_sections'}
+CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan', 'missing_parts', 'wrong_mode', 'too_long', 'extra_sections', 'missing_answer_key'}
 JUDGE_TAGS = [tag for tag in WEAKNESSES if tag not in CODE_TAGS]
 
 
@@ -278,7 +279,8 @@ which mode the tutor chose. Judge the reply by the mode the case expects (by the
   student sent the solution of a section: a right one is confirmed in one or two lines and only the next section is
   given; a wrong one gets the exact mistake, one small hint and a request to try again, with no new section. Later
   sections use the results of the earlier ones, the question is never a copy of a real exam question, and the numbers
-  are clean. A longer, structured reply is fine in this mode too.
+  are clean. A longer, structured reply is fine in this mode too. The tutor also writes a hidden answer key with the
+  question; you never see it and code checks that it was saved, so do not judge it.
 - plan: a plan built only from the topics of the curriculum file, split into weeks, with topic ids and the exam
   form number from the file; it ends with one question.
 - practice: as described above: no answer, the exact mistake named, one question.
@@ -381,7 +383,7 @@ def curriculum_options(profile):
     return options
 
 
-def code_facts(math, attempts, expect, text=None, mode=None, expected_mode=None):
+def code_facts(math, attempts, expect, text=None, mode=None, expected_mode=None, key_saved=None):
     lines = []
     if math['arithmetic_errors']:
         lines.append('False arithmetic equations written by the tutor: ' + '; '.join(math['arithmetic_errors']))
@@ -399,6 +401,8 @@ def code_facts(math, attempts, expect, text=None, mode=None, expected_mode=None)
         lines.append('The tutor reply shows sections that must not be given yet: ' + ', '.join(text['extra_sections']))
     if text and text['max_words'] is not None:
         lines.append(f"The reply has {text['words']} words (limit {text['max_words']}).")
+    if key_saved is not None:
+        lines.append('The tutor ' + ('saved' if key_saved else 'did NOT save') + ' a hidden answer key for the new question (the key is not shown to you).')
     if mode:
         lines.append(f"The tutor chose the mode: {mode}" + (f" (the case expects: {expected_mode})." if expected_mode else '.'))
     recorded = [{'correct': a['correct']} for a in attempts]
@@ -422,7 +426,9 @@ def evaluate_case(case, model, tutor_factory, judge):
     profile, conversation = case['profile'], case['conversation']
     if conversation[-1]['role'] != 'user':
         raise ValueError(f"{case['id']}: the last message must come from the student")
-    storage = BufferedConversation({'profile': profile, 'history': conversation[:-1], 'attempts': []})
+    # `answer_key`: the hidden key of a Bagrut question that is already open (a case that continues one).
+    storage = BufferedConversation({'profile': profile, 'history': conversation[:-1], 'attempts': [],
+                                    'answer_key': case.get('answer_key')})
     outcome = {'id': case['id'], 'category': case['category'], 'grade': profile['grade'], 'units': profile['units'],
                'topic': case.get('topic'),
                'status': 'ok', 'error': None, 'reply': '', 'score': None, 'reason': '', 'weaknesses': [],
@@ -451,12 +457,17 @@ def evaluate_case(case, model, tutor_factory, judge):
     outcome['text_checks'] = text_checks
     chosen = getattr(getattr(client, 'last_result', None), 'mode', None)
     chosen = chosen if chosen in MODES else None
+    # A new Bagrut question must come with a hidden answer key; only whether it was saved is recorded here.
+    saved_key = storage.state.get('answer_key')
+    key_ok = not case.get('expects_answer_key') or bool(saved_key and saved_key != case.get('answer_key'))
+    outcome['answer_key'] = {'expected': bool(case.get('expects_answer_key')), 'saved': bool(saved_key), 'ok': key_ok}
     outcome['mode'] = {'expected': case.get('mode'), 'chosen': chosen,
                        'ok': not (case.get('mode') and chosen and chosen != case['mode'])}
     outcome['attempt'] = {'expected': expect, 'recorded': [a['correct'] for a in attempts],
                           'ok': attempt_ok(expect, attempts)}
     try:
-        verdict, outcome['judge_usage'] = judge(case, outcome['reply'], code_facts(math, attempts, expect, text_checks, chosen, case.get('mode')))
+        verdict, outcome['judge_usage'] = judge(case, outcome['reply'], code_facts(math, attempts, expect, text_checks, chosen, case.get('mode'),
+                                                                  key_ok if case.get('expects_answer_key') else None))
     except Exception as error:
         outcome.update(status='judge_error', error=error_code(error))
         return outcome
@@ -475,11 +486,13 @@ def evaluate_case(case, model, tutor_factory, judge):
         outcome['weaknesses'].append('extra_sections')
     if not outcome['mode']['ok']:
         outcome['weaknesses'].append('wrong_mode')
+    if not key_ok:
+        outcome['weaknesses'].append('missing_answer_key')
     if not outcome['attempt']['ok']:
         outcome['weaknesses'].append('wrong_attempt_record')
     outcome['weaknesses'] = list(dict.fromkeys(outcome['weaknesses']))
     outcome['passed'] = (verdict.score >= PASS_SCORE and math['ok'] and outcome['attempt']['ok']
-                         and text_checks['ok'] and outcome['mode']['ok'])
+                         and text_checks['ok'] and outcome['mode']['ok'] and key_ok)
     return outcome
 
 
@@ -588,6 +601,8 @@ def render_report(meta, results):
             problems.append('أقسام زيادة: ' + ', '.join(text_checks['extra_sections']))
         if text_checks.get('short_enough') is False:
             problems.append(f"{text_checks['words']} كلمة والحد {text_checks['max_words']}")
+        if (r.get('answer_key') or {}).get('ok') is False:
+            problems.append('مفتاح الحل المخفي ما انحفظ')
         mode = r.get('mode') or {}
         if mode.get('ok') is False:
             problems.append(f"الوضع {mode['chosen']} والمطلوب {mode['expected']}")

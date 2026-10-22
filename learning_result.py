@@ -83,6 +83,14 @@ class LearningResult(BaseModel):
         "written as a task such as 'جد ...' or 'علّل ...' with items (1) and (2) on separate lines and at most one "
         "question mark."))
 
+    answer_key: str | None = Field(default=None, description=(
+        "HIDDEN: it is saved but never shown to the student. In bagrut mode only, and only when you write a NEW "
+        "question (the reply that gives section 'القسم أ' for the first time): the complete correct solution of EVERY "
+        "section, with the steps and the final values. Compute it carefully BEFORE you write the question. If any "
+        "number does not come out clean, change the numbers of the question and compute again before you send it. "
+        "Null in every other reply (the saved key stays), and never copy any part of it into the explanation or the "
+        "question."))
+
     is_attempt: bool
 
     subject: StrictStr | None = None
@@ -120,6 +128,11 @@ class LearningResult(BaseModel):
         if self.mode == "practice":
             self.explanation = strip_question_marks(self.explanation)
         self.question = last_question(self.question)
+        # The answer key exists only in bagrut mode, and it is never part of what the student reads.
+        key = (self.answer_key or "").strip()
+        self.answer_key = key if key and self.mode == "bagrut" else None
+        if self.answer_key and (self.answer_key in self.explanation or self.answer_key in self.question):
+            raise ValueError("the answer key must never be copied into the reply")
         return self
 
     @property

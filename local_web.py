@@ -225,7 +225,9 @@ def create_app(*, data_path=None, access_token=None, enabled=False, max_calls=1,
         value = store.load()
         if value["profile"] is not None and not valid_profile(value["profile"]):
             raise StoreError()
-        return jsonify(**value, profile_ready=profile_ready(value["profile"]),
+        # The hidden answer key of an open Bagrut question is for the tutor only: it never leaves the server.
+        shown = {name: item for name, item in value.items() if name != "answer_key"}
+        return jsonify(**shown, profile_ready=profile_ready(value["profile"]),
                        curriculum=dict(country=CURRICULUM_COUNTRY, options=curriculum_options()),
                        csrf=owner["csrf"], enabled=enabled, remaining=max(0, max_calls-count[0]),
                        claude_enabled=allow_claude, claude_configured=valid_claude_model(claude_model),

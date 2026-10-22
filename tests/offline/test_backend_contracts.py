@@ -324,10 +324,25 @@ class BackendContracts(unittest.TestCase):
                      "35172 أو 35173", "35571 (60%)"):
             self.assertIn(part, prefix)
 
-    def test_the_patterns_file_never_says_file_so_the_tutor_has_no_such_word_to_repeat(self):
-        text = (ROOT / "curriculum" / "math" / "bagrut_patterns.md").read_text(encoding="utf-8")
-        self.assertNotIn("ملف", text)  # also covers الملف, ملفات and ملف المنهاج
-        self.assertIn("هاد الدليل بيوصف **شكل** أسئلة البجروت.", text)
+    def test_no_curriculum_text_the_tutor_reads_says_file(self):
+        # The tutor must not repeat "الملف", so the texts it reads do not use the word. SOURCES.md is for the teacher.
+        root = ROOT / "curriculum"
+        texts = sorted(root.glob("math/grade1[0-2]/[345]units.md")) + [root / "math" / "bagrut_patterns.md"]
+        self.assertEqual(len(texts), 10)
+        for path in texts:
+            content = path.read_text(encoding="utf-8")
+            self.assertNotIn("ملف", content, path.name)  # also covers الملف, بهالملف, ملفات and ملف المنهاج
+            self.assertNotIn("هالملف", content, path.name)
+        self.assertIn("## تعليمات للمدرّس عن هذا الدليل", (root / "math/grade10/4units.md").read_text(encoding="utf-8"))
+        self.assertIn("علّم بس المواضيع اللي بهالدليل.", (root / "math/grade10/4units.md").read_text(encoding="utf-8"))
+        self.assertIn("الأخطاء الشائعة بهالدليل من خبرة تدريس عامة", (root / "math/grade12/5units.md").read_text(encoding="utf-8"))
+        self.assertIn("هاد الدليل بيوصف **شكل** أسئلة البجروت.", (root / "math" / "bagrut_patterns.md").read_text(encoding="utf-8"))
+        # version 2 of the patterns: one exam per level, with the 2025 table
+        patterns = (root / "math" / "bagrut_patterns.md").read_text(encoding="utf-8")
+        for part in ("(نسخة 2)", "035172 (صيف 2022)", "035472 (صيف 2022)", "3 وحدات، الصف العاشر: استمارة 35172",
+                     "4 وحدات: استمارة 35472", "5 وحدات: استمارة 35571", "35172 أو 35173 (25%)", "35471 (65%)"):
+            self.assertIn(part, patterns)
+        self.assertIn("ملف", (root / "SOURCES.md").read_text(encoding="utf-8"))  # left as it was: it is for the teacher
 
     def test_bagrut_mode_is_in_the_rules_the_final_check_and_the_schema(self):
         rules = ai.tutor_rules
