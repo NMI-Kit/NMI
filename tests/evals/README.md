@@ -27,6 +27,12 @@ In every case and every mode the words "الملف", "ملف المنهاج" and
 
 The judge is told `<mode_expected>` and the mode the tutor chose. For `explain` it checks the direct shape above and penalises an introduction or story, several headings, a long reply, a second example, ids, "file" and an unasked Bagrut; it does not penalise a short reply. It also judges correctness, dialect and whether the tutor explained in a different way when the student still did not understand.
 
+## Bagrut practice cases (`tier: "bagrut"`)
+
+A fourth mode, `bagrut`, answers "بدي أتدرّب على سؤال بجروت": the tutor writes a NEW question (never a real exam question) on a topic of the student's curriculum, following the "How the tutor writes a Bagrut practice question" section of `curriculum/math/bagrut_patterns.md`, which is loaded for every math student in the cached part of the prompt, after the curriculum. It gives the story and section أ only, waits, corrects the solution, and gives the next section.
+
+Two cases at Grade 10, 3 units: `mode-bagrut-start-01` (the first reply has the story and "القسم أ" and nothing of ب, ج, د; no answer) and `mode-bagrut-next-01` (the student sends a right solution to section أ; the tutor confirms it, gives "القسم ب" only, and does not solve it: the answer, 4 months and 280 ₪, is computed by sympy in `hard_solutions.BAGRUT_SOLUTIONS`). `forbidden_sections` lists the section labels that must not appear yet (`extra_sections`); `must_mention` requires the label that must appear.
+
 ## Conversation cases (`tier: "conversation"`)
 
 Three cases taken from the owner's own session with the website (ids `conv-...`): a student who writes Palestinian Arabic (the tutor must answer in that dialect, not Egyptian), a 3-unit student whose target is 5 units and who asks what to learn (the tutor must give a plan from `5units.md`), and a question about the quadratic function (the example must agree with the shape it describes: y = x² opens upward, y = −x² downward; the sympy facts are in `hard_solutions.CONVERSATION_SOLUTIONS`).

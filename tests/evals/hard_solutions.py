@@ -262,3 +262,17 @@ def conv_quadratic_01():  # m10-4-02: the shape word must match the sign of a
 
 
 CONVERSATION_SOLUTIONS = {'conv-quadratic-01': conv_quadratic_01}
+
+
+# ------------------------------------------------- Bagrut practice cases (tier "bagrut")
+def bagrut_next_01():  # m10-3-12: two plans, y = 120 + 40x and y = 70x; section ב asks when they cost the same
+    first, second = 120 + 40 * x, 70 * x
+    months = sp.solve(sp.Eq(first, second), x)
+    cost = first.subs(x, months[0])
+    return _case([months[0], cost], [months == [4], cost == 280, second.subs(x, months[0]) == 280,
+                                     first.subs(x, 0) == 120, second.subs(x, 0) == 0,
+                                     first.subs(x, 3) == 240 and second.subs(x, 3) == 210,   # before month 4 the second is cheaper
+                                     first.subs(x, 6) == 360 and second.subs(x, 6) == 420])  # after it the first is cheaper
+
+
+BAGRUT_SOLUTIONS = {'mode-bagrut-next-01': bagrut_next_01}

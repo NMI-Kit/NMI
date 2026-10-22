@@ -4,7 +4,8 @@ import re
 
 from pydantic import ValidationError
 
-from curriculum import NOT_READY, get_curriculum
+import curriculum as curriculum_files
+from curriculum import NOT_READY, SUBJECT_NAMES, get_curriculum
 from learning_result import LearningResult, has_reply_text
 from progress import load_progress, record_attempt
 from chat_history import load_history, save_history
@@ -23,6 +24,7 @@ Before you send the reply, check it:
 - In practice mode: do not do the student's next step for them: do not factor, substitute or calculate the step you want the student to do. Do not write the corrected version of the student's wrong step (the right expression, value or list of right terms): name the mistake, then let the student correct it. The explanation is short (at most five sentences) and about one idea: delete side remarks, extra analogies and derivations.
 - In explain mode: about 150 words, no headings and no introduction. The first sentence says what the topic is; then the formula on its own line and one line per symbol; then ONE solved example with numbered steps, using numbers different from the student's own exercise (the student's own exercise is not solved). No topic ids, no word "file" / "الملف", and no Bagrut or exam unless the student asked.
 - In plan mode: only topics of the curriculum file, each with its id, split into weeks, with the exam form number from the file.
+- In bagrut mode: a NEW question (never a real exam question) on a topic of the student's curriculum; the first reply has the story and section "القسم أ" only, with no answer and no later section. After a right solution: one or two lines of feedback and only the next section. After a wrong one: the exact mistake, one small hint, no new section.
 - In every mode: never write the words "الملف", "ملف المنهاج", "ملفات" or "the file(s)": the student never hears about files. Say "منهاجك" or name the topic instead. (In plan mode topic ids and the exam form number are allowed.)
 - Markdown only (no raw HTML), each important equation on its own line between $$ and $$, and the student's own dialect."""
 
@@ -33,6 +35,15 @@ The student studies {units} units now and wants to move up to {target} units. Th
 Help the student cover the difference between them step by step. Start with the topics that are in the target level file and not in the current level file, one topic at a time, using the topic names and ids of the target file.
 When the student asks what to learn, give a short ordered plan from the target file's topics (name each topic with its id), then ask which topic to start with.
 Do not invent topics that are not in the files."""
+
+
+def bagrut_patterns(subject):
+    """curriculum/<subject>/bagrut_patterns.md (the shape of Bagrut questions), or None when the subject has none."""
+    folder = SUBJECT_NAMES.get(str(subject).strip().casefold())
+    path = Path(curriculum_files.CURRICULUM_DIR) / folder / "bagrut_patterns.md" if folder else None
+    if path is None or not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8").strip()
 
 
 def target_curriculum(country, grade, subject, units, target_units):
@@ -136,6 +147,10 @@ Preferred language: {language}
         # Moving up a level: both files and the transition rules belong to the cached stable part.
         stable_instructions += (f"\n\n# TARGET LEVEL CURRICULUM ({target_units} units)\n" + target + "\n\n"
                                 + LEVEL_TRANSITION.format(units=units, target=target_units))
+    # The same file for every student of the subject, after the curriculum: still the stable, cacheable part.
+    patterns = bagrut_patterns(subject)
+    if patterns is not None:
+        stable_instructions += "\n\n# BAGRUT QUESTION PATTERNS\n" + patterns
     instructions = student_context + "\n\n" + progress_context
     if web_policy:
         instructions += """

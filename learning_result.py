@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, model_validator
 
 QUESTION_MARKS = "?؟？"
-MODES = ("explain", "practice", "plan")
+MODES = ("explain", "practice", "plan", "bagrut")
 _QUESTION_MARK = re.compile("[" + QUESTION_MARKS + "]")
 # End of a sentence: a question/exclamation mark, a line break, or a full stop that is not a decimal point.
 _SENTENCE_END = re.compile("[!" + QUESTION_MARKS + r"\n]|\.(?=\s|$)")
@@ -42,11 +42,12 @@ def has_reply_text(raw):
 class LearningResult(BaseModel):
     model_config = ConfigDict(revalidate_instances="always")
 
-    mode: Literal["explain", "practice", "plan"] = Field(description=(
+    mode: Literal["explain", "practice", "plan", "bagrut"] = Field(description=(
         "The mode of this reply, chosen from the student's latest message (the intent label is only a hint). "
         "'explain': the student does not understand, asks for an explanation, asks what something means or why, "
         "or asks to start or learn a topic. 'practice': the student sends a solution, an answer or an exercise. "
-        "'plan': the student asks for a study plan for the Bagrut or an exam."))
+        "'plan': the student asks for a study plan for the Bagrut or an exam. 'bagrut': the student asks to "
+        "practise a Bagrut-style question, or sends the solution of a section of one."))
     explanation: str = Field(description=(
         "The teaching part of the reply, in the student's own dialect, written in Markdown. In every mode it never "
         "writes the words 'الملف', 'ملف المنهاج' or 'ملفات' (or 'the file'): say 'منهاجك' or name the topic. It contains NO question "
@@ -67,13 +68,20 @@ class LearningResult(BaseModel):
         "or the exam unless the student asked about it. If the student still does not understand, explain it in "
         "a different way, not with the same words. "
         "PLAN: a study plan split into weeks, as a table or a numbered list: the week, the topic with its id from "
-        "the curriculum file, and what to do; with the exam form number given in the file. Only topics of the file."))
+        "the curriculum file, and what to do; with the exam form number given in the file. Only topics of the file. "
+        "BAGRUT: when the student asks for a question, the short real-life story with all its numbers and nothing "
+        "else (the section itself goes in `question`); when the student sent a solution, the feedback: a right "
+        "solution is confirmed in one or two lines, a wrong one gets the exact mistake and one small hint. Never "
+        "show the sections that are not being asked yet and never give an answer."))
     question: str = Field(description=(
         "Exactly one short question for the student, in every mode, with a single question mark. It asks for ONE "
         "small next step (for example one substitution, one factorisation or one value), not a whole solution; in "
         "explain and plan mode it is one light question. It must not contain the answer to that step and must not "
         "open a second topic. It asks for one value or one step only: never join two requests with 'and', 'then', "
-        "'after that' or 'how' (in Arabic: و, وبعدها, وكيف, ثم). If two steps are needed, ask only about the first one."))
+        "'after that' or 'how' (in Arabic: و, وبعدها, وكيف, ثم). If two steps are needed, ask only about the first one. "
+        "In bagrut mode only, it is the text of the one section being asked, labelled 'القسم أ', 'القسم ب' and so on, "
+        "written as a task such as 'جد ...' or 'علّل ...' with items (1) and (2) on separate lines and at most one "
+        "question mark."))
 
     is_attempt: bool
 

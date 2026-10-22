@@ -57,10 +57,10 @@ class SchemaTests(unittest.TestCase):
 
 
 class ModeTests(unittest.TestCase):
-    def test_mode_is_required_in_the_schema_with_three_values_and_a_description(self):
+    def test_mode_is_required_in_the_schema_with_four_values_and_a_description(self):
         schema = LearningResult.model_json_schema()
         self.assertIn("mode", schema["required"])
-        self.assertEqual(schema["properties"]["mode"]["enum"], ["explain", "practice", "plan"])
+        self.assertEqual(schema["properties"]["mode"]["enum"], ["explain", "practice", "plan", "bagrut"])
         description = schema["properties"]["mode"]["description"]
         for part in ("'explain'", "does not understand", "asks what something means or why", "start or learn a topic",
                      "'practice'", "sends a solution, an answer or an exercise", "'plan'", "study plan", "only a hint"):
@@ -77,6 +77,30 @@ class ModeTests(unittest.TestCase):
             self.assertIn(part, text)
         for gone in ("about 400 words", "## الفكرة ببساطة", "## المصطلحات", "## كيف بييجي بالبجروت", "two worked examples"):
             self.assertNotIn(gone, text)
+
+    def test_bagrut_mode_in_the_schema(self):
+        schema = LearningResult.model_json_schema()["properties"]
+        self.assertIn("'bagrut'", schema["mode"]["description"])
+        self.assertIn("Bagrut-style question", schema["mode"]["description"])
+        explanation = schema["explanation"]["description"]
+        for part in ("BAGRUT:", "the short real-life story with all its numbers", "the section itself goes in `question`",
+                     "a right solution is confirmed in one or two lines", "a wrong one gets the exact mistake and one small hint",
+                     "Never show the sections that are not being asked yet and never give an answer"):
+            self.assertIn(part, explanation)
+        question = schema["question"]["description"]
+        for part in ("In bagrut mode only", "the text of the one section being asked", "'القسم أ', 'القسم ب'",
+                     "items (1) and (2) on separate lines", "at most one question mark"):
+            self.assertIn(part, question)
+
+    def test_bagrut_replies_keep_their_text_and_the_section_stays_whole(self):
+        story = "## القصة\nنادي بيعرض اشتراكين؟ شو الأوفر؟"
+        section = "جد معادلة كل اشتراك:\n(1) الاشتراك الأول\n(2) الاشتراك التاني"
+        result = make(mode="bagrut", explanation=story, question=section)
+        self.assertEqual(result.explanation, story)  # Markdown is not touched in bagrut mode
+        self.assertEqual(result.question, section)  # no question mark, so nothing is cut
+        self.assertEqual(result.reply, story + "\n\n" + section)
+        self.assertEqual(make(mode="bagrut", question="(1) جد x؟ (2) جد y؟").question, "(2) جد y؟")  # two marks: only the last
+        self.assertEqual(LearningResult.model_validate(result).reply, result.reply)
 
     def test_unknown_or_missing_mode(self):
         self.assertEqual(LearningResult(reply="x", is_attempt=False).mode, "practice")

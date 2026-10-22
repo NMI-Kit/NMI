@@ -50,10 +50,11 @@ WEAKNESSES = {
     'missing_parts': 'ينقصه أقسام أو مواضيع مطلوبة بالوضع (فحص الكود)',
     'wrong_mode': 'اختار وضعاً غير المطلوب: شرح أو تمرين أو خطة (فحص الكود)',
     'too_long': 'الرد أطول من الحد المسموح لهذا الوضع (فحص الكود)',
+    'extra_sections': 'يعطي أقساماً زيادة أو القسم الجاي قبل وقته في سؤال البجروت (فحص الكود)',
     'wrong_attempt_record': 'تسجيل محاولة تعليمية خاطئ أو ناقص',
     'other': 'سبب آخر',
 }
-CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan', 'missing_parts', 'wrong_mode', 'too_long'}
+CODE_TAGS = {'arithmetic_error', 'wrong_attempt_record', 'forbidden_phrase', 'missing_plan', 'missing_parts', 'wrong_mode', 'too_long', 'extra_sections'}
 JUDGE_TAGS = [tag for tag in WEAKNESSES if tag not in CODE_TAGS]
 
 
@@ -147,13 +148,15 @@ def check_text(reply, case):
     for spec in specs:
         mentioned = [word for word in spec['any_of'] if word in reply]
         checks.append({'mentioned': mentioned, 'needed': spec['at_least'], 'ok': len(mentioned) >= spec['at_least']})
+    # Bagrut practice: sections that must not be shown yet (labelled القسم ب, ...).
+    extra_sections = [label for label in case.get('forbidden_sections', []) if label in reply]
     words = len(reply.split())
-    result = {'forbidden': forbidden, 'checks': checks, 'words': words, 'max_words': case.get('max_words'),
+    result = {'forbidden': forbidden, 'extra_sections': extra_sections, 'checks': checks, 'words': words, 'max_words': case.get('max_words'),
               # the first spec, for readers of the older single-spec shape
               'mentioned': checks[0]['mentioned'] if checks else None, 'needed': checks[0]['needed'] if checks else None}
     result['plan_ok'] = all(check['ok'] for check in checks)
     result['short_enough'] = result['max_words'] is None or words <= result['max_words']
-    result['ok'] = not forbidden and result['plan_ok'] and result['short_enough']
+    result['ok'] = not forbidden and not extra_sections and result['plan_ok'] and result['short_enough']
     return result
 
 
@@ -270,6 +273,12 @@ which mode the tutor chose. Judge the reply by the mode the case expects (by the
   headings. If <expected_behavior> asks for something else about length or structure in an explain case, follow this
   rule. Also judge: is the content correct and simple, is it in the student's own dialect, and did it explain in a
   different way when the student said they still do not understand.
+- bagrut: Bagrut-style practice with sections labelled "القسم أ", "القسم ب" and so on. The first reply has a NEW short
+  real-life story with all the numbers and ONLY section أ, no answer and no later section, and then it waits. When the
+  student sent the solution of a section: a right one is confirmed in one or two lines and only the next section is
+  given; a wrong one gets the exact mistake, one small hint and a request to try again, with no new section. Later
+  sections use the results of the earlier ones, the question is never a copy of a real exam question, and the numbers
+  are clean. A longer, structured reply is fine in this mode too.
 - plan: a plan built only from the topics of the curriculum file, split into weeks, with topic ids and the exam
   form number from the file; it ends with one question.
 - practice: as described above: no answer, the exact mistake named, one question.
@@ -386,6 +395,8 @@ def code_facts(math, attempts, expect, text=None, mode=None, expected_mode=None)
         lines.append('The tutor reply uses forbidden phrases: ' + ', '.join(text['forbidden']))
     for check in (text or {}).get('checks', []):
         lines.append(f"Required words or topics named in the reply: {len(check['mentioned'])} (at least {check['needed']} are needed).")
+    if text and text.get('extra_sections'):
+        lines.append('The tutor reply shows sections that must not be given yet: ' + ', '.join(text['extra_sections']))
     if text and text['max_words'] is not None:
         lines.append(f"The reply has {text['words']} words (limit {text['max_words']}).")
     if mode:
@@ -460,6 +471,8 @@ def evaluate_case(case, model, tutor_factory, judge):
         outcome['weaknesses'].append('missing_plan' if case.get('category') == 'level_transition' else 'missing_parts')
     if not text_checks['short_enough']:
         outcome['weaknesses'].append('too_long')
+    if text_checks['extra_sections']:
+        outcome['weaknesses'].append('extra_sections')
     if not outcome['mode']['ok']:
         outcome['weaknesses'].append('wrong_mode')
     if not outcome['attempt']['ok']:
@@ -571,6 +584,8 @@ def render_report(meta, results):
         for check in text_checks.get('checks', []):
             if not check['ok']:
                 problems.append(f"ذكر {len(check['mentioned'])} من المطلوب ({check['needed']})")
+        if text_checks.get('extra_sections'):
+            problems.append('أقسام زيادة: ' + ', '.join(text_checks['extra_sections']))
         if text_checks.get('short_enough') is False:
             problems.append(f"{text_checks['words']} كلمة والحد {text_checks['max_words']}")
         mode = r.get('mode') or {}

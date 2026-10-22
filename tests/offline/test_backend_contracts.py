@@ -160,7 +160,7 @@ class BackendContracts(unittest.TestCase):
             self.assertIn(heading, math)
         for heading in ("# PHYSICS", "# CHEMISTRY", "# ENGLISH", "# HISTORY"):
             self.assertNotIn(heading, math)
-        self.assertLess(len(math), len(full) * 0.8)
+        self.assertLess(len(math), len(full) * 0.85)  # the other subjects are still left out
         self.assertEqual(ai.rules_for_subject("Mathematics"), math)
         self.assertEqual(ai.rules_for_subject("رياضيات"), math)
         # Nothing is rewritten: every kept line is a line of tutor_rules.txt, in the same order.
@@ -281,6 +281,95 @@ class BackendContracts(unittest.TestCase):
         ai.client.responses.parse.reset_mock()
         ai.ask_ai("Synthetic Student", "7", "Testland", "Arabic", "x", units=3, target_units=4)
         self.assertNotIn("TARGET LEVEL", ai.client.responses.parse.call_args.kwargs["cache_prefix"])
+
+    def test_bagrut_patterns_are_loaded_after_the_curriculum_in_the_cached_part_for_every_math_student(self):
+        def send(country="Israel", grade="10", subject="math", name="Synthetic Student", **options):
+            ai.client.responses.parse.reset_mock()
+            ai.ask_ai(name, grade, country, "Arabic", "بدي أتدرّب على سؤال بجروت", subject=subject, **options)
+            return ai.client.responses.parse.call_args.kwargs
+
+        base = ai.rules_for_subject("math") + "\n\n# STUDENT CURRICULUM\nSynthetic 4 units fixture"
+        self.assertEqual(send(units=4)["cache_prefix"], base)  # no patterns file: nothing is added
+        file = self.curriculum_dir / "math" / "bagrut_patterns.md"
+        file.write_text("# أنماط\nشكل أسئلة البجروت\n", encoding="utf-8")
+        call = send(units=4)
+        prefix = call["cache_prefix"]
+        self.assertEqual(prefix, base + "\n\n# BAGRUT QUESTION PATTERNS\n# أنماط\nشكل أسئلة البجروت")
+        self.assertTrue(call["instructions"].startswith(prefix + "\n\n"))
+        self.assertNotIn("BAGRUT QUESTION PATTERNS", call["instructions"][len(prefix):])
+        # the same for every student of the subject, in every request
+        history.save_history([{"role": "assistant", "content": "Previous synthetic reply"}])
+        self.assertEqual(send(units=4, name="Another Name", web_policy=True, intent="answer")["cache_prefix"], prefix)
+        # after the curriculum and, when the student moves up, after the target level and the transition rules
+        moving = send(units=3, target_units=4)["cache_prefix"]
+        self.assertLess(moving.index("Synthetic 3 units fixture"), moving.index("# TARGET LEVEL CURRICULUM"))
+        self.assertLess(moving.index("# LEVEL TRANSITION"), moving.index("# BAGRUT QUESTION PATTERNS"))
+        self.assertTrue(moving.endswith("شكل أسئلة البجروت"))
+        # every math student gets it, even one without a curriculum file; other subjects have no patterns file
+        self.assertIn("# BAGRUT QUESTION PATTERNS", send(country="Testland", grade="7", units=3)["cache_prefix"])
+        self.assertNotIn("# BAGRUT QUESTION PATTERNS", send(subject="physics", units=4)["cache_prefix"])  # the heading; the rules only mention it
+        self.assertIsNone(ai.bagrut_patterns("physics"))
+        self.assertEqual(ai.bagrut_patterns("رياضيات"), "# أنماط\nشكل أسئلة البجروت")
+
+    def test_the_real_patterns_file_is_part_of_the_cached_prefix_of_an_israeli_math_student(self):
+        with patch.object(curriculum, "CURRICULUM_DIR", ROOT / "curriculum"):
+            ai.client.responses.parse.reset_mock()
+            ai.ask_ai("Synthetic Student", "10", "Israel", "Arabic", "بدي سؤال بجروت", units=3)
+            prefix = ai.client.responses.parse.call_args.kwargs["cache_prefix"]
+        patterns = (ROOT / "curriculum" / "math" / "bagrut_patterns.md").read_text(encoding="utf-8").strip()
+        self.assertTrue(prefix.endswith("# BAGRUT QUESTION PATTERNS\n" + patterns))
+        self.assertLess(prefix.index("# STUDENT CURRICULUM"), prefix.index("# BAGRUT QUESTION PATTERNS"))
+        self.assertIn("رياضيات، الصف العاشر، 3 وحدات", prefix)
+        for part in ("## كيف المدرّس يكتب سؤال تدريب بنمط البجروت", "بيعطي القسم الأول بس", "ما بينسخ أسئلة امتحانات حقيقية",
+                     "35172 أو 35173", "35571 (60%)"):
+            self.assertIn(part, prefix)
+
+    def test_bagrut_mode_is_in_the_rules_the_final_check_and_the_schema(self):
+        rules = ai.tutor_rules
+        self.assertEqual(rules.count("BAGRUT mode:"), 1)
+        mode = " ".join(rules[rules.index("BAGRUT mode:"):rules.index("# FORMATTING")].split())  # one line, single spaces
+        for part in ('("سؤال بجروت", "بدي أتدرّب"', "BAGRUT mode, not PRACTICE mode", "ONE NEW question", "BAGRUT QUESTION PATTERNS section",
+                     "a short real-life story with all the numbers", "3 or 4 sections from easy to hard", "uses the result of the one before",
+                     "Never copy a real exam question", 'exactly "القسم أ", "القسم ب"', "First reply: give the story and section أ only",
+                     "Do not give any answer and do not show the next sections", "When the student sends a solution",
+                     "do not give the next section", "give the next section only", "Do not invent more sections"):
+            self.assertIn(part, mode)
+        self.assertLess(rules.index("PLAN mode:"), rules.index("BAGRUT mode:"))
+        self.assertIn("In bagrut mode", ai.FINAL_CHECK)
+        self.assertIn("a NEW question (never a real exam question)", ai.FINAL_CHECK)
+        self.assertIn("section \"القسم أ\" only", ai.FINAL_CHECK)
+        self.assertIn("one small hint, no new section", ai.FINAL_CHECK)
+        self.assertIn("# TEACHING MODES", ai.rules_for_subject("math"))  # kept for every subject
+
+    def test_exam_form_numbers_follow_the_2025_table_of_the_patterns_file(self):
+        root = ROOT / "curriculum"
+        read = lambda name: (root / name).read_text(encoding="utf-8")
+        table = read("math/bagrut_patterns.md")
+        for row in ("35172 أو 35173", "35371 (35%)", "35372 (40%)", "35471 (65%)", "35472 (35%)", "35571 (60%)", "35572 (40%)"):
+            self.assertIn(row, table)
+        self.assertIn("35172 أو 35173", read("math/grade10/3units.md"))
+        self.assertIn("35371", read("math/grade10/3units.md"))
+        self.assertIn("35372", read("math/grade10/3units.md"))
+        for name in ("math/grade10/5units.md", "math/grade11/5units.md", "math/grade12/5units.md"):
+            text = read(name)
+            self.assertIn("حسب جدول الوزارة 2025", text, name)
+            self.assertIn("35571 (60", text, name)
+            self.assertIn("35572 (40%)", text, name)
+        self.assertIn("35571", read("math/grade11/5units.md").split("## الامتحان")[1])
+        self.assertIn("35572", read("math/grade12/5units.md").split("## الامتحان")[1])
+        # the old 5-unit numbers are gone from the level files and are only called old in the sources
+        for path in root.rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            if path.name in ("SOURCES.md", "bagrut_patterns.md"):
+                continue
+            for old in ("035581", "035582", "35581", "35582"):
+                self.assertNotIn(old, text, f"{path.name}: {old}")
+        sources = read("SOURCES.md")
+        self.assertIn("35571 و35572) من جدول الوزارة 2025", sources)
+        self.assertIn("35581 و35582 أرقام قديمة", sources)
+        self.assertIn("35172 أو 35173", sources)
+        self.assertNotIn("035581", sources)
+        self.assertIn("| bagrut_patterns.md |", sources)
 
     def test_curriculum_by_units(self):
         self.assertEqual(curriculum.get_curriculum("Israel", "10", "math", 3), "Synthetic 3 units fixture")

@@ -61,8 +61,8 @@ class CaseFileTests(unittest.TestCase):
     def test_twenty_five_arabic_math_cases_mostly_three_units(self):
         base = [c for c in self.cases if 'tier' not in c]
         self.assertEqual(len(base), 25)
-        self.assertEqual(len(self.cases), 60)  # 25 basic + 27 hard + 3 conversation + 5 mode
-        self.assertEqual(len({c['id'] for c in self.cases}), 60)
+        self.assertEqual(len(self.cases), 62)  # 25 basic + 27 hard + 3 conversation + 5 mode + 2 bagrut
+        self.assertEqual(len({c['id'] for c in self.cases}), 62)
         units = [c['profile']['units'] for c in base]
         self.assertGreater(units.count(3), len(units) / 2)
         self.assertTrue(set(units) <= {3, 4, 5} and 5 in units)
@@ -381,7 +381,7 @@ class ModeCaseTests(unittest.TestCase):
     def test_yabqa_is_an_egyptian_word_in_every_dialect_list(self):
         # Said by the tutor in a real session: "يبقى أنا ماشي معك صح".
         with_list = [c for c in ev.load_cases() if c.get('forbidden_phrases')]
-        self.assertEqual(len(with_list), 8)  # 3 conversation + 5 mode cases
+        self.assertEqual(len(with_list), 10)  # 3 conversation + 5 mode + 2 bagrut cases
         for case in with_list:
             with self.subTest(case=case['id']):
                 self.assertIn('يبقى', case['forbidden_phrases'])
@@ -516,6 +516,130 @@ class ModeCaseTests(unittest.TestCase):
     def test_the_chosen_mode_comes_from_the_real_provider(self):
         from claude_provider import ClaudeProvider
         self.assertIsNone(ClaudeProvider(MODEL).last_result)
+
+
+BAGRUT_FIRST_REPLY = """نادي رياضي بيعرض اشتراكين. الاشتراك الأول: 90 ₪ تسجيل و30 ₪ كل شهر. الاشتراك التاني: 50 ₪ كل شهر بدون تسجيل.
+
+**القسم أ:** اكتب معادلة التكلفة لكل اشتراك بعد x شهر."""
+BAGRUT_NEXT_REPLY = """صح، المعادلتين مظبوطتين وما نسيت رسوم التسجيل.
+
+**القسم ب:** استعمل معادلتين القسم أ واكتب معادلة تعادل التكلفة، وبعدين جد بعد كم شهر بتتساوى."""
+
+
+class BagrutPracticeCaseTests(unittest.TestCase):
+    """Bagrut practice: a new question, one section at a time. Two cases check the first reply and the next section."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = {c['id']: c for c in ev.load_cases() if c.get('tier') == 'bagrut'}
+
+    def test_the_two_cases(self):
+        self.assertEqual(list(self.cases), ['mode-bagrut-start-01', 'mode-bagrut-next-01'])
+        start, nxt = self.cases.values()
+        self.assertEqual(start['conversation'][0]['content'], 'بدي أتدرّب على سؤال بجروت بالدالة الخطية')
+        self.assertEqual([m['role'] for m in start['conversation']], ['user'])
+        self.assertEqual([m['role'] for m in nxt['conversation']], ['user', 'assistant', 'user'])
+        for case in (start, nxt):
+            self.assertEqual((case['profile']['grade'], case['profile']['units'], case['profile']['subject']), (10, 3, 'math'))
+            self.assertEqual(case['mode'], 'bagrut')
+            self.assertIn('يبقى', case['forbidden_phrases'])
+            self.assertIn('فلسطينية', case['expected_behavior'])
+            self.assertTrue(valid_profile({'country': 'IL', 'grade': 10, 'subject': 'math', 'units': 3}))
+        self.assertEqual((start['intent'], start['expect_attempt']), ('question', {'recorded': False}))
+        self.assertEqual((nxt['intent'], nxt['expect_attempt']), ('answer', {'recorded': True, 'correct': True}))
+        self.assertIn('القسم أ', start['expected_behavior'])
+        self.assertIn('القسم ب', nxt['expected_behavior'])
+        self.assertIn('مش منسوخ من امتحان حقيقي', start['expected_behavior'])
+
+    def test_the_first_reply_has_section_alef_only(self):
+        case = self.cases['mode-bagrut-start-01']
+        self.assertEqual(case['forbidden_sections'], ['القسم ب', 'القسم ج', 'القسم د'])
+        good = ev.check_text(BAGRUT_FIRST_REPLY, case)
+        self.assertTrue(good['ok'], good)
+        self.assertEqual(good['extra_sections'], [])
+        for later in ('القسم ب', 'القسم ج', 'القسم د'):
+            leaked = ev.check_text(BAGRUT_FIRST_REPLY + '\n**' + later + ':** جد...', case)
+            self.assertEqual(leaked['extra_sections'], [later])
+            self.assertFalse(leaked['ok'])
+        no_label = ev.check_text('نادي رياضي بيعرض اشتراكين. اكتب المعادلتين.', case)
+        self.assertEqual((no_label['plan_ok'], no_label['ok']), (False, False))
+
+    def test_the_next_reply_gives_section_beth_and_no_later_one_and_no_answer(self):
+        case = self.cases['mode-bagrut-next-01']
+        self.assertEqual(case['forbidden_sections'], ['القسم ج', 'القسم د'])
+        self.assertEqual(case['math'], {'expected': ['4', '280'], 'mode': 'must_withhold'})
+        self.assertTrue(ev.check_text(BAGRUT_NEXT_REPLY, case)['ok'])
+        self.assertFalse(ev.check_text(BAGRUT_NEXT_REPLY + ' **القسم ج:** ...', case)['ok'])
+        self.assertFalse(ev.check_text(BAGRUT_NEXT_REPLY.replace('القسم ب', 'تمرين'), case)['ok'])  # section beth is required
+        # giving the answer to section beth is caught by the math check
+        self.assertTrue(ev.check_math('بعد x = 4 شهور بتتساوى', case['math'])['revealed'])
+        self.assertTrue(ev.check_math('الناتج 280', case['math'])['revealed'])
+        self.assertFalse(ev.check_math(BAGRUT_NEXT_REPLY, case['math'])['revealed'])
+        self.assertFalse(ev.check_math('القسم أ: y = 120 + 40x و y = 70x', case['math'], [m['content'] for m in case['conversation']])['revealed'])
+
+    def test_the_conversation_itself_does_not_contain_the_answer_and_sympy_confirms_it(self):
+        case = self.cases['mode-bagrut-next-01']
+        for message in case['conversation']:
+            self.assertFalse(ev.check_math(message['content'], case['math'])['revealed'])
+        solved = hard_solutions.BAGRUT_SOLUTIONS['mode-bagrut-next-01']()
+        self.assertTrue(all(bool(fact) for fact in solved['facts']))
+        for text, answer in zip(case['math']['expected'], solved['answers']):
+            self.assertTrue(ev.same(ev.to_expr(text), answer))
+        # the student's section alef answer in the case is right
+        student = case['conversation'][-1]['content']
+        self.assertIn('y = 120 + 40x', student)
+        self.assertIn('y = 70x', student)
+
+    def evaluate(self, case_id, reply, chosen='bagrut', score=9, **fields):
+        client = tutor_returning(reply, **(dict(is_attempt=False, subject=None, topic=None, skill=None, correct=None,
+                                                hint_used=None, mistake_type=None) | fields))
+        client.last_result = SimpleNamespace(mode=chosen)
+        judge = judge_returning(score)
+        return ev.evaluate_case(self.cases[case_id], MODEL, lambda m: client, judge), judge, client
+
+    def test_a_good_first_reply_passes_and_a_leaked_section_fails_with_a_perfect_judge_score(self):
+        ok, judge, client = self.evaluate('mode-bagrut-start-01', BAGRUT_FIRST_REPLY)
+        self.assertTrue(ok['passed'], ok)
+        self.assertEqual(ok['mode'], {'expected': 'bagrut', 'chosen': 'bagrut', 'ok': True})
+        self.assertIn('The tutor chose the mode: bagrut (the case expects: bagrut).', judge.call_args.args[2])
+        self.assertIn('<mode_expected>bagrut</mode_expected>', ev.judge_prompt(self.cases['mode-bagrut-start-01'], 'رد', 'facts'))
+        leaked, judge, _ = self.evaluate('mode-bagrut-start-01', BAGRUT_FIRST_REPLY + '\n**القسم ب:** جد المعادلة.', score=10)
+        self.assertFalse(leaked['passed'])
+        self.assertIn('extra_sections', leaked['weaknesses'])
+        self.assertIn('shows sections that must not be given yet: القسم ب', judge.call_args.args[2])
+        meta = {'date': '2026-10-22', 'model': MODEL, 'judge_model': JUDGE_MODEL, 'curriculum': 'اختبار'}
+        self.assertIn('أقسام زيادة: القسم ب', ev.render_report(meta, [leaked]))
+        self.assertNotIn('extra_sections', ev.JUDGE_TAGS)
+        self.assertIn('extra_sections', ev.WEAKNESSES)
+        wrong_mode, _, _ = self.evaluate('mode-bagrut-start-01', BAGRUT_FIRST_REPLY, chosen='practice', score=10)
+        self.assertFalse(wrong_mode['passed'])
+        self.assertIn('wrong_mode', wrong_mode['weaknesses'])
+
+    def test_a_right_solution_is_confirmed_and_section_beth_is_given_and_recorded_as_correct(self):
+        attempt = dict(is_attempt=True, subject='mathematics', topic='linear model', skill='writing linear equations',
+                       correct=True, hint_used=False, mistake_type=None)
+        ok, _, _ = self.evaluate('mode-bagrut-next-01', BAGRUT_NEXT_REPLY, **attempt)
+        self.assertTrue(ok['passed'], ok)
+        self.assertEqual(ok['attempt'], {'expected': {'recorded': True, 'correct': True}, 'recorded': [True], 'ok': True})
+        # an attempt recorded as wrong, or not recorded, fails
+        wrong, _, _ = self.evaluate('mode-bagrut-next-01', BAGRUT_NEXT_REPLY, **(attempt | {'correct': False}))
+        self.assertFalse(wrong['passed'])
+        self.assertIn('wrong_attempt_record', wrong['weaknesses'])
+        # solving section beth for the student, or showing section gimel, fails
+        solved, _, _ = self.evaluate('mode-bagrut-next-01', BAGRUT_NEXT_REPLY + ' الجواب x = 4', score=10, **attempt)
+        self.assertFalse(solved['passed'])
+        self.assertIn('reveals_answer', solved['weaknesses'])
+        later, _, _ = self.evaluate('mode-bagrut-next-01', BAGRUT_NEXT_REPLY + ' **القسم ج:** ...', score=10, **attempt)
+        self.assertIn('extra_sections', later['weaknesses'])
+
+    def test_the_judge_knows_the_bagrut_mode(self):
+        system = ev.JUDGE_SYSTEM
+        for part in ("- bagrut: Bagrut-style practice", '"القسم أ", "القسم ب"', "ONLY section أ", "no answer and no later section",
+                     "a right one is confirmed in one or two lines and only the next section is", "a wrong one gets the exact mistake",
+                     "never a copy of a real exam question", "numbers\n  are clean".replace("\\n", "\n")):
+            self.assertIn(part, system)
+        self.assertIn('# TEACHING MODES', system)
+        self.assertIn('BAGRUT mode', system)  # the judge reads the approved rules too
 
 
 class NoFilesInAnyModeTests(unittest.TestCase):
@@ -718,8 +842,8 @@ class LevelSelectionTests(unittest.TestCase):
         self.assertEqual({c['profile']['grade'] for c in ev.filter_cases(self.cases, grade=12)}, {12})
         self.assertEqual(len(ev.filter_cases(self.cases, grade=12)), 9)
         self.assertEqual({c['profile']['units'] for c in ev.filter_cases(self.cases, units=5)}, {5})
-        self.assertEqual(len(ev.filter_cases(self.cases)), 60)
-        self.assertEqual(len(ev.filter_cases(self.cases, grade=10, units=3)), 17 + 3 + 2 + 5)  # + dialect, target, 5 mode cases
+        self.assertEqual(len(ev.filter_cases(self.cases)), 62)
+        self.assertEqual(len(ev.filter_cases(self.cases, grade=10, units=3)), 17 + 3 + 2 + 5 + 2)  # + dialect, target, 5 mode, 2 bagrut
 
     def test_asking_for_every_case_keeps_file_order(self):
         level = ev.filter_cases(self.cases, grade=11, units=4)
