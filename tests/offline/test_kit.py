@@ -26,41 +26,59 @@ def read(path):
 
 
 class ExampleBankTests(unittest.TestCase):
-    def setUp(self):
-        self.examples = {units: build_kit.parse_examples(EXAMPLES / f'{units}units.md') for units in (3, 4, 5)}
-        self.topics = {units: build_kit.parse_topics(read(CURRICULUM / 'math' / 'grade10' / f'{units}units.md')) for units in (3, 4, 5)}
+    GRADES = (10, 11, 12)
 
-    def test_every_topic_of_grade_10_has_exactly_one_example_and_nothing_else_does(self):
-        for units, expected in LEVEL_IDS.items():
-            ids = [t['id'] for t in self.topics[units]]
-            self.assertEqual(len(ids), expected, units)
-            self.assertEqual(list(self.examples[units]), ids, units)  # same ids, same order
-            headings = re.findall(r'^## (m10-\d-\d\d) ', read(EXAMPLES / f'{units}units.md'), re.M)
-            self.assertEqual(headings, ids, units)  # one section per topic, no duplicates
+    def setUp(self):
+        self.bank = {}
+        self.topics = {}
+        for grade in self.GRADES:
+            for units in (3, 4, 5):
+                folder = CURRICULUM / 'math' / f'grade{grade}'
+                self.bank[(grade, units)] = build_kit.parse_examples(folder / 'examples' / f'{units}units.md')
+                self.topics[(grade, units)] = build_kit.parse_topics(read(folder / f'{units}units.md'))
+        self.examples = {units: self.bank[(10, units)] for units in (3, 4, 5)}  # the grade 10 bank, by units
+
+    def every_example(self):
+        for (grade, units), found in self.bank.items():
+            for topic_id, text in found.items():
+                yield grade, units, topic_id, text
+
+    def test_every_topic_of_grades_10_11_12_has_exactly_one_example_and_nothing_else_does(self):
+        expected = {(10, 3): 14, (10, 4): 11, (10, 5): 13, (11, 3): 11, (11, 4): 15, (11, 5): 9, (12, 3): 5, (12, 4): 14, (12, 5): 9}
+        for (grade, units), count in expected.items():
+            ids = [t['id'] for t in self.topics[(grade, units)]]
+            self.assertEqual(len(ids), count, (grade, units))
+            self.assertEqual(list(self.bank[(grade, units)]), ids, (grade, units))  # same ids, same order
+            text = read(CURRICULUM / 'math' / f'grade{grade}' / 'examples' / f'{units}units.md')
+            headings = re.findall(r'^## (m\d+-\d-\d\d) ', text, re.M)
+            self.assertEqual(headings, ids, (grade, units))  # one section per topic, no duplicates
+        self.assertEqual(sum(expected.values()), 101)
 
     def test_each_example_has_a_story_sections_alef_beth_jim_and_an_explain_section(self):
-        for units, found in self.examples.items():
-            for topic_id, text in found.items():
-                self.assertTrue(text.startswith('**القصة:**'), topic_id)
-                for label in ('**القسم أ', '**القسم ب', '**القسم ج'):
-                    self.assertIn(label, text, topic_id)
-                self.assertRegex(text, r'\*\*القسم [أبجد] \(\d+ علامات?\) - علّل:\*\*', topic_id)
-                sections = re.findall(r'\*\*القسم ([أبجد])', text)
-                self.assertIn(len(sections), (3, 4), topic_id)
-                self.assertEqual(sections, list('أبجد')[:len(sections)], topic_id)
-                self.assertNotIn('ملف', text, topic_id)
-                self.assertNotRegex(text, r'm\d+-\d', topic_id)  # no topic ids inside an example
+        for grade, units, topic_id, text in self.every_example():
+            self.assertTrue(text.startswith('**القصة:**'), topic_id)
+            for label in ('**القسم أ', '**القسم ب', '**القسم ج'):
+                self.assertIn(label, text, topic_id)
+            self.assertRegex(text, r'\*\*القسم [أبجد] \(\d+ علامات?\) - علّل:\*\*', topic_id)
+            sections = re.findall(r'\*\*القسم ([أبجد])', text)
+            self.assertIn(len(sections), (3, 4), topic_id)
+            self.assertEqual(sections, list('أبجد')[:len(sections)], topic_id)
+            self.assertNotIn('ملف', text, topic_id)
+            self.assertNotRegex(text, r'm\d+-\d', topic_id)  # no topic ids inside an example
+            self.assertTrue(topic_id.startswith(f'm{grade}-{units}-'), topic_id)
 
     def test_every_example_has_a_sympy_solution_with_all_facts_true_and_its_numbers_in_the_text(self):
-        wanted = {t['id'] for units in self.topics for t in self.topics[units]}
+        wanted = {t['id'] for topics in self.topics.values() for t in topics}
         self.assertEqual(set(example_solutions.SOLUTIONS), wanted)
-        for units, found in self.examples.items():
-            for topic_id, text in found.items():
-                result = example_solutions.SOLUTIONS[topic_id]()
-                self.assertTrue(result['facts'], topic_id)
-                self.assertTrue(all(fact is True or bool(fact) for fact in result['facts']), (topic_id, [i for i, f in enumerate(result['facts']) if not f]))
-                for number in result['numbers']:
-                    self.assertIn(number, text, f'{topic_id}: {number}')
+        checked = 0
+        for grade, units, topic_id, text in self.every_example():
+            result = example_solutions.SOLUTIONS[topic_id]()
+            self.assertTrue(result['facts'], topic_id)
+            self.assertTrue(all(fact is True or bool(fact) for fact in result['facts']), (topic_id, [i for i, f in enumerate(result['facts']) if not f]))
+            for number in result['numbers']:
+                self.assertIn(number, text, f'{topic_id}: {number}')
+            checked += 1
+        self.assertEqual(checked, 101)
 
     def test_a_wrong_number_is_caught(self):
         # the check really fails when a story number is changed: 120 students became 130
@@ -69,6 +87,9 @@ class ExampleBankTests(unittest.TestCase):
         numbers = example_solutions.SOLUTIONS['m10-3-01']()['numbers']
         self.assertTrue(all(n in text for n in numbers))
         self.assertFalse(all(n in altered for n in numbers))
+        # and in a grade 11 example: the 10% growth of the village became 12%
+        text = self.bank[(11, 3)]['m11-3-01']
+        self.assertFalse(all(n in text.replace('10%', '12%') for n in example_solutions.SOLUTIONS['m11-3-01']()['numbers']))
 
     def test_a_story_that_goes_below_zero_says_why(self):
         # a sale, a price, a length, a weight or a number of people is never negative: a story with a negative domain
@@ -77,16 +98,24 @@ class ExampleBankTests(unittest.TestCase):
         cannot_be_negative = ('مبيعات', 'سعر', 'أسعار', 'عدد الطلاب', 'طول', 'وزن', 'أشخاص')
         can_be_negative = ('درجة الحرارة', 'خسارة', 'الإحداثيات ممكن تكون سالبة', 'نقطة الأصل', 'بالنسبة لنص الشاشة', 'قبل', 'بدون قصة')
         checked = 0
-        for found in self.examples.values():
-            for topic_id, text in found.items():
-                story = text.split('\n\n')[0]
-                negative = re.search(r'(?<![\w.])-\d+(?:\.\d+)? ≤ x|x = -\d', text) or re.search(r'القيم السالبة', story)
-                if not negative:
-                    continue
-                checked += 1
-                self.assertTrue(any(word in story for word in can_be_negative), f'{topic_id}: says nothing about why it is below zero')
-                self.assertFalse(any(word in story for word in cannot_be_negative), f'{topic_id}: a negative domain for something that is never negative')
+        for grade, units, topic_id, text in self.every_example():
+            story = text.split('\n\n')[0]
+            negative = re.search(r'(?<![\w.])-\d+(?:\.\d+)? ≤ x|x = -\d', text) or re.search(r'القيم السالبة', story)
+            if not negative:
+                continue
+            checked += 1
+            self.assertTrue(any(word in story for word in can_be_negative), f'{topic_id}: says nothing about why it is below zero')
+            self.assertFalse(any(word in story for word in cannot_be_negative), f'{topic_id}: a negative domain for something that is never negative')
         self.assertGreaterEqual(checked, 3)
+
+    def test_the_quantities_of_a_story_are_never_negative_where_they_cannot_be(self):
+        # the sympy files compute the values of the quantities; here the ones that are counts, prices or sizes must be >= 0
+        import example_solutions_11 as g11  # the grade 11 bank
+        import example_solutions_12 as g12  # the grade 12 bank
+        self.assertTrue(all((v ** 3 - 6 * v ** 2 + 9 * v + 1) >= 0 for v in range(0, 5)))  # m11-5-02: the water in a tank
+        self.assertTrue(all((2 + 2 * g11.sp.sin(g11.sp.pi * v / 6)) >= 0 for v in range(0, 13)))  # m11-5-01: the height of the tide
+        self.assertTrue(all(10 + g11.sp.sin(v) + g11.sp.cos(v) > 0 for v in (0, 1, 2, 3)))  # m11-5-06: the height of a wave
+        self.assertTrue(all(80 * g12.R(1, 2) ** g12.R(v, 5) > 0 for v in range(0, 60)))  # m12-4-09: a mass
 
     def test_the_examples_that_were_changed_for_their_story_say_what_the_values_are(self):
         expected = {
@@ -104,16 +133,28 @@ class ExampleBankTests(unittest.TestCase):
         # the sales story of the derivative example is gone: sales are never negative
         self.assertNotIn('مبيعات تطبيق', self.examples[5]['m10-5-06'])
         self.assertIn('-2 ≤ x ≤ 4', self.examples[5]['m10-5-06'])
-        # the profit and the temperature examples really reach below zero, so the new stories are needed
         values = example_solutions.SOLUTIONS['m10-5-06']()
         self.assertTrue(all(values['facts']))
 
     def test_the_examples_are_new_stories_not_copies_of_a_real_exam(self):
-        for found in self.examples.values():
-            for topic_id, text in found.items():
-                self.assertNotRegex(text, r'035\d{3}|3[5]\d{3}', topic_id)  # no exam form numbers inside an example
-        for units in (3, 4, 5):
-            self.assertIn('مش منسوخة من أي امتحان', read(EXAMPLES / f'{units}units.md'))
+        for grade, units, topic_id, text in self.every_example():
+            self.assertNotRegex(text, r'035\d{3}|3[5]\d{3}', topic_id)  # no exam form numbers inside an example
+        for grade in self.GRADES:
+            for units in (3, 4, 5):
+                text = read(CURRICULUM / 'math' / f'grade{grade}' / 'examples' / f'{units}units.md')
+                self.assertIn('مش منسوخة من أي امتحان', text)
+                self.assertIn('sympy', text)
+
+    def test_the_examples_of_each_level_are_of_the_right_shape_for_the_level(self):
+        # 3 units: stories from daily life; 5 units: functions, geometry and proofs, some without a story
+        for (grade, units), found in self.bank.items():
+            self.assertTrue(all('**القصة:**' in text for text in found.values()), (grade, units))
+        three = ' '.join(self.bank[(12, 3)].values())
+        for word in ('أكياس سكر', 'مخبز', 'خزان'):
+            self.assertIn(word, three)
+        five = ' '.join(self.bank[(12, 5)].values())
+        for word in ('قطع ناقص', 'z³ = 8', 'مجموعة S'):
+            self.assertIn(word, five)
 
 
 class BuildKitTests(unittest.TestCase):
@@ -140,12 +181,27 @@ class BuildKitTests(unittest.TestCase):
     def test_a_level_without_examples_is_marked_experimental(self):
         math = build_kit.build()['subjects'][0]
         flags = {(g['id'], l['units']): l['experimental'] for g in math['grades'] for l in g['levels']}
-        self.assertEqual({key: value for key, value in flags.items() if key[0] == 10}, {(10, 3): False, (10, 4): False, (10, 5): False})
-        self.assertTrue(all(value for key, value in flags.items() if key[0] != 10))
+        self.assertEqual(set(flags.values()), {False})  # all nine levels have their example bank
         for grade in math['grades']:
             for level in grade['levels']:
                 for topic in level['topics']:
-                    self.assertEqual(topic['example'] is None, level['experimental'], topic['id'])
+                    self.assertIsNotNone(topic['example'], topic['id'])
+        # a level that misses one example, or all of them, is marked again (tested on a copy of the folder)
+        cache = ROOT / '.cache' / 'offline'
+        cache.mkdir(parents=True, exist_ok=True)
+        import shutil
+        with tempfile.TemporaryDirectory(dir=cache) as folder:
+            root = Path(folder) / 'curriculum'
+            shutil.copytree(CURRICULUM, root, ignore=shutil.ignore_patterns('NMI_KIT_TASK*.md'))
+            examples = root / 'math' / 'grade11' / 'examples' / '3units.md'
+            text = read(examples)
+            examples.write_text(text.replace('## m11-3-11 مراجعة وتدريب، مع إكمال مواضيع العاشر حسب الحاجة', '## m11-3-99 مش من المنهاج'), encoding='utf-8')
+            (root / 'math' / 'grade12' / 'examples' / '4units.md').unlink()
+            data = build_kit.build(root, ROOT / 'kit' / 'base_prompt.txt')
+        flags = {(g['id'], l['units']): l['experimental'] for g in data['subjects'][0]['grades'] for l in g['levels']}
+        self.assertTrue(flags[(11, 3)])
+        self.assertTrue(flags[(12, 4)])
+        self.assertEqual(sum(flags.values()), 2)
 
     def test_topics_have_ids_titles_without_hebrew_and_their_text(self):
         math = build_kit.build()['subjects'][0]

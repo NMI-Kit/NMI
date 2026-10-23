@@ -20,6 +20,18 @@ async function bigTargets(page, selector, label) {
   expect(small, label + ' touch targets under 44px').toEqual([]);
 }
 
+// the whole example bank is there; to see how a level without it looks, data.json is changed on its way to the page
+async function markExperimental(page, grade, units) {
+  await page.route('**/data.json', async (route) => {
+    const response = await route.fetch();
+    const json = await response.json();
+    for (const g of json.subjects[0].grades) for (const l of g.levels) {
+      if (g.id === grade && (!units || units.includes(l.units))) { l.experimental = true; l.topics.forEach((x) => { x.example = null; }); }
+    }
+    await route.fulfill({ response, json });
+  });
+}
+
 // what an Android phone gets for the three small buttons: a Chrome intent with the app package and the site as fallback
 const INTENTS = {
   ChatGPT: 'intent://chatgpt.com/#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end',
@@ -86,7 +98,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       // the example bank only covers grade 10: grades 11 and 12 are tagged "تجريبي"
       await expect(page.getByRole('group', { name: 'الوحدات' }).getByText('تجريبي')).toHaveCount(0);
       await page.getByRole('button', { name: 'الحادي عشر' }).click();
-      await expect(page.getByRole('group', { name: 'الوحدات' }).getByText('تجريبي')).toHaveCount(3);
+      await expect(page.getByRole('group', { name: 'الوحدات' }).getByText('تجريبي')).toHaveCount(0);  // the bank covers grades 11 and 12 too
       await page.getByRole('button', { name: 'العاشر', exact: true }).click();
       await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: '3 وحدات' }).click();
       await expect(page.getByRole('heading', { name: 'مستوى هدف (اختياري)' })).toBeVisible();
@@ -328,10 +340,30 @@ for (const [name, profile] of Object.entries(profiles)) {
       expect(dialogs).toEqual([]);
     });
 
-    test('a level without the example bank is tagged experimental on the ready screen', async ({ page }) => {
+    test('a level without the example bank is tagged experimental on step 1 and on the ready screen', async ({ page }) => {
+      await markExperimental(page, 11);
+      await page.goto('/index.html');
+      await page.getByRole('button', { name: 'رياضيات' }).click();
+      await page.getByRole('button', { name: 'الحادي عشر' }).click();
+      await expect(page.getByRole('group', { name: 'الوحدات' }).getByText('تجريبي')).toHaveCount(3);
+      await page.getByRole('button', { name: 'الثاني عشر' }).click();
+      await expect(page.getByRole('group', { name: 'الوحدات' }).getByText('تجريبي')).toHaveCount(0);
       await walkToReady(page, { grade: 'الحادي عشر', units: '4 وحدات', topics: ['الاحتمال'] });
       await expect(page.locator('#experimental')).toContainText('تجريبي');
       await expect(page.locator('#experimental')).toContainText('نمط الامتحان');
+      await page.getByText('شوف البرومبت').click();
+      expect(await page.locator('#preview').innerText()).not.toContain('مثال على الشكل، ما تعيده');
+    });
+
+    test('grades 11 and 12 are not experimental: no tag, and the prompt has the example of the chosen topic', async ({ page }) => {
+      for (const [grade, units, topic, story] of [['الحادي عشر', '4 وحدات', 'الاحتمال', 'بصف فيه 100 طالب'], ['الثاني عشر', '3 وحدات', 'البرمجة الخطية', 'مخبز بيعمل']]) {
+        await walkToReady(page, { grade, units, topics: [topic] });
+        await expect(page.locator('#experimental')).toHaveCount(0);
+        await page.getByText('شوف البرومبت').click();
+        const text = await page.locator('#preview').innerText();
+        expect(text).toContain('-- مثال على الشكل، ما تعيده');
+        expect(text).toContain(story);
+      }
     });
   });
 }

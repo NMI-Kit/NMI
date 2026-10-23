@@ -16,11 +16,51 @@ const level = (grade, units) => P.findLevel(data, 'math', grade, units).level;
 const build = (extra) => P.buildPrompt(data, Object.assign({ subject: 'math', grade: 10, units: 3, target: null, all: false, topics: [], custom: [], mode: 'practice' }, extra));
 const firstLine = (topic) => topic.text.split('\n')[0];
 
-test('the data covers every level, and only grade 10 has the example bank', () => {
+test('the data covers every level and every level has its example bank, so none is experimental', () => {
   assert.equal(math.grades.length, 3);
   const flags = {};
   for (const g of math.grades) for (const l of g.levels) flags[`${g.id}/${l.units}`] = l.experimental;
-  assert.deepEqual(flags, { '10/3': false, '10/4': false, '10/5': false, '11/3': true, '11/4': true, '11/5': true, '12/3': true, '12/4': true, '12/5': true });
+  assert.deepEqual(flags, { '10/3': false, '10/4': false, '10/5': false, '11/3': false, '11/4': false, '11/5': false, '12/3': false, '12/4': false, '12/5': false });
+  let topics = 0;
+  for (const g of math.grades) for (const l of g.levels) for (const topic of l.topics) {
+    assert.ok(topic.example && topic.example.startsWith('**القصة:**'), topic.id);
+    topics += 1;
+  }
+  assert.equal(topics, 101);
+});
+
+test('a level that misses its examples is experimental and the prompt has no example, only the flag', () => {
+  const copy = JSON.parse(JSON.stringify(data));
+  const level114 = copy.subjects[0].grades.find((g) => g.id === 11).levels.find((l) => l.units === 4);
+  level114.topics.forEach((t) => { t.example = null; });
+  level114.experimental = true;
+  const built = P.buildPrompt(copy, { subject: 'math', grade: 11, units: 4, target: null, all: false, topics: ['m11-4-01'], mode: 'practice' });
+  assert.ok(!built.text.includes('ما تعيده'));
+  assert.equal(built.missingExample, true);
+  // the same level with its bank: the example of the chosen topic
+  const real = P.buildPrompt(data, { subject: 'math', grade: 11, units: 4, target: null, all: false, topics: ['m11-4-01'], mode: 'practice' });
+  assert.equal(real.missingExample, false);
+  assert.ok(real.text.includes('-- مثال على الشكل، ما تعيده (موضوع: «الاحتمال») --'));
+  assert.ok(real.text.includes('بصف فيه 100 طالب، 60 منهم بنات و40 شباب.'));
+});
+
+test('grade 11 and grade 12 prompts carry their own example, patterns of their level and no topic id', () => {
+  const cases = [[11, 3, 'm11-3-01', 'قرية فيها 2,000 نسمة', '35371'], [11, 4, 'm11-4-04', 'علامات اختبار بتتوزع توزيع طبيعي', '35471'],
+    [11, 5, 'm11-5-03', 'كرة بتسقط من ارتفاع 48 سم', '35571'], [12, 3, 'm12-3-03', 'مخبز بيعمل x صندوق كعك', '35372'],
+    [12, 4, 'm12-4-02', 'مزرعة بكتيريا', '35472'], [12, 5, 'm12-5-05', 'قاعة على شكل قطع ناقص', '35572']];
+  for (const [grade, units, id, story, form] of cases) {
+    for (const mode of ['practice', 'mock']) {
+      const { text, missingExample } = P.buildPrompt(data, { subject: 'math', grade, units, target: null, all: false, topics: [id], mode });
+      assert.equal(missingExample, false, `${grade}/${units}`);
+      assert.ok(text.includes(story), `${grade}/${units}/${mode}: ${story}`);
+      assert.ok(text.includes(form), `${grade}/${units}/${mode}: form ${form}`);
+      assert.ok(!ID.test(text), `${grade}/${units}`);
+    }
+    // the example of the chosen topic only
+    const others = level(grade, units).topics.filter((t) => t.id !== id).map((t) => t.example);
+    const { text } = P.buildPrompt(data, { subject: 'math', grade, units, target: null, all: false, topics: [id], mode: 'practice' });
+    for (const other of others) assert.ok(!text.includes(other), `${grade}/${units}: only the example of the chosen topic`);
+  }
 });
 
 test('the four modes, in order, with a title and a description of their own', () => {
@@ -90,9 +130,6 @@ test('the example is the one of the chosen topic, with the "do not return it" se
   const several = build({ topics: ['m10-3-13', 'm10-3-03'] }).text;
   assert.ok(several.includes(l.topics.find((t) => t.id === 'm10-3-03').example));
   assert.ok(!several.includes(l.topics.find((t) => t.id === 'm10-3-13').example));
-  const experimental = P.buildPrompt(data, { subject: 'math', grade: 11, units: 4, target: null, all: false, topics: ['m11-4-01'], mode: 'practice' });
-  assert.ok(!experimental.text.includes('ما تعيده'));
-  assert.equal(experimental.missingExample, true);
   assert.equal(build({ topics: ['m10-3-12'] }).missingExample, false);
   // a plan needs no example
   assert.ok(!build({ topics: ['m10-3-12'], mode: 'plan' }).text.includes('ما تعيده'));

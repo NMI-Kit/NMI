@@ -361,3 +361,15 @@ def e10_5_13():  # a rational function with a removable discontinuity
 
 SOLUTIONS = {'m' + name[1:].replace('_', '-'): fn for name, fn in globals().items()
              if name.startswith('e10_') and callable(fn)}
+
+
+# the grade 11 and grade 12 banks are in their own files; one table for the whole example bank
+import os as _os
+import sys as _sys
+
+_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
+import example_solutions_11 as _g11  # noqa: E402
+import example_solutions_12 as _g12  # noqa: E402
+
+SOLUTIONS.update(_g11.SOLUTIONS)
+SOLUTIONS.update(_g12.SOLUTIONS)
