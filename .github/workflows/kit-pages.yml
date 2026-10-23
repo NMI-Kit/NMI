@@ -1,0 +1,38 @@
+name: Deploy the NMI kit to GitHub Pages
+
+# Publishes only the kit/ folder (static files). Nothing else of the repository is served.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kit/**'
+      - 'curriculum/**'
+      - 'tools/build_kit.py'
+      - '.github/workflows/kit-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: kit/data.json must match the curriculum folder
+        run: python3 tools/build_kit.py --check
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: kit
+      - id: deployment
+        uses: actions/deploy-pages@v4

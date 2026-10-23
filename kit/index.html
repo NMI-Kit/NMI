@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>عدّة NMI</title>
+<meta name="description" content="جهّز برومبت فيه منهاجك ونمط البجروت وقواعد التدريس، وافتحه بتطبيق الذكاء الاصطناعي اللي عندك.">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="light">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button type="button" id="back" class="back" hidden>→ رجوع</button>
+  <div class="brand"><img src="icon.svg" alt="" width="32" height="32"><span>عدّة NMI</span></div>
+  <p id="progress" class="progress" aria-live="polite"></p>
+</header>
+
+<main id="app" class="app" tabindex="-1">
+  <p id="loading" class="note">لحظة، عم نجهّز المنهاج...</p>
+</main>
+
+<noscript><p class="note">الصفحة بتحتاج JavaScript عشان تجهّز البرومبت.</p></noscript>
+
+<script src="prompt.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

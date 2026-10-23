@@ -36,3 +36,11 @@ NMI (Next Mastery Intelligence) is an AI tutor for Grades 9–12, Arabic/English
 - ممنوع تلمس ملفات css أو tokens.css أو الشكل، إلا إذا طلبت تغيير تصميم بالاسم.
 - عدّل بس الإشي المطلوب بالضبط. ممنوع تعيد بناء أي صفحة.
 - قبل التعديل، قلي شو الملفات اللي رح تلمسها.
+
+## الاتجاه الحالي
+- الطلاب ما رح يتركوا ChatGPT وClaude وGemini. فالمنتج الجديد اسمه "عدّة NMI": صفحة بتجهّز للطالب برومبت فيه منهاجه ونمط البجروت وقواعد التدريس، والطالب بيستعمله بالتطبيق اللي عنده.
+- المنتج الرئيسي هو `kit/` (صفحة ثابتة: `index.html`، `prompt.js`، `app.js`، `data.json`). `data.json` بيتبني من `curriculum/` بـ `python tools/build_kit.py`، وما بيتعدّل بإيد. `python tools/build_kit.py --check` بيفحص إنه محدّث.
+- الموعد النهائي: 30/10/2026.
+- الموقع الحالي (`local_web.py`، `ai_test.py`، الـ evals، `preview/`) بيضل "مختبر" لتجربة قواعد المدرّس. ما تمسحه وما تغيّره إلا إذا انطلب.
+- مصدر المحتوى: `curriculum/<مادة>/grade<N>/<N>units.md`، و`curriculum/<مادة>/bagrut_patterns.md`، وبنك الأمثلة `curriculum/<مادة>/grade<N>/examples/<N>units.md` (كل مثال بيتفحص بـ sympy بـ `tests/kit/example_solutions.py`). مادة جديدة بتنضاف بمجلد بدون كود. مستوى ناقصه أمثلة بينعلّم "تجريبي".
+- اختبارات العدّة: `python -B -m unittest discover -s tests/offline`، و`node --test tests/kit/prompt.test.cjs`، و`node tools/run_frontend_tests.cjs -c playwright.kit.config.cjs`. النشر على GitHub Pages: `docs/KIT.md`.

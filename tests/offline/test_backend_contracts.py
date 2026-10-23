@@ -352,9 +352,9 @@ class BackendContracts(unittest.TestCase):
         self.assertIn("علّم بس المواضيع اللي بهالدليل.", (root / "math/grade10/4units.md").read_text(encoding="utf-8"))
         self.assertIn("الأخطاء الشائعة بهالدليل من خبرة تدريس عامة", (root / "math/grade12/5units.md").read_text(encoding="utf-8"))
         self.assertIn("هاد الدليل بيوصف **شكل** أسئلة البجروت.", (root / "math" / "bagrut_patterns.md").read_text(encoding="utf-8"))
-        # version 2 of the patterns: one exam per level, with the 2025 table
+        # version 3 of the patterns: one exam per level, with the 2025 table
         patterns = (root / "math" / "bagrut_patterns.md").read_text(encoding="utf-8")
-        for part in ("(نسخة 2)", "035172 (صيف 2022)", "035472 (صيف 2022)", "3 وحدات، الصف العاشر: استمارة 35172",
+        for part in ("(نسخة 3)", "035172 (صيف 2022)", "035472 (صيف 2022)", "3 وحدات، الصف العاشر: استمارة 35172",
                      "4 وحدات: استمارة 35472", "5 وحدات: استمارة 35571", "35172 أو 35173 (25%)", "35471 (65%)"):
             self.assertIn(part, patterns)
         self.assertIn("ملف", (root / "SOURCES.md").read_text(encoding="utf-8"))  # left as it was: it is for the teacher
@@ -395,7 +395,7 @@ class BackendContracts(unittest.TestCase):
         # the old 5-unit numbers are gone from the level files and are only called old in the sources
         for path in root.rglob("*.md"):
             text = path.read_text(encoding="utf-8")
-            if path.name in ("SOURCES.md", "bagrut_patterns.md"):
+            if path.name in ("SOURCES.md", "bagrut_patterns.md", "NMI_KIT_TASK.md"):  # the last one is a task note, not curriculum
                 continue
             for old in ("035581", "035582", "35581", "35582"):
                 self.assertNotIn(old, text, f"{path.name}: {old}")
