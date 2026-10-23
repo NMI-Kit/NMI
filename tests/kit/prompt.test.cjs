@@ -74,8 +74,8 @@ test('the exam patterns are the ones of the current level (and the grade, for a 
   assert.ok(!g12.includes('استمارة 35172'), 'the 10th-grade form is not for a 12th grader');
   for (const text of [t4, t5, g10, g12]) {
     assert.ok(text.includes('-- دليل أنماط الامتحانات لمستواك --'));
-    assert.ok(text.includes('## قواعد عامة لكل سؤال بجروت'));
-    assert.ok(text.includes('## كيف المدرّس يكتب سؤال تدريب بنمط البجروت'));
+    assert.ok(text.includes('## قواعد عامة لكل سؤال امتحان'));
+    assert.ok(text.includes('## كيف المدرّس يكتب سؤال تدريب بنمط الامتحان'));
     assert.ok(!text.includes('## أرقام الاستمارات'), 'the table of all form numbers is not sent');
   }
 });
@@ -161,15 +161,31 @@ test('the mock exam mode asks for 3 to 4 questions, marks that add up to 100, a 
     'إلا الامتحان التجريبي: اعطيه كله مرة وحدة']) assert.ok(text.includes(part), part);
 });
 
-test('each mode ends with its own first move', () => {
+test('each mode ends with its own first move, on the first chosen topic', () => {
+  const first = level(10, 3).topics[0].title;  // all topics: the first one of the list
   const ends = {};
   for (const mode of MODES) ends[mode] = build({ all: true, mode }).text.trim().split('\n').pop();
-  assert.match(ends.explain, /أي موضوع بدك أشرحلك/);
-  assert.match(ends.practice, /سؤال جديد بنمط الامتحان/);
-  assert.match(ends.mock, /الامتحان التجريبي/);
-  assert.match(ends.plan, /إمتى امتحانك/);
-  assert.ok(!Object.values(ends).some((l) => l.includes('شو بدك اليوم') || l.includes('بجروت')));
+  assert.equal(ends.explain, `ابدأ مباشرة بشرح ${first}.`);
+  assert.equal(ends.practice, `ابدأ مباشرة بسؤال جديد بنمط الامتحان على ${first}: القصة والقسم أ بس، واستنى.`);
+  assert.equal(ends.mock, 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.');
+  assert.equal(ends.plan, 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟');
+  assert.ok(!Object.values(ends).some((l) => l.includes('شو بدك اليوم') || l.includes('بجروت') || l.includes('أي موضوع')));
   assert.equal(new Set(Object.values(ends)).size, 4);
+  // the first chosen topic, in the order of the list; then the target topics; then the ones the student wrote
+  const chosen = build({ topics: ['m10-3-13', 'm10-3-03'], mode: 'explain' }).text.trim().split('\n').pop();
+  assert.equal(chosen, 'ابدأ مباشرة بشرح الإحصاء.');
+  const targetFirst = level(10, 5).topics[1];
+  assert.equal(build({ target: 5, topics: [targetFirst.id], custom: ['س'], mode: 'explain' }).text.trim().split('\n').pop(), `ابدأ مباشرة بشرح ${targetFirst.title}.`);
+  assert.equal(build({ custom: ['معادلات تربيعية', 'ب'], mode: 'practice' }).text.trim().split('\n').pop(),
+    'ابدأ مباشرة بسؤال جديد بنمط الامتحان على معادلات تربيعية: القصة والقسم أ بس، واستنى.');
+  // "which topic?" only when nothing was chosen
+  const none = {};
+  for (const mode of MODES) none[mode] = build({ mode }).text.trim().split('\n').pop();
+  assert.match(none.explain, /أي موضوع بدك أشرحلك/);
+  assert.match(none.practice, /أي موضوع بدك تتدرّب عليه/);
+  assert.match(none.mock, /على أي مواضيع بدك الامتحان/);
+  assert.match(none.plan, /إمتى امتحانك/);
+  for (const mode of MODES) assert.ok(!build({ topics: ['m10-3-12'], mode }).text.includes('أي موضوع بدك'), mode);
 });
 
 test('a target level adds only its chosen topics: no notes, no patterns, and "all topics" is about the own level', () => {
@@ -180,7 +196,8 @@ test('a target level adds only its chosen topics: no notes, no patterns, and "al
   assert.ok(text.includes('-- مواضيع مستوى الهدف (5 وحدات) --'));
   assert.ok(text.includes(`### ${targetFirst.title_full}`));
   assert.ok(!text.includes(`### ${targetSecond.title_full}`), 'a target topic that was not ticked stays out');
-  assert.match(text, /المواضيع اللي بدو يراجعها: كل المواضيع، من مستوى الهدف: [^\n]+\n/);
+  assert.match(text, /المواضيع اللي بدو يراجعها: كل المواضيع، [^\n]*\n/);
+  assert.ok(text.includes(`المواضيع اللي بدو يراجعها: كل المواضيع، ${targetFirst.title}\n`));
   assert.ok(!text.includes('35571') && !text.includes('35572'), 'no patterns of the target level');
   assert.ok(!text.includes('رياضيات، الصف العاشر، 5 وحدات'), 'no notes of the target level');
   assert.ok(text.includes('35172'));
@@ -192,22 +209,131 @@ test('a target level adds only its chosen topics: no notes, no patterns, and "al
   assert.ok(!same.includes('مواضيع مستوى الهدف'));
 });
 
-test('topics the student adds: their own section, the sentence, plain text, at most 5 of 60 characters', () => {
+test('topics the student adds: their own section, the new sentence, plain text, at most 5 of 60 characters', () => {
   const none = build({ topics: ['m10-3-12'] });
-  assert.ok(!none.text.includes('مواضيع زادها الطالب بنفسه'));
+  assert.ok(!none.text.includes('مواضيع كتبها الطالب بنفسه'));
   assert.equal(none.custom, 0);
   const { text, custom } = build({ topics: ['m10-3-12'], custom: ['المعادلات التربيعية', 'ثلاثيات فيثاغورس'] });
   assert.equal(custom, 2);
-  const section = text.slice(text.indexOf('-- مواضيع زادها الطالب بنفسه (مش من منهاجه) --'));
-  assert.ok(section.startsWith('-- مواضيع زادها الطالب بنفسه (مش من منهاجه) --\n- المعادلات التربيعية\n- ثلاثيات فيثاغورس\n'));
-  assert.ok(section.includes('اشرحها بمستوى الطالب. ما تحكي إنها من منهاجه. إذا الموضوع أعلى من مستواه، أو مش رياضيات، أو مذكور تحت "خارج المنهاج"، قله بصراحة.'));
-  assert.ok(text.indexOf('-- المواضيع المختارة --') < text.indexOf('-- مواضيع زادها الطالب بنفسه'));
-  assert.ok(text.indexOf('-- مواضيع زادها الطالب بنفسه') < text.indexOf('-- دليل أنماط الامتحانات لمستواك --'));
-  assert.match(text, /المواضيع اللي بدو يراجعها: النموذج الخطي، وزاد مواضيع بنفسه \(تحت\)\n/);
-  // only custom topics: allowed, the student line says so
+  const section = text.slice(text.indexOf('-- مواضيع كتبها الطالب بنفسه --'));
+  assert.ok(section.startsWith('-- مواضيع كتبها الطالب بنفسه --\n- المعادلات التربيعية\n- ثلاثيات فيثاغورس\n'));
+  assert.ok(section.includes("هاي مواضيع كتبها الطالب بنفسه. ممكن تكون من منهاجه بكلام تاني، أو من الإعدادية، أو من مستوى أعلى. إذا من منهاجه، اربطها بالموضوع المناسب. إذا من مستوى أعلى أو مذكورة تحت 'خارج المنهاج'، قله بصراحة قبل ما تشرح. إذا مش رياضيات، قله."));
+  assert.ok(!text.includes('ما تحكي إنها من منهاجه'), 'the old sentence misled the student: a topic he wrote can be in his curriculum');
+  assert.ok(!text.includes('(مش من منهاجه)'));
+  assert.ok(text.indexOf('-- المواضيع المختارة --') < text.indexOf('-- مواضيع كتبها الطالب بنفسه --'));
+  assert.ok(text.indexOf('-- مواضيع كتبها الطالب بنفسه --') < text.indexOf('-- دليل أنماط الامتحانات لمستواك --'));
+  // the student line names every topic, the ones from the list and the ones he wrote
+  assert.match(text, /المواضيع اللي بدو يراجعها: النموذج الخطي، المعادلات التربيعية، ثلاثيات فيثاغورس\n/);
+  assert.ok(!text.includes('وزاد مواضيع بنفسه'));
+  // only custom topics: allowed
   const only = build({ topics: [], custom: ['اللوغاريتمات'] });
   assert.ok(only.text.includes('- اللوغاريتمات'));
-  assert.match(only.text, /المواضيع اللي بدو يراجعها: وزاد مواضيع بنفسه \(تحت\)\n/);
+  assert.match(only.text, /المواضيع اللي بدو يراجعها: اللوغاريتمات\n/);
+});
+
+// ----------------------------------------------------------------------------- the six fixes of the 24 October report
+// grade 10, 3 units, target 5, no topic from the list, one topic written by the student, mode "افهم"
+const reported = () => build({ target: 5, topics: [], custom: ['معادلات تربيعية'], mode: 'explain' });
+const BAGRUT_SENTENCE = 'ما تحكي عن البجروت إلا إذا الطالب سأل عنه.';
+
+test('fix 1: the topics sentence names the topic, not "وزاد مواضيع بنفسه (تحت)"', () => {
+  const { text } = reported();
+  assert.ok(text.includes('المواضيع اللي بدو يراجعها: معادلات تربيعية\n'));
+  assert.ok(!text.includes('وزاد مواضيع'));
+  assert.ok(!text.includes('بنفسه (تحت)'));
+});
+
+test('fix 2: with a chosen topic the tutor starts on it; the question "which topic" is only for no topic', () => {
+  const { text } = reported();
+  assert.ok(!text.includes('أي موضوع بدك'));
+  assert.ok(text.trim().endsWith('ابدأ مباشرة بشرح معادلات تربيعية.'));
+});
+
+test('fix 3: the sentence about topics the student wrote no longer says "it is not from his curriculum"', () => {
+  const { text } = reported();
+  assert.ok(!text.includes('ما تحكي إنها من منهاجه'));
+  assert.ok(text.includes('ممكن تكون من منهاجه بكلام تاني، أو من الإعدادية، أو من مستوى أعلى. إذا من منهاجه، اربطها بالموضوع المناسب.'));
+  // and the grade 10 / 3 units curriculum really has quadratic equations as support, so the old sentence was wrong
+  assert.ok(level(10, 3).topics.find((t) => t.id === 'm10-3-01').text.includes('معادلات درجة أولى وتانية'));
+});
+
+test('fix 4: "بجروت" is only in the sentence "do not talk about the Bagrut unless asked"; the guide says "امتحان"', () => {
+  const only = (text) => text.split(BAGRUT_SENTENCE).join('');
+  assert.ok(reported().text.includes(BAGRUT_SENTENCE));
+  assert.ok(!only(reported().text).includes('بجروت'));
+  for (const g of math.grades) for (const l of g.levels) for (const mode of MODES) {
+    const { text } = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, target: null, all: true, topics: [], mode });
+    const label = `${g.id}/${l.units}/${mode}`;
+    assert.ok(text.includes(BAGRUT_SENTENCE), label);
+    if (mode === 'plan') continue;  // the plan keeps the section about the exam forms, which names the Bagrut
+    assert.ok(!only(text).includes('بجروت'), label + ': ' + (only(text).match(/.{20}بجروت.{20}/) || [''])[0]);
+  }
+  const practice = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
+  assert.ok(practice.includes('## قواعد عامة لكل سؤال امتحان'));
+  assert.ok(practice.includes('## كيف المدرّس يكتب سؤال تدريب بنمط الامتحان'));
+  assert.ok(!practice.includes('## قواعد عامة لكل سؤال بجروت'));
+  // the file in the curriculum folder is not touched: it still says Bagrut
+  assert.ok(math.patterns.general.includes('لكل سؤال بجروت'));
+  assert.ok(math.patterns.howto.includes('بنمط البجروت'));
+});
+
+test('fix 4: the "## الامتحان" section of the level (form numbers, Bagrut) is only in the plan mode', () => {
+  for (const g of math.grades) for (const l of g.levels) {
+    assert.ok(l.notes.includes('## الامتحان'), 'the data still has it');
+    for (const mode of MODES) {
+      const { text } = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, target: null, all: true, topics: [], mode });
+      assert.equal(text.includes('## الامتحان'), mode === 'plan', `${g.id}/${l.units}/${mode}`);
+      assert.ok(text.includes('## تعليمات للمدرّس عن هذا الدليل'), 'the rest of the notes stay');
+    }
+  }
+  const plan = build({ topics: ['m10-3-12'], mode: 'plan' }).text;
+  assert.ok(plan.includes('حسب جدول الوزارة 2025: استمارة العاشر 35172 أو 35173. بجروت نهاية الحادي عشر 35371'));
+  const explain = build({ topics: ['m10-3-12'], mode: 'explain' }).text;
+  assert.ok(!explain.includes('35172') && !explain.includes('35371'));
+  assert.ok(build({ topics: ['m10-3-12'], mode: 'practice' }).text.includes('## خارج منهاج 3 وحدات'));
+});
+
+test('fix 5: a section with nothing in it is not written at all, not even its heading', () => {
+  const { text } = reported();
+  assert.ok(!text.includes('(ما اختار الطالب'));
+  assert.ok(!text.includes('-- المواضيع المختارة --'));
+  assert.ok(!text.includes('-- مواضيع مستوى الهدف'));
+  assert.ok(text.includes('-- مواضيع كتبها الطالب بنفسه --'));
+  // a target with no ticked topic: no target section either; an own topic with a target: the target section stays out
+  assert.ok(!build({ target: 5, topics: ['m10-3-12'] }).text.includes('مواضيع مستوى الهدف'));
+  assert.ok(!build({ topics: ['m10-3-12'] }).text.includes('مواضيع كتبها الطالب بنفسه'));
+  assert.ok(build({ topics: ['m10-3-12'] }).text.includes('-- المواضيع المختارة --'));
+  // nothing chosen at all: no empty sections, and no sentence about them
+  for (const mode of MODES) {
+    const { text: nothing } = build({ mode });
+    assert.ok(!nothing.includes('(ما اختار'), mode);
+    assert.ok(!nothing.includes('-- المواضيع المختارة --'), mode);
+  }
+});
+
+test('fix 6: the exam patterns guide and the example are only in "تدرّب" and "امتحان تجريبي"', () => {
+  for (const mode of MODES) {
+    const { text } = build({ all: true, mode });
+    const has = mode === 'practice' || mode === 'mock';
+    assert.equal(text.includes('-- دليل أنماط الامتحانات لمستواك --'), has, mode);
+    assert.equal(text.includes('| الموضوع | شكل السؤال |'), has, mode + ' (the pattern tables)');
+    assert.equal(text.includes('-- مثال على الشكل، ما تعيده'), has, mode);
+    assert.equal(text.includes('## قواعد عامة لكل سؤال'), has, mode);
+    assert.equal(text.includes('35371'), mode === 'plan' || has, mode);
+    // when the guide is not there, the sources line does not promise it
+    assert.equal(text.includes('ودليل أنماط أسئلة الامتحانات'), has, mode);
+  }
+  assert.ok(build({ all: true, mode: 'explain' }).text.includes('- تحت: منهاج صف ووحدات الطالب.\n'));
+  assert.equal(build({ topics: ['m10-3-12'], mode: 'explain' }).missingExample, false);
+});
+
+test('the reported case is far shorter than before (it was 14,080 characters)', () => {
+  const { text, length } = reported();
+  assert.equal(length, text.length);
+  assert.ok(length < 7000, String(length));
+  assert.ok(!text.includes('| الموضوع | شكل السؤال |'));
+  // the same student in "تدرّب" with the guide is still longer than "افهم"
+  assert.ok(build({ target: 5, topics: [], custom: ['معادلات تربيعية'], mode: 'practice' }).length > length + 2000);
 });
 
 test('custom topics are cleaned: plain one-line text, no duplicates, 5 at most, 60 characters at most', () => {

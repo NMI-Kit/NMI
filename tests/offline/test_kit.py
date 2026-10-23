@@ -261,6 +261,21 @@ class KitFilesTests(unittest.TestCase):
         for name in ('style.css', 'app.js', 'prompt.js'):
             self.assertNotIn('tokens.css', read(ROOT / 'kit' / name))
 
+    def test_the_prompt_files_say_bagrut_once_and_the_curriculum_folder_is_not_touched(self):
+        base = read(ROOT / 'kit' / 'base_prompt.txt')
+        self.assertEqual(base.count('البجروت'), 1)
+        self.assertIn('- ما تحكي عن البجروت إلا إذا الطالب سأل عنه.', base.splitlines())
+        self.assertNotIn('بجروت', base.replace('البجروت', ''))  # no other form of the word
+        self.assertEqual(json.loads(read(build_kit.OUTPUT))['base_prompt'], base.strip())
+        # the guide keeps its name: the wording is changed only in the prompt that is built (kit/prompt.js)
+        patterns = read(CURRICULUM / 'math' / 'bagrut_patterns.md')
+        self.assertIn('## قواعد عامة لكل سؤال بجروت', patterns)
+        self.assertIn('## كيف المدرّس يكتب سؤال تدريب بنمط البجروت', patterns)
+        js = read(ROOT / 'kit' / 'prompt.js')
+        for part in ('function asExam', "replace(/البجروت/g, 'الامتحان')", "WRITES_QUESTIONS = { practice: true, mock: true }",
+                     "part.split('\\n')[0].trim() !== '## الامتحان'"):
+            self.assertIn(part, js)
+
     def test_the_pages_workflow_publishes_only_the_kit_folder_and_checks_the_data(self):
         workflow = read(ROOT / '.github' / 'workflows' / 'kit-pages.yml')
         self.assertRegex(workflow, r'path: kit\s')

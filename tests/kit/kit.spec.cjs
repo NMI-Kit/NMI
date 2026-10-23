@@ -182,7 +182,8 @@ for (const [name, profile] of Object.entries(profiles)) {
       const copied = await page.evaluate(() => window.__copied);
       expect(copied).toHaveLength(1);
       expect(copied[0]).toContain('الوضع اللي اختاره: افهم');
-      expect(copied[0].trim().split('\n').pop()).toContain('أي موضوع بدك أشرحلك');
+      expect(copied[0].trim().split('\n').pop()).toBe('ابدأ مباشرة بشرح النموذج الخطي.');
+      expect(copied[0]).not.toContain('-- دليل أنماط الامتحانات لمستواك --');  // "افهم" has no patterns guide
     });
 
     test('"all topics" is the own level only; target topics are ticked one by one; too long is a warning', async ({ page }) => {
@@ -223,7 +224,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#all-topics').click();
       for (const box of await page.locator('input[data-topic^="m10-5"]').all()) await box.check();
       await page.locator('#next-2').click();
-      await page.locator('button[data-mode="explain"]').click();
+      await page.locator('button[data-mode="practice"]').click();
       await expect(page.locator('#too-long')).toBeVisible();
       await expect(page.locator('#too-long')).toContainText('اخترت مواضيع كتير');
       await expect(page.locator('#summary')).toContainText('كل المواضيع + 13 موضوع من الهدف');
@@ -287,14 +288,16 @@ for (const [name, profile] of Object.entries(profiles)) {
       await expect(page.locator('#summary')).toContainText('3 من عندك');
       await page.locator('summary').click();
       const text = await page.locator('#preview').innerText();
-      expect(text).toContain('-- مواضيع زادها الطالب بنفسه (مش من منهاجه) --');
+      expect(text).toContain('-- مواضيع كتبها الطالب بنفسه --');
       expect(text).toContain('- المعادلات التربيعية');
       expect(text).toContain('- <img src=x onerror=alert(1)>');
       const lines = text.split(/\r?\n/);
       expect(lines).toContain('- ج');
       expect(lines).not.toContain('- د');
-      expect(text).toContain('اشرحها بمستوى الطالب. ما تحكي إنها من منهاجه.');
-      expect(text).toMatch(/المواضيع اللي بدو يراجعها: وزاد مواضيع بنفسه \(تحت\)\n/);
+      expect(text).toContain('هاي مواضيع كتبها الطالب بنفسه. ممكن تكون من منهاجه بكلام تاني');
+      expect(text).not.toContain('ما تحكي إنها من منهاجه');
+      expect(text).toContain('المواضيع اللي بدو يراجعها: المعادلات التربيعية، <img src=x onerror=alert(1)>، ج\n');
+      expect(text).not.toContain('(ما اختار الطالب');
       await expect(page.locator('#preview img')).toHaveCount(0);
       expect(dialogs).toEqual([]);
     });

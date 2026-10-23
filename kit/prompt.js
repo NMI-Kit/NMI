@@ -16,25 +16,38 @@
   const MAX_CUSTOM = 5;
   const MAX_CUSTOM_LENGTH = 60;
 
+  /* start(first): the closing line of the prompt. `first` is the name of the first chosen topic, or '' when the
+     student chose nothing (then the tutor asks). */
   const MODES = {
     explain: {
       label: 'افهم', description: 'شرح موضوع خطوة خطوة.', chosen: 'افهم',
-      start: 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"'
+      start: function (first) {
+        return first ? 'ابدأ مباشرة بشرح ' + first + '.' : 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"';
+      }
     },
     practice: {
       label: 'تدرّب', description: 'سؤال بنمط الامتحان، قسم قسم، وبيصحّح حلك.', chosen: 'تدرّب',
-      start: 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على موضوع من اللي اختارهم الطالب: القصة والقسم أ بس، واستنى حله.'
+      start: function (first) {
+        return first ? 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على ' + first + ': القصة والقسم أ بس، واستنى.'
+          : 'ابدأ بسؤال الطالب: "أي موضوع بدك تتدرّب عليه؟"';
+      }
     },
     mock: {
       label: 'امتحان تجريبي', description: 'امتحان كامل على المواضيع المختارة، وعلامة من 100 بالآخر.', chosen: 'امتحان تجريبي',
-      start: 'ابدأ مباشرة بالامتحان التجريبي على المواضيع اللي اختارها الطالب: كل الأسئلة مرة وحدة، مع علامة كل قسم ووقت مقترح.'
+      start: function (first) {
+        return first ? 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.'
+          : 'ابدأ بسؤال الطالب: "على أي مواضيع بدك الامتحان؟"';
+      }
     },
     plan: {
       label: 'خطة', description: 'خطة مراجعة لامتحانك بالأيام.', chosen: 'خطة',
-      start: 'ابدأ بسؤال الطالب: "إمتى امتحانك؟ وكم ساعة بتقدر تدرس باليوم؟" وبعدين اعمل الخطة.'
+      start: function () { return 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟'; }
     }
   };
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];
+
+  /* The exam patterns guide (and its example) only helps when the tutor writes questions. */
+  const WRITES_QUESTIONS = { practice: true, mock: true };
 
   const ID = /m\d+-\d+-\d+/;
   const ID_IN_PARENS = /\s*\(m\d+-\d+-\d+\)/g;
@@ -57,7 +70,7 @@
   }
 
   /* control characters and invisible direction marks (U+2028 and U+2029 are caught by the whitespace step) */
-  const HIDDEN = /[\u0000-\u001f\u007f-\u009f\u200e-\u200f\u202a-\u202e\u2066-\u2069]/g;
+  const HIDDEN = /[\u0000-\u001f\u007f-\u009f‎-‏‪-‮⁦-⁩]/g;
 
   /* One line of plain text: no line breaks, no control characters, single spaces, at most 60 characters. */
   function cleanTopic(text) {
@@ -78,6 +91,19 @@
     return out;
   }
 
+  /* The guide is still called "Bagrut patterns" in the curriculum folder; the prompt says "exam" (school exams). */
+  function asExam(text) {
+    return text.replace(/البجروت/g, 'الامتحان').replace(/بجروت/g, 'امتحان');
+  }
+
+  /* The notes of a level are "## heading" sections. "## الامتحان" (form numbers, "Bagrut at the end of grade 11")
+     is only for the plan mode. */
+  function notesText(notes, mode) {
+    return notes.split(/\n\n(?=## )/).filter(function (part) {
+      return mode === 'plan' || part.split('\n')[0].trim() !== '## الامتحان';
+    }).join('\n\n').trim();
+  }
+
   /* The exam patterns of the student's own level: the general rules, the form sections of the level (a form written
      for one grade, like the 12th-grade form, only for that grade) and "how the tutor writes a question". */
   function patternsText(subject, gradeName, units) {
@@ -89,7 +115,7 @@
       if (!section.grade || section.grade === gradeName) parts.push(section.text);
     });
     if (p.howto) parts.push(p.howto);
-    return parts.filter(Boolean).join('\n\n');
+    return asExam(parts.filter(Boolean).join('\n\n'));
   }
 
   function topicBlock(topic) {
@@ -113,8 +139,8 @@
     return { head: head, sections: out };
   }
 
-  function titles(topics) {
-    return topics.map(function (t) { return t.title; }).join('، ');
+  function names(topics) {
+    return topics.map(function (t) { return t.title; });
   }
 
   /* sel: { subject, grade, units, target (units or null), topics (ids of the level or of the target level),
@@ -140,59 +166,63 @@
     let title = head.join('\n').trim();
     if (subject.name && subject.id !== 'math') title = title.replace('رياضيات', subject.name);
 
-    /* == الطالب == */
+    /* == الطالب == : every chosen topic by name, the ones from the list and the ones the student wrote */
     const student = [];
     student.push('المادة: ' + subject.name);
     student.push('الصف: ' + found.grade.name);
     student.push('الوحدات: ' + sel.units);
     student.push(target ? 'الهدف: الانتقال من ' + sel.units + ' لـ ' + sel.target + ' وحدات' : 'الهدف: ما في هدف خاص');
-    const named = [];
-    if (sel.all) named.push('كل المواضيع');
-    else if (pickedOwn.length) named.push(titles(pickedOwn));
-    if (pickedTarget.length) named.push('من مستوى الهدف: ' + titles(pickedTarget));
-    if (custom.length) named.push('وزاد مواضيع بنفسه (تحت)');
+    const named = (sel.all ? ['كل المواضيع'] : names(pickedOwn)).concat(names(pickedTarget), custom);
     student.push('المواضيع اللي بدو يراجعها: ' + (named.length ? named.join('، ') : 'ما حدّد، اسأله'));
     student.push('الوضع اللي اختاره: ' + MODES[mode].chosen);
 
-    /* == المصادر == */
+    /* what the tutor starts with: the first topic of the student, in the order of the list, then the ones he wrote */
+    const first = names(pickedOwn.concat(pickedTarget)).concat(custom)[0] || '';
+
+    const guide = WRITES_QUESTIONS[mode] === true;
+    const patterns = guide ? patternsText(subject, found.grade.name, sel.units) : '';
+
+    /* == المصادر == : a section that would be empty is not written at all, not even its heading */
     const sourceLines = (section('المصادر') ? section('المصادر').lines : []).filter(function (line, i, all) {
       return !(line === '' && i === all.length - 1);
     }).map(function (line) {
       let out = line.replace(/^- مرفق:/, '- تحت:');
+      if (!patterns) out = out.replace('، ودليل أنماط أسئلة الامتحانات', '');  // the guide is not in this prompt
       if (out.indexOf('ملف') !== -1) out = '- ما تقول للطالب "المرفق" ولا اسم أي مصدر. قول "منهاجك".';
       if (ID.test(out)) out = '- ما تكتب أرقام المواضيع للطالب.';
       return out;
     });
     const sources = sourceLines.slice();
-    sources.push('');
-    sources.push('-- منهاج الطالب: ' + withoutIds(own.title) + ' --');
-    sources.push(withoutIds(own.notes));
-    sources.push('');
-    sources.push('-- المواضيع المختارة --');
+    const notes = notesText(own.notes, mode);
+    if (notes) {
+      sources.push('');
+      sources.push('-- منهاج الطالب: ' + withoutIds(own.title) + ' --');
+      sources.push(withoutIds(notes));
+    }
     if (pickedOwn.length) {
+      sources.push('');
+      sources.push('-- المواضيع المختارة --');
       pickedOwn.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
-    } else sources.push('(ما اختار الطالب مواضيع من منهاجه)');
-    if (target) {
+    }
+    if (pickedTarget.length) {
       sources.push('');
       sources.push('-- مواضيع مستوى الهدف (' + sel.target + ' وحدات) --');
-      if (pickedTarget.length) pickedTarget.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
-      else sources.push('(ما اختار الطالب مواضيع من مستوى الهدف)');
+      pickedTarget.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
     }
     if (custom.length) {
       sources.push('');
-      sources.push('-- مواضيع زادها الطالب بنفسه (مش من منهاجه) --');
+      sources.push('-- مواضيع كتبها الطالب بنفسه --');
       custom.forEach(function (text) { sources.push('- ' + text); });
-      sources.push('اشرحها بمستوى الطالب. ما تحكي إنها من منهاجه. إذا الموضوع أعلى من مستواه، أو مش رياضيات، أو مذكور تحت "خارج المنهاج"، قله بصراحة.');
+      sources.push('هاي مواضيع كتبها الطالب بنفسه. ممكن تكون من منهاجه بكلام تاني، أو من الإعدادية، أو من مستوى أعلى. إذا من منهاجه، اربطها بالموضوع المناسب. إذا من مستوى أعلى أو مذكورة تحت \'خارج المنهاج\'، قله بصراحة قبل ما تشرح. إذا مش رياضيات، قله.');
     }
-    const patterns = patternsText(subject, found.grade.name, sel.units);
     if (patterns) {
       sources.push('');
       sources.push('-- دليل أنماط الامتحانات لمستواك --');
       sources.push(patterns);
     }
     let missing = false;
-    const withExample = pickedOwn.concat(pickedTarget).find(function (topic) { return topic.example; });
-    if (mode !== 'plan') {
+    if (guide) {
+      const withExample = pickedOwn.concat(pickedTarget).find(function (topic) { return topic.example; });
       if (withExample) {
         sources.push('');
         sources.push('-- مثال على الشكل، ما تعيده (موضوع: ' + withExample.title + ') --');
@@ -212,7 +242,7 @@
         if (s === sections[sections.length - 1]) {
           /* the last section holds the closing line "ابدأ بسؤال الطالب ..." */
           for (let i = body.length - 1; i >= 0; i--) {
-            if (/^ابدأ/.test(body[i])) body[i] = MODES[mode].start;
+            if (/^ابدأ/.test(body[i])) body[i] = MODES[mode].start(first);
           }
         }
         out.push.apply(out, body);
