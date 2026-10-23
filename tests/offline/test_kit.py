@@ -257,7 +257,14 @@ class KitFilesTests(unittest.TestCase):
         app = read(ROOT / 'kit' / 'app.js')
         self.assertEqual(sorted(re.findall(r"https://[^'\"]+", app)),
                          sorted(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app', 'https://meyda.education.gov.il/']))
-        self.assertNotIn('intent://', app)
+        # the Android buttons use Chrome intents of the three official apps, with the official site as the fallback
+        self.assertEqual(sorted(re.findall(r"package: '([a-z.]+)'", app)), ['com.anthropic.claude', 'com.google.android.apps.bard', 'com.openai.chatgpt'])
+        self.assertEqual(app.count("'intent://'"), 1)
+        self.assertIn('S.browser_fallback_url=', app)
+        for scheme in ('chatgpt://', 'claude://', 'gemini://', 'googlechrome://', 'market://'):
+            self.assertNotIn(scheme, app)  # no private or unofficial scheme
+        self.assertNotIn('type="file"', html)
+        self.assertNotIn("type: 'file'", app)  # nothing is uploaded to the site
         for name in ('style.css', 'app.js', 'prompt.js'):
             self.assertNotIn('tokens.css', read(ROOT / 'kit' / name))
 
@@ -275,6 +282,20 @@ class KitFilesTests(unittest.TestCase):
         for part in ('function asExam', "replace(/البجروت/g, 'الامتحان')", "WRITES_QUESTIONS = { practice: true, mock: true }",
                      "part.split('\\n')[0].trim() !== '## الامتحان'"):
             self.assertIn(part, js)
+
+    def test_part_b_to_e_texts_are_in_the_page_and_the_prompt(self):
+        app, prompt = read(ROOT / 'kit' / 'app.js'), read(ROOT / 'kit' / 'prompt.js')
+        for part in ('عندي امتحان قديم أو ورقة عمل من أستاذي', 'الأحسن: بيحط البرومبت جوا التطبيق مباشرة.',
+                     '💡 ليش كل مادة أو موضوع جديد بمحادثة جديدة؟', '📎 الصق البرومبت، وبعدين اضغط + بالتطبيق',
+                     'ملاحظة للمدرّس (اختياري)', 'انسخنا البرومبت. الصقه بالتطبيق.', 'navigator.userAgent'):
+            self.assertIn(part, app)
+        for part in ('الطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه.',
+                     'إذا الطالب ما رفع الملف، اطلبه منه أول.', "'== ملاحظة من الطالب =='", 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز.',
+                     'const MAX_NOTE = 200;'):
+            self.assertIn(part, prompt)
+        guide = read(ROOT / 'docs' / 'KIT.md')
+        for part in ('ملف الأستاذ', 'ملاحظة للمدرّس', 'أندرويد', 'محادثة جديدة'):
+            self.assertIn(part, guide)
 
     def test_the_pages_workflow_publishes_only_the_kit_folder_and_checks_the_data(self):
         workflow = read(ROOT / '.github' / 'workflows' / 'kit-pages.yml')

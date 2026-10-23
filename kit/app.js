@@ -4,15 +4,22 @@
 
   var P = window.NMIPrompt;
   var APPS = [
-    { name: 'ChatGPT', url: 'https://chatgpt.com/' },
-    { name: 'Claude', url: 'https://claude.ai/new' },
-    { name: 'Gemini', url: 'https://gemini.google.com/app' }
+    { name: 'ChatGPT', url: 'https://chatgpt.com/', host: 'chatgpt.com', path: '', package: 'com.openai.chatgpt' },
+    { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', package: 'com.anthropic.claude' },
+    { name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', package: 'com.google.android.apps.bard' }
   ];
+  var CHAT_TIP = [
+    'الذكاء الاصطناعي بيقرأ البرومبت بأول المحادثة. كل ما طوّلت المحادثة، بينسى قواعده: بيصير يعطيك الحل مباشرة، أو بيخلط بين المواد. محادثة جديدة يعني قواعد جديدة ومركّزة على موضوعك.',
+    '✅ نفس المحادثة: مواضيع مرتبطة ببعض، أو امتحان تجريبي.',
+    '🆕 محادثة جديدة: مادة تانية، أو موضوع جديد بيوم تاني، أو محادثة صارت طويلة كتير.'
+  ];
+  var ATTACH = '📎 الصق البرومبت، وبعدين اضغط + بالتطبيق، وارفق الصور (2 لـ 4 صور، كل صفحة بصورة، مستقيمة وبضو منيح)، وابعتهم مع بعض برسالة وحدة.';
+  var NOTE_EXAMPLES = 'مثلاً: بحب الفيزيا، خلّي الأمثلة منها · ركّز على الغلطات بالإشارات · اشرح ببطء · امتحاني يوم الأحد';
   var MINISTRY = 'https://meyda.education.gov.il/';
   var TOTAL = 4;
 
   var data = null;
-  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], mode: null };
+  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], mode: null, teacherFile: false, note: '' };
   var app = document.getElementById('app');
   var backButton = document.getElementById('back');
   var progress = document.getElementById('progress');
@@ -258,7 +265,33 @@
         go(4);
       } }, h('strong', { class: 'mode-title', text: P.MODES[key].label }), h('span', { class: 'mode-note', text: P.MODES[key].description })));
     });
+    section.appendChild(extrasBox(subject));
     return section;
+  }
+
+  /* Under the four modes: a tick for an old exam or worksheet from the teacher (nothing is uploaded here: the
+     student attaches the photos in his own app), and a note to the tutor of at most 200 characters. */
+  function extrasBox(subject) {
+    var box = h('div', { class: 'extras' });
+    if (subject && subject.patterns) {
+      var tick = h('input', { type: 'checkbox', id: 'teacher-file' });
+      tick.checked = state.teacherFile;
+      tick.addEventListener('change', function () { state.teacherFile = tick.checked; });
+      box.appendChild(h('label', { class: 'topic' }, tick, h('span', null, 'عندي امتحان قديم أو ورقة عمل من أستاذي',
+        h('small', { class: 'hint', text: 'بيشتغل مع "تدرّب" و"امتحان تجريبي" بس.' }))));
+    }
+    var area = h('textarea', { id: 'note', maxlength: String(P.MAX_NOTE), rows: '3', 'aria-label': 'ملاحظة للمدرّس (اختياري)' });
+    area.value = state.note;
+    var count = h('span', { id: 'note-count', class: 'hint', text: area.value.length + ' / ' + P.MAX_NOTE });
+    area.addEventListener('input', function () {
+      state.note = area.value;
+      count.textContent = area.value.length + ' / ' + P.MAX_NOTE;
+    });
+    var details = h('details', { class: 'notebox', id: 'note-box' }, h('summary', { text: 'ملاحظة للمدرّس (اختياري)' }), area,
+      h('p', { class: 'hint', text: NOTE_EXAMPLES }), count);
+    if (state.note) details.open = true;
+    box.appendChild(details);
+    return box;
   }
 
   /* ---------------------------------------------------------------- step 4 */
@@ -271,7 +304,8 @@
   function currentPrompt() {
     return P.buildPrompt(data, {
       subject: state.subject, grade: state.grade, units: state.units, target: state.target,
-      all: isAll(), topics: selectedTopicIds(), custom: checkedCustom(), mode: state.mode
+      all: isAll(), topics: selectedTopicIds(), custom: checkedCustom(), mode: state.mode,
+      teacherFile: state.teacherFile, note: state.note
     });
   }
 
@@ -314,6 +348,29 @@
     });
   }
 
+  /* Android: a Chrome intent that opens the installed app and falls back to the site when it is not installed.
+     Everywhere else: the plain https address. Only the official addresses, no private schemes. */
+  function isAndroid() {
+    return /android/i.test(navigator.userAgent || '');
+  }
+
+  function appAddress(app) {
+    if (!isAndroid()) return app.url;
+    return 'intent://' + app.host + '/' + app.path + '#Intent;scheme=https;package=' + app.package +
+      ';S.browser_fallback_url=' + encodeURIComponent(app.url) + ';end';
+  }
+
+  /* The button of an app copies the prompt first, says so, and only then opens the app. */
+  function openApp(app, text) {
+    return copyText(text).then(function (copied) {
+      setStatus(copied ? 'انسخنا البرومبت. الصقه بالتطبيق.' : 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت" وانسخه.');
+      var address = appAddress(app);
+      if (isAndroid()) { window.open(address, '_self'); return; }
+      var tab = window.open(address, '_blank');
+      if (tab) { try { tab.opener = null; } catch (e) { /* cross-origin: nothing to do */ } } else window.location.href = address;
+    });
+  }
+
   function stepReady() {
     var built = currentPrompt();
     var section = h('section', { class: 'step', 'data-step': '4' }, h('h1', { text: 'جاهز' }));
@@ -340,8 +397,11 @@
       section.appendChild(h('p', { class: 'warn', id: 'experimental', text: 'هالمستوى تجريبي: لسا ما إلو أمثلة جاهزة على نمط الامتحان.' }));
     }
 
+    if (built.teacherFile) section.appendChild(h('p', { class: 'attach', id: 'attach', text: ATTACH }));
+
     section.appendChild(h('div', { class: 'stack' },
       h('button', { type: 'button', class: 'primary', id: 'open-app', onclick: function () { openInApp(built.text); } }, 'افتح بتطبيق الذكاء الاصطناعي'),
+      h('p', { class: 'hint', id: 'open-hint', text: 'الأحسن: بيحط البرومبت جوا التطبيق مباشرة.' }),
       h('button', { type: 'button', id: 'copy', onclick: function () {
         copyText(built.text).then(function (ok) { setStatus(ok ? 'تم النسخ.' : 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت".'); });
       } }, 'انسخ')));
@@ -350,13 +410,17 @@
     section.appendChild(h('h2', { text: 'أو افتح التطبيق بنفسك والصق' }));
     var apps = h('div', { class: 'apps' });
     APPS.forEach(function (a) {
-      apps.appendChild(h('a', { class: 'linkbtn', href: a.url, target: '_blank', rel: 'noopener noreferrer', text: a.name }));
+      apps.appendChild(h('a', { class: 'linkbtn', href: appAddress(a), target: '_blank', rel: 'noopener noreferrer', 'data-app': a.name,
+        onclick: function (event) { event.preventDefault(); openApp(a, built.text); } }, a.name));
     });
     section.appendChild(apps);
 
     section.appendChild(h('p', { class: 'note', style: 'margin-top:16px', text: 'صوّر حلّك على الورقة وابعته بالتطبيق.' }));
     section.appendChild(h('p', { class: 'note' }, 'بدك تتدرّب على امتحان كامل؟ نزّله وارفعه للأداة. ',
       h('a', { href: MINISTRY, target: '_blank', rel: 'noopener noreferrer', id: 'exams-link', text: 'امتحانات رسمية سابقة' })));
+
+    section.appendChild(h('details', { id: 'chat-tip' }, h('summary', { text: '💡 ليش كل مادة أو موضوع جديد بمحادثة جديدة؟' }),
+      h('div', { class: 'tip' }, h('p', { text: CHAT_TIP[0] }), h('p', { text: CHAT_TIP[1] }), h('p', { text: CHAT_TIP[2] }))));
 
     var preview = h('pre', { id: 'preview', text: built.text });
     section.appendChild(h('details', null, h('summary', { text: 'شوف البرومبت' }), preview));

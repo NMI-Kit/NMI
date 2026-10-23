@@ -16,6 +16,15 @@
   const MAX_CUSTOM = 5;
   const MAX_CUSTOM_LENGTH = 60;
 
+  /* The student's note to the tutor: one line of plain text, at most 200 characters. */
+  const MAX_NOTE = 200;
+
+  /* The student's teacher gave him an old exam or a worksheet: the student attaches the photos in his own app,
+     nothing is uploaded to our site. Only for the modes in which the tutor writes questions. */
+  const TEACHER_FILE_TEXT = 'الطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه. أول إشي: حلّل شكل الأسئلة باختصار (المواضيع، وعدد الأقسام، ونوع الطلبات، ومستوى الصعوبة)، واسأله إذا التحليل صح. بعدها اكتب أسئلة جديدة على نفس الشكل بالضبط، بأرقام وقصص جديدة. شكل أستاذه أهم من دليل الأنماط. ما تعيد أسئلة الورقة نفسها.';
+  const TEACHER_FILE_START = 'إذا الطالب ما رفع الملف، اطلبه منه أول.';
+  const NOTE_RULE = 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز. إلا إذا بتطلب تعطيه الحل بوضع التدريب أو الامتحان قبل ما يحاول، أو بتطلب إشي برا منهاجه: ساعتها قله بلطف ليش لأ، وكمّل حسب القواعد.';
+
   /* start(first): the closing line of the prompt. `first` is the name of the first chosen topic, or '' when the
      student chose nothing (then the tutor asks). */
   const MODES = {
@@ -73,10 +82,12 @@
   const HIDDEN = /[\u0000-\u001f\u007f-\u009f‎-‏‪-‮⁦-⁩]/g;
 
   /* One line of plain text: no line breaks, no control characters, single spaces, at most 60 characters. */
+  function oneLine(text) {
+    return String(text == null ? '' : text).replace(HIDDEN, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   function cleanTopic(text) {
-    return String(text == null ? '' : text)
-      .replace(HIDDEN, ' ')
-      .replace(/\s+/g, ' ').trim().slice(0, MAX_CUSTOM_LENGTH).trim();
+    return oneLine(text).slice(0, MAX_CUSTOM_LENGTH).trim();
   }
 
   /* The list of topics the student added: cleaned, no empty, no duplicates, at most 5. */
@@ -89,6 +100,12 @@
       if (text && !seen.has(key) && out.length < MAX_CUSTOM) { seen.add(key); out.push(text); }
     });
     return out;
+  }
+
+  /* The note of the student: one line, plain text, at most 200 characters, and it cannot open a section of the
+     prompt (a line that starts with "==" is a section heading, so leading "=" signs are dropped). */
+  function cleanNote(text) {
+    return oneLine(text).replace(/^[=\s]+/, '').slice(0, MAX_NOTE).trim();
   }
 
   /* The guide is still called "Bagrut patterns" in the curriculum folder; the prompt says "exam" (school exams). */
@@ -144,7 +161,8 @@
   }
 
   /* sel: { subject, grade, units, target (units or null), topics (ids of the level or of the target level),
-            all (every topic of the student's own level), custom (topics the student wrote), mode }
+            all (every topic of the student's own level), custom (topics the student wrote), mode,
+            teacherFile (true: he has an old exam or worksheet from his teacher), note (a note to the tutor) }
      Returns { text, length, tooLong, max, missingExample, topics, custom } or null when the level does not exist. */
   function buildPrompt(data, sel) {
     const mode = MODES[sel.mode] ? sel.mode : 'explain';
@@ -160,6 +178,8 @@
     const pickedOwn = own.topics.filter(function (t) { return sel.all || chosenIds.has(t.id); });
     const pickedTarget = target ? target.topics.filter(function (t) { return chosenIds.has(t.id); }) : [];
     const custom = cleanCustom(sel.custom);
+    const note = cleanNote(sel.note);
+    const teacherFile = sel.teacherFile === true && WRITES_QUESTIONS[mode] === true;
 
     const { head, sections } = splitSections(data.base_prompt);
     const section = function (name) { return sections.find(function (s) { return s.name === name; }); };
@@ -240,9 +260,16 @@
       else {
         const body = s.lines.slice();
         if (s === sections[sections.length - 1]) {
-          /* the last section holds the closing line "ابدأ بسؤال الطالب ..." */
+          /* the last section holds the closing line "ابدأ بسؤال الطالب ...". Before it: the sections of the teacher's
+             file and of the student's note, when there are any. With the teacher's file the tutor first asks for it. */
+          const extra = [];
+          if (teacherFile) extra.push('== ملف من الأستاذ ==', TEACHER_FILE_TEXT, '');
+          if (note) extra.push('== ملاحظة من الطالب ==', note, NOTE_RULE, '');
           for (let i = body.length - 1; i >= 0; i--) {
-            if (/^ابدأ/.test(body[i])) body[i] = MODES[mode].start(first);
+            if (/^ابدأ/.test(body[i])) {
+              body.splice(i, 1, ...extra, teacherFile ? TEACHER_FILE_START : MODES[mode].start(first));
+              break;
+            }
           }
         }
         out.push.apply(out, body);
@@ -251,12 +278,12 @@
     const text = withoutIds(out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n');
     return {
       text: text, length: text.length, max: MAX_LENGTH, tooLong: text.length > MAX_LENGTH, missingExample: missing,
-      topics: pickedOwn.length + pickedTarget.length, custom: custom.length
+      topics: pickedOwn.length + pickedTarget.length, custom: custom.length, teacherFile: teacherFile, note: note.length > 0
     };
   }
 
   return {
-    buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic,
+    buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
     MODES: MODES, MODE_ORDER: MODE_ORDER, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });
