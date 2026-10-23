@@ -9,15 +9,10 @@
     { name: 'Gemini', url: 'https://gemini.google.com/app' }
   ];
   var MINISTRY = 'https://meyda.education.gov.il/';
-  var MODE_TEXT = {
-    explain: 'اشرحلي موضوع خطوة خطوة، وبعدها سؤال سهل.',
-    bagrut: 'سؤال جديد بنمط البجروت، قسم قسم، وبيصحّح حلك.',
-    plan: 'خطة أسبوعية لمواضيعك.'
-  };
   var TOTAL = 4;
 
   var data = null;
-  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, mode: null };
+  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], mode: null };
   var app = document.getElementById('app');
   var backButton = document.getElementById('back');
   var progress = document.getElementById('progress');
@@ -58,13 +53,18 @@
     return Object.keys(state.topics).filter(function (id) { return state.topics[id]; });
   }
 
+  /* "all topics" means every topic of the student's own level; the target level's topics are ticked one by one */
   function allIds() {
-    var ids = [];
-    [state.units, state.target].forEach(function (units) {
-      var level = units ? levelData(units) : null;
-      if (level) level.topics.forEach(function (t) { ids.push(t.id); });
-    });
-    return ids;
+    var level = state.units ? levelData(state.units) : null;
+    return level ? level.topics.map(function (t) { return t.id; }) : [];
+  }
+
+  function checkedCustom() {
+    return state.custom.filter(function (c) { return c.checked; }).map(function (c) { return c.text; });
+  }
+
+  function hasSelection() {
+    return selectedTopicIds().length > 0 || checkedCustom().length > 0;
   }
   function isAll() {
     var ids = allIds();
@@ -162,9 +162,52 @@
       state.topics[topic.id] = input.checked;
       if (state.step > 2) { render(); return; }
       document.getElementById('all-topics').setAttribute('aria-pressed', isAll() ? 'true' : 'false');
-      document.getElementById('next-2').disabled = selectedTopicIds().length === 0;
+      document.getElementById('next-2').disabled = !hasSelection();
     });
     return h('label', { class: 'topic' }, input, h('span', { text: topic.title }));
+  }
+
+  /* topics the student writes himself: plain text, at most 5, each at most 60 characters */
+  function customBox() {
+    var limit = P.MAX_CUSTOM;
+    var message = h('p', { class: 'small', id: 'custom-msg', role: 'status', 'aria-live': 'polite' });
+    var input = h('input', { type: 'text', id: 'custom-input', maxlength: String(P.MAX_CUSTOM_LENGTH), autocomplete: 'off',
+      'aria-label': 'ضيف موضوع مش موجود بالقائمة', placeholder: 'مثلاً: المعادلات التربيعية' });
+    var add = h('button', { type: 'submit', id: 'custom-add' }, 'ضيف');
+    if (state.custom.length >= limit) { input.disabled = true; add.disabled = true; message.textContent = 'وصلت للحد: ' + limit + ' مواضيع.'; }
+
+    var form = h('form', { class: 'customform', onsubmit: function (event) {
+      event.preventDefault();
+      var text = P.cleanTopic(input.value);
+      if (!text) { message.textContent = 'اكتب اسم الموضوع أول.'; return; }
+      if (state.custom.some(function (c) { return c.text.toLowerCase() === text.toLowerCase(); })) { message.textContent = 'هالموضوع مضاف.'; return; }
+      if (state.custom.length >= limit) return;
+      state.custom.push({ text: text, checked: true });
+      render();
+      var again = document.getElementById('custom-input');
+      if (again && !again.disabled) again.focus();
+    } }, input, add);
+
+    var list = h('ul', { class: 'customlist', id: 'custom-list' });
+    state.custom.forEach(function (item, index) {
+      var box = h('input', { type: 'checkbox', 'data-custom': String(index) });
+      box.checked = item.checked;
+      box.addEventListener('change', function () {
+        item.checked = box.checked;
+        if (state.step > 2) { render(); return; }
+        document.getElementById('next-2').disabled = !hasSelection();
+      });
+      list.appendChild(h('li', { class: 'customitem' },
+        h('label', { class: 'topic' }, box, h('span', { text: item.text })),
+        h('button', { type: 'button', class: 'del', 'aria-label': 'احذف: ' + item.text, onclick: function () {
+          state.custom.splice(index, 1);
+          render();
+          var again = document.getElementById('custom-input');
+          if (again) again.focus();
+        } }, 'حذف')));
+    });
+
+    return h('div', { class: 'custom' }, h('h2', { text: 'ضيف موضوع مش موجود بالقائمة' }), form, message, list);
   }
 
   function stepTopics() {
@@ -174,8 +217,7 @@
 
     section.appendChild(h('button', { type: 'button', class: 'alltopics', id: 'all-topics', 'aria-pressed': isAll() ? 'true' : 'false', onclick: function () {
       var next = !isAll();
-      state.topics = {};
-      if (next) allIds().forEach(function (id) { state.topics[id] = true; });
+      allIds().forEach(function (id) { state.topics[id] = next; });
       render();
     } }, 'كل المواضيع'));
 
@@ -194,8 +236,10 @@
       section.appendChild(box);
     });
 
+    section.appendChild(customBox());
+
     if (state.step === 2) {
-      var ready = selectedTopicIds().length > 0;
+      var ready = hasSelection();
       section.appendChild(h('div', { class: 'stack' },
         h('button', { type: 'button', class: 'primary', id: 'next-2', disabled: !ready, onclick: function () { go(3); } }, 'التالي')));
     }
@@ -206,12 +250,13 @@
   function stepMode() {
     var section = h('section', { class: 'step', 'data-step': '3' }, h('h1', { text: 'شو بدك تعمل؟' }));
     var subject = subjectData();
-    ['explain', 'bagrut', 'plan'].forEach(function (key) {
-      if (key === 'bagrut' && !(subject && subject.patterns)) return;
+    P.MODE_ORDER.forEach(function (key) {
+      /* practice and the mock exam are built on the exam patterns: a subject without them only gets explain and plan */
+      if ((key === 'practice' || key === 'mock') && !(subject && subject.patterns)) return;
       section.appendChild(h('button', { type: 'button', class: 'mode', 'data-mode': key, 'aria-pressed': state.mode === key ? 'true' : 'false', onclick: function () {
         state.mode = key;
         go(4);
-      } }, h('strong', { text: P.MODES[key].label }), h('span', { text: MODE_TEXT[key] })));
+      } }, h('strong', { class: 'mode-title', text: P.MODES[key].label }), h('span', { class: 'mode-note', text: P.MODES[key].description })));
     });
     return section;
   }
@@ -226,7 +271,7 @@
   function currentPrompt() {
     return P.buildPrompt(data, {
       subject: state.subject, grade: state.grade, units: state.units, target: state.target,
-      all: isAll(), topics: selectedTopicIds(), mode: state.mode
+      all: isAll(), topics: selectedTopicIds(), custom: checkedCustom(), mode: state.mode
     });
   }
 
@@ -276,7 +321,11 @@
 
     var subject = subjectData();
     var grade = gradeData();
-    var titles = isAll() ? 'كل المواضيع' : topicCount(selectedTopicIds().length);
+    var picked = selectedTopicIds().length;
+    var own = allIds().length;
+    var titles = picked ? topicCount(picked) : '';
+    if (isAll()) titles = 'كل المواضيع' + (picked > own ? ' + ' + topicCount(picked - own) + ' من الهدف' : '');
+    if (checkedCustom().length) titles += (titles ? ' + ' : '') + checkedCustom().length + ' من عندك';
     section.appendChild(h('div', { class: 'summary', id: 'summary' },
       h('p', { text: subject.name + '، الصف ' + grade.name + '، ' + state.units + ' وحدات' + (state.target ? ' (هدف: ' + state.target + ' وحدات)' : '') }),
       h('p', { text: titles + ' • ' + P.MODES[state.mode].label }),
@@ -288,7 +337,7 @@
     }
     var level = levelData(state.units);
     if (level && level.experimental) {
-      section.appendChild(h('p', { class: 'warn', id: 'experimental', text: 'هالمستوى تجريبي: لسا ما إلو أمثلة جاهزة على نمط البجروت.' }));
+      section.appendChild(h('p', { class: 'warn', id: 'experimental', text: 'هالمستوى تجريبي: لسا ما إلو أمثلة جاهزة على نمط الامتحان.' }));
     }
 
     section.appendChild(h('div', { class: 'stack' },

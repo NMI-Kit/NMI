@@ -6,16 +6,35 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  /* Longest prompt we are happy to send, in characters. A whole 5-unit level is about 12,000, so one level with
-     every topic fits. About 14,000 characters is a bit under 5,000 tokens in Arabic: a free-tier chat takes it, a
-     phone pastes it without trouble, and the model still follows the rules at the top instead of drowning in text. */
-  const MAX_LENGTH = 14000;
+  /* Longest prompt we are happy to send, in characters. The biggest whole level (5 units, every topic) is about
+     14,700, so one level with every topic fits. 15,500 characters is about 5,500 tokens in Arabic: a free-tier chat
+     takes it, a phone pastes it without trouble, and the model still follows the rules at the top instead of
+     drowning in text. A whole own level plus a whole target level is about 16,500 and gets the warning. */
+  const MAX_LENGTH = 15500;
+
+  /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
+  const MAX_CUSTOM = 5;
+  const MAX_CUSTOM_LENGTH = 60;
 
   const MODES = {
-    explain: { label: 'شرح', chosen: 'شرح', start: 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"' },
-    bagrut: { label: 'تدرّب بجروت', chosen: 'تدرّب بجروت', start: 'ابدأ مباشرة بسؤال بجروت جديد على موضوع من اللي اختارهم الطالب: القصة والقسم أ بس، واستنى حله.' },
-    plan: { label: 'خطة', chosen: 'خطة', start: 'ابدأ بسؤال الطالب: "كم أسبوع باقي للامتحان، وكم ساعة بتقدر تدرس بالأسبوع؟" وبعدين اعمل الخطة.' }
+    explain: {
+      label: 'افهم', description: 'شرح موضوع خطوة خطوة.', chosen: 'افهم',
+      start: 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"'
+    },
+    practice: {
+      label: 'تدرّب', description: 'سؤال بنمط الامتحان، قسم قسم، وبيصحّح حلك.', chosen: 'تدرّب',
+      start: 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على موضوع من اللي اختارهم الطالب: القصة والقسم أ بس، واستنى حله.'
+    },
+    mock: {
+      label: 'امتحان تجريبي', description: 'امتحان كامل على المواضيع المختارة، وعلامة من 100 بالآخر.', chosen: 'امتحان تجريبي',
+      start: 'ابدأ مباشرة بالامتحان التجريبي على المواضيع اللي اختارها الطالب: كل الأسئلة مرة وحدة، مع علامة كل قسم ووقت مقترح.'
+    },
+    plan: {
+      label: 'خطة', description: 'خطة مراجعة لامتحانك بالأيام.', chosen: 'خطة',
+      start: 'ابدأ بسؤال الطالب: "إمتى امتحانك؟ وكم ساعة بتقدر تدرس باليوم؟" وبعدين اعمل الخطة.'
+    }
   };
+  const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];
 
   const ID = /m\d+-\d+-\d+/;
   const ID_IN_PARENS = /\s*\(m\d+-\d+-\d+\)/g;
@@ -32,38 +51,56 @@
     return level ? { subject: subject, grade: grade, level: level } : null;
   }
 
+  /* No topic id ever reaches the student's prompt: the tutor names topics, it never numbers them. */
   function withoutIds(text) {
     return text.replace(ID_IN_PARENS, '').replace(BARE_ID, 'موضوع تاني');
   }
 
-  /* Level sections of the Bagrut patterns for the student's level (and the target level), plus the general rules and the
-     "how the tutor writes a question" part. The table of form numbers is only for the plan mode. */
-  function patternsText(subject, gradeName, unitsList, mode) {
+  /* control characters and invisible direction marks (U+2028 and U+2029 are caught by the whitespace step) */
+  const HIDDEN = /[\u0000-\u001f\u007f-\u009f\u200e-\u200f\u202a-\u202e\u2066-\u2069]/g;
+
+  /* One line of plain text: no line breaks, no control characters, single spaces, at most 60 characters. */
+  function cleanTopic(text) {
+    return String(text == null ? '' : text)
+      .replace(HIDDEN, ' ')
+      .replace(/\s+/g, ' ').trim().slice(0, MAX_CUSTOM_LENGTH).trim();
+  }
+
+  /* The list of topics the student added: cleaned, no empty, no duplicates, at most 5. */
+  function cleanCustom(list) {
+    const seen = new Set();
+    const out = [];
+    (Array.isArray(list) ? list : []).forEach(function (item) {
+      const text = cleanTopic(item);
+      const key = text.toLowerCase();
+      if (text && !seen.has(key) && out.length < MAX_CUSTOM) { seen.add(key); out.push(text); }
+    });
+    return out;
+  }
+
+  /* The exam patterns of the student's own level: the general rules, the form sections of the level (a form written
+     for one grade, like the 12th-grade form, only for that grade) and "how the tutor writes a question". */
+  function patternsText(subject, gradeName, units) {
     const p = subject.patterns;
     if (!p) return '';
     const parts = [];
-    if (mode === 'plan' && p.forms) parts.push(p.forms);
     if (p.general) parts.push(p.general);
-    unitsList.forEach(function (units) {
-      (p.levels[String(units)] || []).forEach(function (section) {
-        /* a form written for one grade (for example the 12th-grade form) is only for that grade */
-        if (!section.grade || section.grade === gradeName) parts.push(section.text);
-      });
+    (p.levels[String(units)] || []).forEach(function (section) {
+      if (!section.grade || section.grade === gradeName) parts.push(section.text);
     });
     if (p.howto) parts.push(p.howto);
     return parts.filter(Boolean).join('\n\n');
   }
 
-  function topicBlock(topic, mode) {
-    const heading = mode === 'plan' ? '### ' + topic.id + ' ' + topic.title_full : '### ' + topic.title_full;
-    const body = mode === 'plan' ? topic.text : withoutIds(topic.text);
-    return body ? heading + '\n' + body : heading;
+  function topicBlock(topic) {
+    const body = withoutIds(topic.text);
+    return body ? '### ' + topic.title_full + '\n' + body : '### ' + topic.title_full;
   }
 
   function splitSections(base) {
     /* "== اسم ==" lines start a section; returns [{name, lines}] and the text before the first one. */
     const out = [];
-    let head = [];
+    const head = [];
     let current = null;
     base.split('\n').forEach(function (line) {
       const m = line.match(/^== (.+) ==\s*$/);
@@ -76,25 +113,27 @@
     return { head: head, sections: out };
   }
 
-  function listOfTitles(topics) {
+  function titles(topics) {
     return topics.map(function (t) { return t.title; }).join('، ');
   }
 
-  /* sel: { subject, grade, units, target (units or null), topics (ids, from the level or the target level), all (bool), mode }
-     Returns { text, length, tooLong, max, missing } or null when the level does not exist. */
+  /* sel: { subject, grade, units, target (units or null), topics (ids of the level or of the target level),
+            all (every topic of the student's own level), custom (topics the student wrote), mode }
+     Returns { text, length, tooLong, max, missingExample, topics, custom } or null when the level does not exist. */
   function buildPrompt(data, sel) {
     const mode = MODES[sel.mode] ? sel.mode : 'explain';
     const found = findLevel(data, sel.subject, sel.grade, sel.units);
     if (!found) return null;
     const subject = found.subject;
-    const levels = [found.level];
-    const target = sel.target && Number(sel.target) > Number(sel.units) ? findLevel(data, sel.subject, sel.grade, sel.target) : null;
-    if (target) levels.push(target.level);
+    const own = found.level;
+    const targetFound = sel.target && Number(sel.target) > Number(sel.units) ? findLevel(data, sel.subject, sel.grade, sel.target) : null;
+    const target = targetFound ? targetFound.level : null;
 
+    /* the "all topics" choice is about the student's own level only; the target level's topics are picked one by one */
     const chosenIds = new Set(sel.topics || []);
-    const pool = [];
-    levels.forEach(function (level) { level.topics.forEach(function (t) { pool.push({ topic: t, level: level }); }); });
-    const picked = sel.all ? pool : pool.filter(function (entry) { return chosenIds.has(entry.topic.id); });
+    const pickedOwn = own.topics.filter(function (t) { return sel.all || chosenIds.has(t.id); });
+    const pickedTarget = target ? target.topics.filter(function (t) { return chosenIds.has(t.id); }) : [];
+    const custom = cleanCustom(sel.custom);
 
     const { head, sections } = splitSections(data.base_prompt);
     const section = function (name) { return sections.find(function (s) { return s.name === name; }); };
@@ -107,44 +146,58 @@
     student.push('الصف: ' + found.grade.name);
     student.push('الوحدات: ' + sel.units);
     student.push(target ? 'الهدف: الانتقال من ' + sel.units + ' لـ ' + sel.target + ' وحدات' : 'الهدف: ما في هدف خاص');
-    student.push('المواضيع اللي بدو يراجعها: ' + (sel.all ? 'كل المواضيع' : (picked.length ? listOfTitles(picked.map(function (e) { return e.topic; })) : 'ما حدّد، اسأله')));
+    const named = [];
+    if (sel.all) named.push('كل المواضيع');
+    else if (pickedOwn.length) named.push(titles(pickedOwn));
+    if (pickedTarget.length) named.push('من مستوى الهدف: ' + titles(pickedTarget));
+    if (custom.length) named.push('وزاد مواضيع بنفسه (تحت)');
+    student.push('المواضيع اللي بدو يراجعها: ' + (named.length ? named.join('، ') : 'ما حدّد، اسأله'));
     student.push('الوضع اللي اختاره: ' + MODES[mode].chosen);
 
     /* == المصادر == */
-    const clean = mode === 'plan' ? function (text) { return text; } : withoutIds;
     const sourceLines = (section('المصادر') ? section('المصادر').lines : []).filter(function (line, i, all) {
       return !(line === '' && i === all.length - 1);
     }).map(function (line) {
       let out = line.replace(/^- مرفق:/, '- تحت:');
-      if (/كلمة\s*"ملف"/.test(out) || out.indexOf('ملف') !== -1) out = '- ما تقول للطالب "المرفق" ولا اسم أي مصدر. قول "منهاجك".';
-      if (mode !== 'plan' && ID.test(out)) out = '- ما تكتب أرقام المواضيع للطالب.';
+      if (out.indexOf('ملف') !== -1) out = '- ما تقول للطالب "المرفق" ولا اسم أي مصدر. قول "منهاجك".';
+      if (ID.test(out)) out = '- ما تكتب أرقام المواضيع للطالب.';
       return out;
     });
     const sources = sourceLines.slice();
     sources.push('');
-    levels.forEach(function (level, index) {
-      sources.push('-- منهاج الطالب' + (index ? ' (مستوى الهدف)' : '') + ': ' + clean(level.title) + ' --');
-      sources.push(clean(level.notes));
-    });
+    sources.push('-- منهاج الطالب: ' + withoutIds(own.title) + ' --');
+    sources.push(withoutIds(own.notes));
     sources.push('');
     sources.push('-- المواضيع المختارة --');
-    if (picked.length) {
-      picked.forEach(function (entry) { sources.push('\n' + topicBlock(entry.topic, mode)); });
-    } else sources.push('(ما حدّد الطالب مواضيع)');
-    const patterns = patternsText(subject, found.grade.name, target ? [sel.units, sel.target] : [sel.units], mode);
+    if (pickedOwn.length) {
+      pickedOwn.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
+    } else sources.push('(ما اختار الطالب مواضيع من منهاجه)');
+    if (target) {
+      sources.push('');
+      sources.push('-- مواضيع مستوى الهدف (' + sel.target + ' وحدات) --');
+      if (pickedTarget.length) pickedTarget.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
+      else sources.push('(ما اختار الطالب مواضيع من مستوى الهدف)');
+    }
+    if (custom.length) {
+      sources.push('');
+      sources.push('-- مواضيع زادها الطالب بنفسه (مش من منهاجه) --');
+      custom.forEach(function (text) { sources.push('- ' + text); });
+      sources.push('اشرحها بمستوى الطالب. ما تحكي إنها من منهاجه. إذا الموضوع أعلى من مستواه، أو مش رياضيات، أو مذكور تحت "خارج المنهاج"، قله بصراحة.');
+    }
+    const patterns = patternsText(subject, found.grade.name, sel.units);
     if (patterns) {
       sources.push('');
-      sources.push('-- نمط أسئلة البجروت لمستواك --');
+      sources.push('-- دليل أنماط الامتحانات لمستواك --');
       sources.push(patterns);
     }
     let missing = false;
+    const withExample = pickedOwn.concat(pickedTarget).find(function (topic) { return topic.example; });
     if (mode !== 'plan') {
-      const withExample = picked.find(function (entry) { return entry.topic.example; });
       if (withExample) {
         sources.push('');
-        sources.push('-- مثال على الشكل، ما تعيده (موضوع: ' + withExample.topic.title + ') --');
-        sources.push(withExample.topic.example);
-      } else if (picked.length) missing = true;
+        sources.push('-- مثال على الشكل، ما تعيده (موضوع: ' + withExample.title + ') --');
+        sources.push(withExample.example);
+      } else if (pickedOwn.length + pickedTarget.length) missing = true;
     }
 
     /* the rest of the base prompt, with the chosen mode and its first move */
@@ -162,13 +215,18 @@
             if (/^ابدأ/.test(body[i])) body[i] = MODES[mode].start;
           }
         }
-        out.push.apply(out, mode !== 'plan' ? body.map(function (line) { return ID.test(line) ? withoutIds(line) : line; }) : body);
+        out.push.apply(out, body);
       }
     });
-    let text = out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
-    if (mode !== 'plan') text = withoutIds(text);
-    return { text: text, length: text.length, max: MAX_LENGTH, tooLong: text.length > MAX_LENGTH, missingExample: missing, topics: picked.length };
+    const text = withoutIds(out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n');
+    return {
+      text: text, length: text.length, max: MAX_LENGTH, tooLong: text.length > MAX_LENGTH, missingExample: missing,
+      topics: pickedOwn.length + pickedTarget.length, custom: custom.length
+    };
   }
 
-  return { buildPrompt: buildPrompt, findLevel: findLevel, MODES: MODES, MAX_LENGTH: MAX_LENGTH };
+  return {
+    buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic,
+    MODES: MODES, MODE_ORDER: MODE_ORDER, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+  };
 });

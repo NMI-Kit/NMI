@@ -30,6 +30,7 @@
 - منهاج 4 وحدات للحادي عشر (للتعمق): https://meyda.education.gov.il/files/Pop/0files/matmatika/Chativa-Elyona/new-curriculum/curriculum-4units.pdf
 - منهاج 5 وحدات للحادي عشر (للتعمق): http://meyda.education.gov.il/files/Mazkirut_Pedagogit/matematika/yodalef5.pdf
 - منهاج 5 وحدات للثاني عشر (للتعمق): http://meyda.education.gov.il/files/Mazkirut_Pedagogit/matematika/yodbet5.pdf
+- وثيقة المنهاج الجديد: https://meyda.education.gov.il/files/Pop/0files/matmatika/Chativa-Elyona/new-curriculum.pdf
 
 ## أوراق القوانين بالعربي
 - 3 وحدات: https://meyda.education.gov.il/files/Pop/0files/matmatika/Chativa-Elyona/new-curriculum/AR-3-MATH-Formula_NEW.pdf
@@ -40,4 +41,5 @@
 - أرقام استمارات 5 وحدات (35571 و35572) من جدول الوزارة 2025. 35581 و35582 أرقام قديمة. أرقام 3 وحدات للعاشر: 35172 أو 35173.
 - 4 وحدات (35471 و35472) وباقي الملفات: ما بتتغيّر (متطابقة مع جدول 2025).
 - ملف الثاني عشر 5 وحدات: المصدر خلط بنود المتجهات مع الأعداد المركبة، وانرتبوا حسب الموضوع.
+- الربيعيات والعشيريات بـ 3 وحدات الحادي عشر مش مؤكدة.
 - الأخطاء الشائعة بكل الملفات من خبرة تدريس عامة، مش من الوزارة.

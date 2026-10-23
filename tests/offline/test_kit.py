@@ -162,6 +162,72 @@ class BuildKitTests(unittest.TestCase):
         self.assertEqual(level['topics'][0]['title'], 'الحركة')
 
 
+class CurriculumAdditionTests(unittest.TestCase):
+    """The lines added from the ministry documents: content lines for empty topics, the 3-unit out-of-curriculum section."""
+
+    def topic(self, grade, units, topic_id):
+        level = next(l for l in next(g for g in build_kit.build()['subjects'][0]['grades'] if g['id'] == grade)['levels'] if l['units'] == units)
+        return next(t for t in level['topics'] if t['id'] == topic_id)
+
+    def test_the_three_3_unit_files_say_what_is_outside_the_curriculum(self):
+        for grade in (10, 11, 12):
+            text = read(CURRICULUM / 'math' / f'grade{grade}' / '3units.md')
+            self.assertEqual(text.count('## خارج منهاج 3 وحدات'), 1, grade)
+            self.assertLess(text.index('## الامتحان'), text.index('## خارج منهاج 3 وحدات'))
+            self.assertLess(text.index('## خارج منهاج 3 وحدات'), text.index('## المواضيع بالترتيب'))
+            self.assertIn('المتواليات، وحساب المثلثات بالفراغ، والتفاضل والتكامل، والهندسة التحليلية للدائرة (حسب وثيقة المنهاج الجديد).', text)
+            self.assertIn('إذا الطالب سأل عنها، قله بصراحة إنها مش من منهاج 3 وحدات.', text)
+        for grade in (10, 11, 12):
+            for units in (4, 5):
+                self.assertNotIn('خارج منهاج 3 وحدات', read(CURRICULUM / 'math' / f'grade{grade}' / f'{units}units.md'))
+        notes = build_kit.build()['subjects'][0]['grades'][0]['levels'][0]['notes']
+        self.assertIn('## خارج منهاج 3 وحدات', notes)  # it reaches the prompt with the other notes
+
+    def test_empty_topics_got_their_content_line(self):
+        expected = {
+            (10, 3, 'm10-3-05'): 'مسائل بتجمع الإحصاء والاحتمال من المواضيع اللي قبل.',
+            (10, 3, 'm10-3-09'): 'تغطية مساحة ببلاط، وحساب عدد البلاطات والتكلفة (الوثيقة بتذكر الاسم بس، والشكل من امتحان 35172).',
+            (10, 3, 'm10-3-10'): 'مسائل بتجمع كل مواضيع عنقود المستوى والفراغ.',
+            (11, 3, 'm11-3-01'): 'مسائل نمو واضمحلال: كمية بتزيد أو بتنقص بنسبة ثابتة مع الزمن.',
+            (11, 3, 'm11-3-09'): 'مسائل نمو واضمحلال: كمية بتزيد أو بتنقص بنسبة ثابتة مع الزمن.',
+            (11, 3, 'm11-3-04'): 'نسبة وتناسب، ومقياس رسم للخرائط والرسومات، وتحويل وحدات.',
+            (11, 3, 'm11-3-10'): 'الانحراف المعياري على بيانات مالية.',
+            (12, 3, 'm12-3-01'): 'تقدير احتمالات بالتوزيع الطبيعي، والعلامة المعيارية (ציון תקן).',
+            (12, 3, 'm12-3-03'): 'البرمجة الخطية (الوثيقة بتذكر الاسم بس).',
+            (12, 3, 'm12-3-05'): 'المستقيم بس، بدون الدائرة.',
+            (12, 4, 'm12-4-06'): 'تمثيل جبري للمتجه بنظام محاور بالفراغ، وعمليات بالتمثيل الجبري.',
+            (12, 4, 'm12-4-07'): 'الضرب السلّمي بالطريقة الجبرية.',
+            (12, 4, 'm12-4-08'): 'أسئلة بتجمع الطريقتين الهندسية والجبرية.',
+        }
+        for (grade, units, topic_id), line in expected.items():
+            text = self.topic(grade, units, topic_id)['text']
+            self.assertIn('- **المحتوى:** ' + line, text.splitlines(), topic_id)
+
+    def test_unconfirmed_lines_say_so_and_old_lines_stay(self):
+        text = self.topic(11, 3, 'm11-3-02')['text']
+        self.assertIn('- **ممكن (مش مؤكد):** الربيعيات والعشيريات (רבעונים ועשירונים)، موجودين بوثيقة المنهاج ومش بالتوصيات.', text.splitlines())
+        self.assertIn('- **المحتوى:** الانحراف المعياري، ودمج مقاييس المركز والتشتت لاستنتاجات.', text)  # the old lines are still there
+        self.assertIn('- **أخطاء شائعة:** الاعتماد على المعدل لحاله لمقارنة مجموعتين.', text)
+        self.assertIn('- **أخطاء شائعة:** خلط بين نسبة النمو (5%) والمعامل (1.05).', self.topic(11, 3, 'm11-3-01')['text'])
+
+    def test_the_three_conic_sections_have_the_details_of_the_curriculum_document(self):
+        text = self.topic(12, 5, 'm12-5-05')['text']
+        for part in ('- **تفاصيل حسب وثيقة المنهاج:**',
+                     '  - **القطع المكافئ (פרבולה):** محل هندسي، معادلة قانونية، خصائص، أوضاع نسبية مع مستقيم ودائرة، مماس بنقطة عليه.',
+                     '  - **القطع الناقص (אליפסה):** محل هندسي (تعريفين)، معادلة قانونية، خصائص، أوضاع نسبية مع مستقيم ودائرة مركزها على أحد المحاور.',
+                     '  - **القطع الزائد (היפרבולה):** محل هندسي، معادلة قانونية، خصائص، أوضاع نسبية مع مستقيم ودائرة مركزها على أحد المحاور، وإيجاد محلات هندسية.',
+                     '- **القطع المكافئ (פרבולה):** تعريف كمحل هندسي، معادلة قانونية، خصائص، أوضاع نسبية مع مستقيمات ودوائر، مماس.'):
+            self.assertIn(part, text.splitlines())
+
+    def test_sources_has_the_curriculum_document_and_the_unsure_point(self):
+        sources = read(CURRICULUM / 'SOURCES.md')
+        self.assertIn('https://meyda.education.gov.il/files/Pop/0files/matmatika/Chativa-Elyona/new-curriculum.pdf', sources)
+        links, unsure = sources.split('## الروابط')[1].split('## أوراق القوانين')[0], sources.split('## نقاط لازم تتأكد منها مع الأستاذ')[1]
+        self.assertIn('new-curriculum.pdf', links)
+        self.assertIn('- الربيعيات والعشيريات بـ 3 وحدات الحادي عشر مش مؤكدة.', unsure.splitlines())
+        self.assertIn('- 4 وحدات (35471 و35472) وباقي الملفات: ما بتتغيّر (متطابقة مع جدول 2025).', unsure)  # old lines stay
+
+
 class KitFilesTests(unittest.TestCase):
     def test_the_files_pages_needs_are_all_there(self):
         for name in ('index.html', 'style.css', 'app.js', 'prompt.js', 'data.json', 'base_prompt.txt', 'manifest.webmanifest',

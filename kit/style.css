@@ -77,11 +77,11 @@ button[disabled] { color: #8a8a8a; border-color: #8a8a8a; cursor: not-allowed; }
 .choice[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .choice .badge { font-size: 13px; border: 1px solid currentColor; border-radius: 99px; padding: 0 8px; }
 
-.mode { display: block; width: 100%; text-align: start; margin-bottom: 10px; padding: 14px 16px; justify-content: flex-start; flex-direction: column; align-items: flex-start; gap: 2px; }
-.mode strong { font-size: 20px; }
-.mode span { font-size: 15px; color: var(--muted); }
+.mode { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; width: 100%; text-align: start; margin-bottom: 10px; padding: 14px 16px; gap: 2px; }
+.mode .mode-title { display: block; font-size: 20px; }
+.mode .mode-note { display: block; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .mode:hover, .mode:focus-visible { background: var(--ink); color: var(--bg); }
-.mode:hover span, .mode:focus-visible span { color: var(--bg); }
+.mode:hover .mode-note, .mode:focus-visible .mode-note { color: var(--bg); }
 
 .primary { background: var(--ink); color: var(--bg); width: 100%; min-height: 60px; font-size: 20px; font-weight: 700; }
 .primary[disabled] { background: #d6d6d6; color: #6b6b6b; border-color: #d6d6d6; }
@@ -126,6 +126,16 @@ pre#preview {
   padding: 10px;
   border-radius: 8px;
 }
+
+.custom { border-top: 2px solid var(--line); margin-top: 24px; padding-top: 4px; }
+.customform { display: flex; gap: 8px; }
+.customform input[type="text"] { flex: 1 1 auto; min-width: 0; font: inherit; min-height: 52px; padding: 8px 12px; border: 2px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); }
+.customform button { flex: none; min-width: 72px; }
+.customlist { list-style: none; margin: 8px 0 0; padding: 0; }
+.customitem { display: flex; align-items: center; gap: 8px; }
+.customitem .topic { flex: 1 1 auto; min-width: 0; }
+.customitem .topic span { overflow-wrap: anywhere; }
+.del { flex: none; min-height: 44px; padding: 4px 12px; border-width: 1px; }
 
 a { color: var(--ink); text-underline-offset: 3px; }
 

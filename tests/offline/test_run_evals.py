@@ -250,6 +250,9 @@ class ConversationCaseTests(unittest.TestCase):
         case = self.cases['conv-target-01']
         five = (ROOT / 'curriculum' / 'math' / 'grade10' / '5units.md').read_text(encoding='utf-8')
         three = (ROOT / 'curriculum' / 'math' / 'grade10' / '3units.md').read_text(encoding='utf-8')
+        # the section that lists what is outside the 3-unit curriculum names the 5-unit topics on purpose
+        out_of_curriculum = three[three.index('## خارج منهاج 3 وحدات'):three.index('## المواضيع بالترتيب')]
+        three = three.replace(out_of_curriculum, '')
         words = case['must_mention']['any_of']
         self.assertEqual(case['must_mention']['at_least'], 3)
         for word in words:  # every keyword is a topic of the 5-unit file that the 3-unit file does not have
