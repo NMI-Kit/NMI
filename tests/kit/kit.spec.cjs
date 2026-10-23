@@ -212,7 +212,11 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.getByRole('group', { name: 'مستوى هدف' }).getByRole('button', { name: '5 وحدات' }).click();
       await expect(page.getByRole('group', { name: 'مستوى هدف' }).getByRole('button', { name: '4 وحدات' })).toBeVisible();
       await page.locator('#next-1').click();
-      await expect(page.getByRole('heading', { name: 'مواضيع مستوى الهدف (5 وحدات)' })).toBeVisible();
+      await expect(page.locator('#target-topics > summary')).toHaveText('مواضيع مستوى الهدف (5 وحدات)');
+      await expect(page.locator('#target-topics')).not.toHaveAttribute('open', '');  // closed at first
+      await expect(page.locator('input[data-topic^="m10-5"]').first()).toBeHidden();
+      await page.locator('#target-topics > summary').click();
+      await expect(page.locator('input[data-topic^="m10-5"]').first()).toBeVisible();
       await page.locator('#all-topics').click();
       await expect(page.locator('input[data-topic]')).toHaveCount(14 + 13);
       await expect(page.locator('input[data-topic^="m10-3"]:checked')).toHaveCount(14);
@@ -241,6 +245,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.getByRole('group', { name: 'مستوى هدف' }).getByRole('button', { name: '5 وحدات' }).click();
       await page.locator('#next-1').click();
       await page.locator('#all-topics').click();
+      await page.locator('#target-topics > summary').click();
       for (const box of await page.locator('input[data-topic^="m10-5"]').all()) await box.check();
       await page.locator('#next-2').click();
       await page.locator('button[data-mode="practice"]').click();
@@ -554,7 +559,8 @@ for (const [name, profile] of Object.entries(profiles)) {
         const prepare = await page.locator('#prepare').boundingBox();
         const tick = await page.locator('#teacher-file').boundingBox();
         expect(tick.y).toBeGreaterThan(last.y);
-        expect(prepare.y).toBeGreaterThan(tick.y);
+        void prepare;  // the big button is stuck to the bottom of the screen: it is after the options in the page, not in the scroll position
+        expect(await page.evaluate(() => !!(document.querySelector('#teacher-file').compareDocumentPosition(document.querySelector('#prepare')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
       }
       await noSideScroll(page, name + ' step 3');
       await bigTargets(page, 'button, label.topic, summary', name + ' step 3');
@@ -583,6 +589,92 @@ for (const [name, profile] of Object.entries(profiles)) {
         await expect(page.locator('#note')).toHaveValue('اشرح ببطء');
         await expect(page.locator('#prepare')).toBeEnabled();
       }
+    });
+  });
+}
+
+// ----------------------------------------------------------------------------- step 2: the button stays, the custom box is on top, the target topics fold
+for (const [name, profile] of Object.entries(profiles)) {
+  test.describe(`${name}: step 2 layout`, () => {
+    test.use(profile);
+
+    async function toStep2(page, target) {
+      await page.goto('/index.html');
+      await page.getByRole('button', { name: 'رياضيات' }).click();
+      await page.getByRole('button', { name: 'العاشر', exact: true }).click();
+      await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: '3 وحدات' }).click();
+      if (target) await page.getByRole('group', { name: 'مستوى هدف' }).getByRole('button', { name: `${target} وحدات` }).click();
+      await page.locator('#next-1').click();
+      await expect(page.getByRole('heading', { name: 'شو بدك تراجع؟' })).toBeVisible();
+    }
+
+    const insideScreen = async (page, selector) => page.evaluate((sel) => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= window.innerHeight + 1 && r.height > 0;
+    }, selector);
+
+    test('"next" is stuck to the bottom of the screen at the top of the list, in the middle and at the end', async ({ page }) => {
+      await toStep2(page);
+      await page.locator('input[data-topic="m10-3-12"]').check();
+      for (const y of [0, 600, 1500, 'end']) {
+        await page.evaluate((to) => window.scrollTo(0, to === 'end' ? document.body.scrollHeight : to), y);
+        expect(await insideScreen(page, '#next-2'), `scroll ${y}`).toBe(true);
+      }
+      const scrollable = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight * 1.5);
+      expect(scrollable, 'the list is long, so the check above means something').toBe(true);
+      if (name === 'desktop') return;  // on the one big page the later steps are further down
+      // the same on step 3
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.locator('#next-2').click();
+      expect(await insideScreen(page, '#prepare')).toBe(true);
+      await page.locator('button[data-mode="explain"]').click();
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      expect(await insideScreen(page, '#prepare')).toBe(true);
+      await noSideScroll(page, name + ' sticky');
+      await bigTargets(page, '#prepare, #next-2', name + ' sticky');
+    });
+
+    test('the box for a topic that is not on the list is right under "all topics", before the list', async ({ page }) => {
+      await toStep2(page);
+      const order = await page.evaluate(() => {
+        const all = document.querySelector('#all-topics');
+        const custom = document.querySelector('.custom');
+        const firstTopic = document.querySelector('input[data-topic]');
+        const before = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+        const gap = custom.getBoundingClientRect().top - all.getBoundingClientRect().bottom;
+        return { allBeforeCustom: before(all, custom), customBeforeList: before(custom, firstTopic), gap, nextAfter: before(custom, document.querySelector('#next-2')) };
+      });
+      expect(order.allBeforeCustom).toBe(true);
+      expect(order.customBeforeList).toBe(true);
+      expect(order.nextAfter).toBe(true);
+      expect(order.gap, 'directly under the button').toBeLessThan(80);
+      // a topic can be added without scrolling down the list
+      await page.locator('#custom-input').fill('المعادلات التربيعية');
+      await page.locator('#custom-add').click();
+      await expect(page.locator('#custom-list')).toContainText('المعادلات التربيعية');
+      await expect(page.locator('#next-2')).toBeEnabled();
+      expect(await insideScreen(page, '#custom-input')).toBe(true);  // still on screen: no scrolling down the list
+    });
+
+    test('the target level topics are in a closed section with the right title, and open when asked', async ({ page }) => {
+      await toStep2(page, 5);
+      await expect(page.locator('details#target-topics > summary')).toHaveText('مواضيع مستوى الهدف (5 وحدات)');
+      await expect(page.locator('details#target-topics')).not.toHaveAttribute('open', '');
+      await expect(page.locator('input[data-topic^="m10-5"]').first()).toBeHidden();
+      await expect(page.locator('input[data-topic^="m10-3"]').first()).toBeVisible();  // the own level is not folded
+      await page.locator('details#target-topics > summary').click();
+      await expect(page.locator('input[data-topic^="m10-5"]').first()).toBeVisible();
+      // it stays open while the student works (a new custom topic redraws the page)
+      await page.locator('#custom-input').fill('س');
+      await page.locator('#custom-add').click();
+      await expect(page.locator('details#target-topics')).toHaveAttribute('open', '');
+      await page.locator('input[data-topic="m10-5-02"]').check();
+      await expect(page.locator('#next-2')).toBeEnabled();
+      await bigTargets(page, 'summary', name + ' target summary');
+      await noSideScroll(page, name + ' target');
+      // no target level: no such section
+      await toStep2(page);
+      await expect(page.locator('#target-topics')).toHaveCount(0);
     });
   });
 }

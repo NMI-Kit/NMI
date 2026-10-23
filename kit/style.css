@@ -147,6 +147,12 @@ pre#preview {
 .attach { border: 3px solid var(--line); border-radius: var(--radius); padding: 14px; margin: 16px 0; font-weight: 700; background: var(--soft); }
 .tip p { margin: 8px 0; }
 
+/* the "next" button stays at the bottom of the screen, whatever the length of the list above it */
+.sticky { position: sticky; bottom: 0; z-index: 5; background: var(--bg); margin-top: 16px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid #c8c8c8; }
+.targetbox { margin-top: 16px; }
+.targetbox > summary { font-weight: 700; }
+.targetbox .group { margin-top: 4px; }
+
 a { color: var(--ink); text-underline-offset: 3px; }
 
 /* big screens: the finished steps stay on the page, so it reads as one page */

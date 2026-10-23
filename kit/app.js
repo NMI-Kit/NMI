@@ -19,7 +19,7 @@
   var TOTAL = 4;
 
   var data = null;
-  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], mode: null, teacherFile: false, note: '' };
+  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], mode: null, teacherFile: false, note: '', targetOpen: false };
   var app = document.getElementById('app');
   var backButton = document.getElementById('back');
   var progress = document.getElementById('progress');
@@ -155,7 +155,7 @@
 
     if (state.step === 1) {
       var ready = !!(state.subject && state.grade && state.units);
-      section.appendChild(h('div', { class: 'stack' },
+      section.appendChild(h('div', { class: 'stack sticky' },
         h('button', { type: 'button', class: 'primary', id: 'next-1', disabled: !ready, onclick: function () { go(2); } }, 'التالي')));
     }
     return section;
@@ -228,9 +228,11 @@
       render();
     } }, 'كل المواضيع'));
 
+    /* the box for a topic that is not on the list comes right under "all topics" */
+    section.appendChild(customBox());
+
     levels.forEach(function (level, index) {
       if (!level) return;
-      if (index === 1) section.appendChild(h('h2', { text: 'مواضيع مستوى الهدف (' + level.units + ' وحدات)' }));
       var lastGroup = null;
       var box = h('div', { class: 'group' });
       level.topics.forEach(function (topic) {
@@ -240,14 +242,18 @@
         }
         box.appendChild(topicRow(topic));
       });
-      section.appendChild(box);
+      if (index === 0) { section.appendChild(box); return; }
+      /* the topics of the target level are in a section that is closed until the student opens it */
+      var target = h('details', { class: 'targetbox', id: 'target-topics' },
+        h('summary', { text: 'مواضيع مستوى الهدف (' + level.units + ' وحدات)' }), box);
+      if (state.targetOpen) target.open = true;
+      target.addEventListener('toggle', function () { state.targetOpen = target.open; });
+      section.appendChild(target);
     });
-
-    section.appendChild(customBox());
 
     if (state.step === 2) {
       var ready = hasSelection();
-      section.appendChild(h('div', { class: 'stack' },
+      section.appendChild(h('div', { class: 'stack sticky' },
         h('button', { type: 'button', class: 'primary', id: 'next-2', disabled: !ready, onclick: function () { go(3); } }, 'التالي')));
     }
     return section;
@@ -272,7 +278,7 @@
     });
     section.appendChild(extrasBox(subject));
     if (state.step === 3) {
-      section.appendChild(h('div', { class: 'stack' },
+      section.appendChild(h('div', { class: 'stack sticky' },
         h('button', { type: 'button', class: 'primary', id: 'prepare', disabled: !state.mode, onclick: function () { go(4); } }, 'جهّز البرومبت')));
     }
     return section;

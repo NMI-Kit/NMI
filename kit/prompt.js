@@ -34,7 +34,10 @@
   const MODES = {
     explain: {
       label: 'افهم', description: 'شرح موضوع خطوة خطوة.', chosen: 'افهم',
-      start: function (first) {
+      start: function (first, all) {
+        if (all && all.length > MAX_DIRECT_START) {
+          return 'ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ (المواضيع: ' + all.map(quoted).join('، ') + ')';
+        }
         return first ? 'ابدأ مباشرة بشرح ' + quoted(first) + '.' : 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"';
       }
     },
@@ -63,6 +66,10 @@
       start: function () { return 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟'; }
     }
   };
+  /* The tables of the guide describe exams that cover more than one grade: only their shape is for the student. */
+  const PATTERNS_NOTE = 'الجداول بتوصف امتحانات بتغطي أكتر من صف. استعمل بس شكل الأسئلة (القصة، والأقسام، ونوع الطلبات)، وخلّي المحتوى والصعوبة من مواضيع الطالب المختارة ومن صفه بس.';
+  /* "افهم" with more topics than this: the tutor asks which one to start with, instead of picking the first. */
+  const MAX_DIRECT_START = 3;
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];
 
   /* The exam patterns guide (and its example) only helps when the tutor writes questions. */
@@ -207,7 +214,8 @@
     student.push('الوضع اللي اختاره: ' + MODES[mode].chosen);
 
     /* what the tutor starts with: the first topic of the student, in the order of the list, then the ones he wrote */
-    const first = names(pickedOwn.concat(pickedTarget)).concat(custom)[0] || '';
+    const everyName = names(pickedOwn.concat(pickedTarget)).concat(custom);
+    const first = everyName[0] || '';
 
     const guide = WRITES_QUESTIONS[mode] === true;
     const patterns = guide ? patternsText(subject, found.grade.name, sel.units) : '';
@@ -248,6 +256,8 @@
     if (patterns) {
       sources.push('');
       sources.push('-- دليل أنماط الامتحانات لمستواك --');
+      sources.push(PATTERNS_NOTE);
+      sources.push('');
       sources.push(patterns);
     }
     let missing = false;
@@ -277,7 +287,7 @@
           if (note) extra.push('== ملاحظة من الطالب ==', note, NOTE_RULE, '');
           for (let i = body.length - 1; i >= 0; i--) {
             if (/^ابدأ/.test(body[i])) {
-              body.splice(i, 1, ...extra, teacherFile ? MODES[mode].fileStart(first) : MODES[mode].start(first));
+              body.splice(i, 1, ...extra, teacherFile ? MODES[mode].fileStart(first) : MODES[mode].start(first, everyName));
               break;
             }
           }
@@ -294,6 +304,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

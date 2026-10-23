@@ -165,11 +165,12 @@ test('each mode ends with its own first move, on the first chosen topic', () => 
   const first = level(10, 3).topics[0].title;  // all topics: the first one of the list
   const ends = {};
   for (const mode of MODES) ends[mode] = build({ all: true, mode }).text.trim().split('\n').pop();
-  assert.equal(ends.explain, `ابدأ مباشرة بشرح «${first}».`);
+  // 14 topics chosen: "افهم" asks which one to start with (see the test about more than three topics)
+  assert.match(ends.explain, /^ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ \(المواضيع: «/);
   assert.equal(ends.practice, `ابدأ مباشرة بسؤال جديد بنمط الامتحان على «${first}»: القصة والقسم أ بس، واستنى.`);
   assert.equal(ends.mock, 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.');
   assert.equal(ends.plan, 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟');
-  assert.ok(!Object.values(ends).some((l) => l.includes('شو بدك اليوم') || l.includes('بجروت') || l.includes('أي موضوع')));
+  assert.ok(!Object.values(ends).some((l) => l.includes('شو بدك اليوم') || l.includes('بجروت') || (l !== ends.explain && l.includes('أي موضوع'))));
   assert.equal(new Set(Object.values(ends)).size, 4);
   // the first chosen topic, in the order of the list; then the target topics; then the ones the student wrote
   const chosen = build({ topics: ['m10-3-13', 'm10-3-03'], mode: 'explain' }).text.trim().split('\n').pop();
@@ -472,4 +473,49 @@ test('topic names are between « » in the first moves and in the title of the e
   // the mock exam and the plan name no topic in their first move
   assert.ok(!build({ topics: ['m10-3-12'], mode: 'mock' }).text.trim().split('\n').pop().includes('«'));
   assert.ok(!build({ topics: ['m10-3-12'], mode: 'plan' }).text.trim().split('\n').pop().includes('«'));
+});
+
+test('the sentence before the pattern tables: only the shape of the questions is for the student', () => {
+  const NOTE = 'الجداول بتوصف امتحانات بتغطي أكتر من صف. استعمل بس شكل الأسئلة (القصة، والأقسام، ونوع الطلبات)، وخلّي المحتوى والصعوبة من مواضيع الطالب المختارة ومن صفه بس.';
+  assert.equal(P.PATTERNS_NOTE, NOTE);
+  for (const units of [3, 4, 5]) for (const mode of ['practice', 'mock']) {
+    const { text } = build({ units, topics: [level(10, units).topics[0].id], mode });
+    assert.equal(text.split(NOTE).length, 2, `${units}/${mode}: once`);
+    // right under the heading of the guide, before its first line and before any table
+    assert.ok(text.includes(`-- دليل أنماط الامتحانات لمستواك --\n${NOTE}\n\n## قواعد عامة لكل سؤال امتحان`), `${units}/${mode}`);
+    assert.ok(text.indexOf(NOTE) < text.indexOf('| الموضوع | شكل السؤال |'), `${units}/${mode}`);
+  }
+  // 4 and 5 units of grade 10: the tables of the exams that cover grades 11 and 12 are there, so the sentence matters
+  assert.ok(build({ units: 4, topics: ['m10-4-06'] }).text.includes('35471'));
+  assert.ok(build({ units: 5, topics: ['m10-5-06'] }).text.includes('35571'));
+  // without the guide (افهم, خطة) there are no tables and no sentence
+  for (const mode of ['explain', 'plan']) assert.ok(!build({ units: 4, topics: ['m10-4-06'], mode }).text.includes('الجداول بتوصف'), mode);
+});
+
+test('"افهم": up to 3 chosen topics start on the first, more than 3 ask which one, with the names', () => {
+  assert.equal(P.MAX_DIRECT_START, 3);
+  const l = level(10, 3);
+  const end = (extra) => build(Object.assign({ mode: 'explain' }, extra)).text.trim().split('\n').pop();
+  const ids = (n) => l.topics.slice(0, n).map((t) => t.id);
+  const title = (n) => l.topics[n].title;
+  assert.equal(end({ topics: ids(1) }), `ابدأ مباشرة بشرح «${title(0)}».`);
+  assert.equal(end({ topics: ids(2) }), `ابدأ مباشرة بشرح «${title(0)}».`);
+  assert.equal(end({ topics: ids(3) }), `ابدأ مباشرة بشرح «${title(0)}».`);
+  const four = end({ topics: ids(4) });
+  assert.equal(four, `ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ (المواضيع: ${[0, 1, 2, 3].map((n) => `«${title(n)}»`).join('، ')})`);
+  assert.ok(!four.includes('ابدأ مباشرة'));
+  // the topics of the target level and the ones the student wrote count too
+  const target = level(10, 5).topics;
+  assert.equal(end({ target: 5, topics: [l.topics[0].id, target[0].id, target[1].id], custom: ['س'] }),
+    `ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ (المواضيع: «${title(0)}»، «${target[0].title}»، «${target[1].title}»، «س»)`);
+  assert.equal(end({ topics: ids(2), custom: ['س'] }), `ابدأ مباشرة بشرح «${title(0)}».`);
+  assert.ok(end({ topics: ids(2), custom: ['س', 'ع'] }).startsWith('ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم'));
+  // all topics: every name is in the question
+  const all = end({ all: true });
+  for (const topic of l.topics) assert.ok(all.includes(`«${topic.title}»`), topic.id);
+  // the other modes are not changed by the number of topics
+  for (const mode of ['practice', 'mock', 'plan']) {
+    assert.ok(!build({ topics: ids(5), mode }).text.includes('أي موضوع من اللي اختارهم'), mode);
+  }
+  assert.ok(build({ topics: ids(5), mode: 'practice' }).text.trim().endsWith(`على «${title(0)}»: القصة والقسم أ بس، واستنى.`));
 });
