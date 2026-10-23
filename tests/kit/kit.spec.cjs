@@ -64,6 +64,7 @@ async function walkToReady(page, { grade = 'العاشر', units = '3 وحدات
     await page.locator('#note').fill(note);
   }
   await page.locator(`button[data-mode="${mode}"]`).click();
+  await page.locator('#prepare').click();
   await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
 }
 
@@ -127,6 +128,7 @@ for (const [name, profile] of Object.entries(profiles)) {
         await page.locator('#next-2').click();
       }
       await page.locator('button[data-mode="practice"]').click();
+      await page.locator('#prepare').click();
 
       await expect(page.locator('#progress')).toHaveText('الخطوة 4 من 4');
       await noSideScroll(page, name + ' step 4');
@@ -198,7 +200,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       const copied = await page.evaluate(() => window.__copied);
       expect(copied).toHaveLength(1);
       expect(copied[0]).toContain('الوضع اللي اختاره: افهم');
-      expect(copied[0].trim().split('\n').pop()).toBe('ابدأ مباشرة بشرح النموذج الخطي.');
+      expect(copied[0].trim().split('\n').pop()).toBe('ابدأ مباشرة بشرح «النموذج الخطي».');
       expect(copied[0]).not.toContain('-- دليل أنماط الامتحانات لمستواك --');  // "افهم" has no patterns guide
     });
 
@@ -227,6 +229,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#all-topics').click();
       await page.locator('#next-2').click();
       await page.locator('button[data-mode="explain"]').click();
+      await page.locator('#prepare').click();
       await expect(page.locator('#too-long')).toHaveCount(0);  // a whole level and one target topic still fit
       await expect(page.locator('#summary')).toContainText('(هدف: 5 وحدات)');
       await expect(page.locator('#summary')).toContainText('موضوع');
@@ -241,6 +244,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       for (const box of await page.locator('input[data-topic^="m10-5"]').all()) await box.check();
       await page.locator('#next-2').click();
       await page.locator('button[data-mode="practice"]').click();
+      await page.locator('#prepare').click();
       await expect(page.locator('#too-long')).toBeVisible();
       await expect(page.locator('#too-long')).toContainText('اخترت مواضيع كتير');
       await expect(page.locator('#summary')).toContainText('كل المواضيع + 13 موضوع من الهدف');
@@ -301,6 +305,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#custom-list li').nth(3).locator('input').uncheck();  // the last one, 'د'
       await page.locator('#next-2').click();
       await page.locator('button[data-mode="explain"]').click();
+      await page.locator('#prepare').click();
       await expect(page.locator('#summary')).toContainText('3 من عندك');
       await page.getByText('شوف البرومبت').click();
       const text = await page.locator('#preview').innerText();
@@ -401,7 +406,7 @@ for (const [name, profile] of Object.entries(profiles)) {
         await page.getByText('شوف البرومبت').click();
         const text = await page.locator('#preview').innerText();
         expect(text).toContain('== ملف من الأستاذ ==');
-        expect(text.trim().split(/\r?\n/).pop()).toBe('إذا الطالب ما رفع الملف، اطلبه منه أول.');
+        expect(text.trim().split(/\r?\n/).pop()).toContain('إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها');
         await noSideScroll(page, name + ' step 4 attach');
       }
       for (const mode of ['explain', 'plan']) {
@@ -507,3 +512,77 @@ test.describe('the intent links only use the official apps and sites', () => {
     expect(hrefs.map((h) => h.match(/package=([a-z.]+);/)[1])).toEqual(['com.openai.chatgpt', 'com.anthropic.claude', 'com.google.android.apps.bard']);
   });
 });
+
+// ----------------------------------------------------------------------------- step 3: a tap marks the mode, a big button goes on
+for (const [name, profile] of Object.entries(profiles)) {
+  test.describe(`${name}: step 3 marks the mode and waits for the big button`, () => {
+    test.use(profile);
+
+    async function toStep3(page) {
+      await page.goto('/index.html');
+      await page.getByRole('button', { name: 'رياضيات' }).click();
+      await page.getByRole('button', { name: 'العاشر', exact: true }).click();
+      await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: '3 وحدات' }).click();
+      await page.locator('#next-1').click();
+      await page.getByLabel('النموذج الخطي', { exact: true }).check();
+      await page.locator('#next-2').click();
+      await expect(page.getByRole('heading', { name: 'شو بدك تعمل؟' })).toBeVisible();
+    }
+
+    test('a tap on a mode stays on step 3, marks it clearly, and the options under the buttons stay on the page', async ({ page }) => {
+      await toStep3(page);
+      await expect(page.locator('#prepare')).toHaveText('جهّز البرومبت');
+      await expect(page.locator('#prepare')).toBeDisabled();  // no mode yet
+      await expect(page.locator('button.mode[aria-pressed="true"]')).toHaveCount(0);
+      for (const key of ['explain', 'practice', 'mock', 'plan']) {
+        await page.locator(`button[data-mode="${key}"]`).click();
+        await expect(page.getByRole('heading', { name: 'شو بدك تعمل؟' })).toBeVisible();  // still step 3
+        await expect(page.locator('#progress')).toHaveText('الخطوة 3 من 4');
+        await expect(page.getByRole('heading', { name: 'جاهز' })).toHaveCount(0);
+        await expect(page.locator('button.mode[aria-pressed="true"]')).toHaveCount(1);
+        await expect(page.locator(`button[data-mode="${key}"]`)).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('#prepare')).toBeEnabled();
+        // the marked button is the black one, the others are white
+        const colors = await page.$$eval('button.mode', (b) => b.map((x) => [x.dataset.mode, getComputedStyle(x).backgroundColor, getComputedStyle(x).color]));
+        for (const [mode, background, color] of colors) {
+          expect([background, color], mode).toEqual(mode === key ? ['rgb(0, 0, 0)', 'rgb(255, 255, 255)'] : ['rgb(255, 255, 255)', 'rgb(0, 0, 0)']);
+        }
+        // the teacher's file tick and the note box are on the page, under the four modes, and the big button under them
+        await expect(page.locator('#teacher-file')).toBeVisible();
+        await expect(page.getByText('ملاحظة للمدرّس (اختياري)')).toBeVisible();
+        const last = await page.locator('button.mode').last().boundingBox();
+        const prepare = await page.locator('#prepare').boundingBox();
+        const tick = await page.locator('#teacher-file').boundingBox();
+        expect(tick.y).toBeGreaterThan(last.y);
+        expect(prepare.y).toBeGreaterThan(tick.y);
+      }
+      await noSideScroll(page, name + ' step 3');
+      await bigTargets(page, 'button, label.topic, summary', name + ' step 3');
+      await page.locator('#prepare').click();
+      await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
+      await expect(page.locator('#progress')).toHaveText('الخطوة 4 من 4');
+      await expect(page.locator('#summary')).toContainText('خطة');  // the last mode that was marked
+    });
+
+    test('the choices under the buttons can be made after the mode, and they and the mode survive a trip back', async ({ page }) => {
+      await toStep3(page);
+      await page.locator('button[data-mode="practice"]').click();
+      await page.locator('#teacher-file').check();
+      await page.getByText('ملاحظة للمدرّس (اختياري)').click();
+      await page.locator('#note').fill('اشرح ببطء');
+      await page.locator('#prepare').click();
+      await expect(page.locator('#attach')).toBeVisible();
+      await page.getByText('شوف البرومبت').click();
+      const text = await page.locator('#preview').innerText();
+      expect(text).toContain('== ملف من الأستاذ ==');
+      expect(text).toContain('== ملاحظة من الطالب ==\nاشرح ببطء\n');
+      if (name !== 'desktop') {
+        await page.locator('#back').click();
+        await expect(page.locator('button[data-mode="practice"]')).toHaveAttribute('aria-pressed', 'true');
+        await expect(page.locator('#teacher-file')).toBeChecked();
+        await expect(page.locator('#note')).toHaveValue('اشرح ببطء');
+        await expect(page.locator('#prepare')).toBeEnabled();
+      }
+    });
+  });
+}

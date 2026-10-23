@@ -22,23 +22,30 @@
   /* The student's teacher gave him an old exam or a worksheet: the student attaches the photos in his own app,
      nothing is uploaded to our site. Only for the modes in which the tutor writes questions. */
   const TEACHER_FILE_TEXT = 'الطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه. أول إشي: حلّل شكل الأسئلة باختصار (المواضيع، وعدد الأقسام، ونوع الطلبات، ومستوى الصعوبة)، واسأله إذا التحليل صح. بعدها اكتب أسئلة جديدة على نفس الشكل بالضبط، بأرقام وقصص جديدة. شكل أستاذه أهم من دليل الأنماط. ما تعيد أسئلة الورقة نفسها.';
-  const TEACHER_FILE_START = 'إذا الطالب ما رفع الملف، اطلبه منه أول.';
   const NOTE_RULE = 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز. إلا إذا بتطلب تعطيه الحل بوضع التدريب أو الامتحان قبل ما يحاول، أو بتطلب إشي برا منهاجه: ساعتها قله بلطف ليش لأ، وكمّل حسب القواعد.';
 
-  /* start(first): the closing line of the prompt. `first` is the name of the first chosen topic, or '' when the
-     student chose nothing (then the tutor asks). */
+  /* The name of a topic between « » in the sentences of the prompt. */
+  function quoted(name) { return '«' + name + '»'; }
+
+  /* start(first): the closing line. `first` is the name of the first chosen topic, or '' when the student chose
+     nothing (then the tutor asks). fileStart(first): the same, when the student has an old exam or a worksheet from
+     his teacher: the tutor first asks for it, analyses its shape, and only then starts. */
+  const ASK_FOR_THE_FILE = 'إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها ';
   const MODES = {
     explain: {
       label: 'افهم', description: 'شرح موضوع خطوة خطوة.', chosen: 'افهم',
       start: function (first) {
-        return first ? 'ابدأ مباشرة بشرح ' + first + '.' : 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"';
+        return first ? 'ابدأ مباشرة بشرح ' + quoted(first) + '.' : 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"';
       }
     },
     practice: {
       label: 'تدرّب', description: 'سؤال بنمط الامتحان، قسم قسم، وبيصحّح حلك.', chosen: 'تدرّب',
       start: function (first) {
-        return first ? 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على ' + first + ': القصة والقسم أ بس، واستنى.'
+        return first ? 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على ' + quoted(first) + ': القصة والقسم أ بس، واستنى.'
           : 'ابدأ بسؤال الطالب: "أي موضوع بدك تتدرّب عليه؟"';
+      },
+      fileStart: function (first) {
+        return ASK_FOR_THE_FILE + 'ابدأ بسؤال جديد بنفس الشكل على ' + (first ? quoted(first) : 'الموضوع اللي بيختاره الطالب') + ': القصة والقسم أ بس، واستنى.';
       }
     },
     mock: {
@@ -46,6 +53,9 @@
       start: function (first) {
         return first ? 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.'
           : 'ابدأ بسؤال الطالب: "على أي مواضيع بدك الامتحان؟"';
+      },
+      fileStart: function () {
+        return ASK_FOR_THE_FILE + 'اعطيه امتحان تجريبي كامل بنفس الشكل على المواضيع المختارة.';
       }
     },
     plan: {
@@ -245,7 +255,7 @@
       const withExample = pickedOwn.concat(pickedTarget).find(function (topic) { return topic.example; });
       if (withExample) {
         sources.push('');
-        sources.push('-- مثال على الشكل، ما تعيده (موضوع: ' + withExample.title + ') --');
+        sources.push('-- مثال على الشكل، ما تعيده (موضوع: ' + quoted(withExample.title) + ') --');
         sources.push(withExample.example);
       } else if (pickedOwn.length + pickedTarget.length) missing = true;
     }
@@ -267,7 +277,7 @@
           if (note) extra.push('== ملاحظة من الطالب ==', note, NOTE_RULE, '');
           for (let i = body.length - 1; i >= 0; i--) {
             if (/^ابدأ/.test(body[i])) {
-              body.splice(i, 1, ...extra, teacherFile ? TEACHER_FILE_START : MODES[mode].start(first));
+              body.splice(i, 1, ...extra, teacherFile ? MODES[mode].fileStart(first) : MODES[mode].start(first));
               break;
             }
           }

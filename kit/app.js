@@ -260,12 +260,21 @@
     P.MODE_ORDER.forEach(function (key) {
       /* practice and the mock exam are built on the exam patterns: a subject without them only gets explain and plan */
       if ((key === 'practice' || key === 'mock') && !(subject && subject.patterns)) return;
+      /* a tap only marks the mode: the options under the four buttons (the teacher's file, the note) are still to be seen */
       section.appendChild(h('button', { type: 'button', class: 'mode', 'data-mode': key, 'aria-pressed': state.mode === key ? 'true' : 'false', onclick: function () {
         state.mode = key;
-        go(4);
+        if (state.step > 3) { render(); return; }
+        Array.prototype.forEach.call(document.querySelectorAll('button.mode'), function (button) {
+          button.setAttribute('aria-pressed', button.getAttribute('data-mode') === key ? 'true' : 'false');
+        });
+        document.getElementById('prepare').disabled = false;
       } }, h('strong', { class: 'mode-title', text: P.MODES[key].label }), h('span', { class: 'mode-note', text: P.MODES[key].description })));
     });
     section.appendChild(extrasBox(subject));
+    if (state.step === 3) {
+      section.appendChild(h('div', { class: 'stack' },
+        h('button', { type: 'button', class: 'primary', id: 'prepare', disabled: !state.mode, onclick: function () { go(4); } }, 'جهّز البرومبت')));
+    }
     return section;
   }
 

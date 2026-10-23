@@ -80,8 +80,9 @@ button[disabled] { color: #8a8a8a; border-color: #8a8a8a; cursor: not-allowed; }
 .mode { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; width: 100%; text-align: start; margin-bottom: 10px; padding: 14px 16px; gap: 2px; }
 .mode .mode-title { display: block; font-size: 20px; }
 .mode .mode-note { display: block; font-size: 14px; line-height: 1.5; color: var(--muted); }
-.mode:hover, .mode:focus-visible { background: var(--ink); color: var(--bg); }
-.mode:hover .mode-note, .mode:focus-visible .mode-note { color: var(--bg); }
+.mode:hover { background: var(--soft); }
+.mode[aria-pressed="true"], .mode[aria-pressed="true"]:hover { background: var(--ink); color: var(--bg); }
+.mode[aria-pressed="true"] .mode-note { color: var(--bg); }
 
 .primary { background: var(--ink); color: var(--bg); width: 100%; min-height: 60px; font-size: 20px; font-weight: 700; }
 .primary[disabled] { background: #d6d6d6; color: #6b6b6b; border-color: #d6d6d6; }

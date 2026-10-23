@@ -70,6 +70,44 @@ class ExampleBankTests(unittest.TestCase):
         self.assertTrue(all(n in text for n in numbers))
         self.assertFalse(all(n in altered for n in numbers))
 
+    def test_a_story_that_goes_below_zero_says_why(self):
+        # a sale, a price, a length, a weight or a number of people is never negative: a story with a negative domain
+        # (-2 <= x, x = -1) must be about something that can be (a temperature, a profit or loss, a screen coordinate,
+        # a time before a starting point), and must not be about the things that cannot
+        cannot_be_negative = ('مبيعات', 'سعر', 'أسعار', 'عدد الطلاب', 'طول', 'وزن', 'أشخاص')
+        can_be_negative = ('درجة الحرارة', 'خسارة', 'الإحداثيات ممكن تكون سالبة', 'نقطة الأصل', 'بالنسبة لنص الشاشة', 'قبل', 'بدون قصة')
+        checked = 0
+        for found in self.examples.values():
+            for topic_id, text in found.items():
+                story = text.split('\n\n')[0]
+                negative = re.search(r'(?<![\w.])-\d+(?:\.\d+)? ≤ x|x = -\d', text) or re.search(r'القيم السالبة', story)
+                if not negative:
+                    continue
+                checked += 1
+                self.assertTrue(any(word in story for word in can_be_negative), f'{topic_id}: says nothing about why it is below zero')
+                self.assertFalse(any(word in story for word in cannot_be_negative), f'{topic_id}: a negative domain for something that is never negative')
+        self.assertGreaterEqual(checked, 3)
+
+    def test_the_examples_that_were_changed_for_their_story_say_what_the_values_are(self):
+        expected = {
+            (4, 'm10-4-02'): 'من لحظة الرمي لحد ما بتوقع على الأرض',
+            (4, 'm10-4-04'): 'فالإحداثيات ممكن تكون سالبة',
+            (4, 'm10-4-08'): 'والسالب قبل العامود',
+            (5, 'm10-5-02'): 'والسالب خسارة',
+            (5, 'm10-5-04'): 'فالإحداثيات ممكن تكون سالبة',
+            (5, 'm10-5-06'): 'درجة الحرارة بالدرجات المئوية',
+            (5, 'm10-5-08'): 'القيم السالبة تحت نص الشاشة',
+            (5, 'm10-5-13'): 'سؤال بدون قصة',
+        }
+        for (units, topic_id), phrase in expected.items():
+            self.assertIn(phrase, self.examples[units][topic_id], topic_id)
+        # the sales story of the derivative example is gone: sales are never negative
+        self.assertNotIn('مبيعات تطبيق', self.examples[5]['m10-5-06'])
+        self.assertIn('-2 ≤ x ≤ 4', self.examples[5]['m10-5-06'])
+        # the profit and the temperature examples really reach below zero, so the new stories are needed
+        values = example_solutions.SOLUTIONS['m10-5-06']()
+        self.assertTrue(all(values['facts']))
+
     def test_the_examples_are_new_stories_not_copies_of_a_real_exam(self):
         for found in self.examples.values():
             for topic_id, text in found.items():

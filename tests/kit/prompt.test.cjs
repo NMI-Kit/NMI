@@ -165,19 +165,19 @@ test('each mode ends with its own first move, on the first chosen topic', () => 
   const first = level(10, 3).topics[0].title;  // all topics: the first one of the list
   const ends = {};
   for (const mode of MODES) ends[mode] = build({ all: true, mode }).text.trim().split('\n').pop();
-  assert.equal(ends.explain, `ابدأ مباشرة بشرح ${first}.`);
-  assert.equal(ends.practice, `ابدأ مباشرة بسؤال جديد بنمط الامتحان على ${first}: القصة والقسم أ بس، واستنى.`);
+  assert.equal(ends.explain, `ابدأ مباشرة بشرح «${first}».`);
+  assert.equal(ends.practice, `ابدأ مباشرة بسؤال جديد بنمط الامتحان على «${first}»: القصة والقسم أ بس، واستنى.`);
   assert.equal(ends.mock, 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.');
   assert.equal(ends.plan, 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟');
   assert.ok(!Object.values(ends).some((l) => l.includes('شو بدك اليوم') || l.includes('بجروت') || l.includes('أي موضوع')));
   assert.equal(new Set(Object.values(ends)).size, 4);
   // the first chosen topic, in the order of the list; then the target topics; then the ones the student wrote
   const chosen = build({ topics: ['m10-3-13', 'm10-3-03'], mode: 'explain' }).text.trim().split('\n').pop();
-  assert.equal(chosen, 'ابدأ مباشرة بشرح الإحصاء.');
+  assert.equal(chosen, 'ابدأ مباشرة بشرح «الإحصاء».');
   const targetFirst = level(10, 5).topics[1];
-  assert.equal(build({ target: 5, topics: [targetFirst.id], custom: ['س'], mode: 'explain' }).text.trim().split('\n').pop(), `ابدأ مباشرة بشرح ${targetFirst.title}.`);
+  assert.equal(build({ target: 5, topics: [targetFirst.id], custom: ['س'], mode: 'explain' }).text.trim().split('\n').pop(), `ابدأ مباشرة بشرح «${targetFirst.title}».`);
   assert.equal(build({ custom: ['معادلات تربيعية', 'ب'], mode: 'practice' }).text.trim().split('\n').pop(),
-    'ابدأ مباشرة بسؤال جديد بنمط الامتحان على معادلات تربيعية: القصة والقسم أ بس، واستنى.');
+    'ابدأ مباشرة بسؤال جديد بنمط الامتحان على «معادلات تربيعية»: القصة والقسم أ بس، واستنى.');
   // "which topic?" only when nothing was chosen
   const none = {};
   for (const mode of MODES) none[mode] = build({ mode }).text.trim().split('\n').pop();
@@ -246,7 +246,7 @@ test('fix 1: the topics sentence names the topic, not "وزاد مواضيع ب�
 test('fix 2: with a chosen topic the tutor starts on it; the question "which topic" is only for no topic', () => {
   const { text } = reported();
   assert.ok(!text.includes('أي موضوع بدك'));
-  assert.ok(text.trim().endsWith('ابدأ مباشرة بشرح معادلات تربيعية.'));
+  assert.ok(text.trim().endsWith('ابدأ مباشرة بشرح «معادلات تربيعية».'));
 });
 
 test('fix 3: the sentence about topics the student wrote no longer says "it is not from his curriculum"', () => {
@@ -381,6 +381,9 @@ test('an unknown level gives no prompt', () => {
 
 // ----------------------------------------------------------------------------- the teacher's file and the student's note
 const TEACHER_SECTION = '== ملف من الأستاذ ==\nالطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه. أول إشي: حلّل شكل الأسئلة باختصار (المواضيع، وعدد الأقسام، ونوع الطلبات، ومستوى الصعوبة)، واسأله إذا التحليل صح. بعدها اكتب أسئلة جديدة على نفس الشكل بالضبط، بأرقام وقصص جديدة. شكل أستاذه أهم من دليل الأنماط. ما تعيد أسئلة الورقة نفسها.';
+const FILE_HEAD = 'إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها ';
+const FILE_PRACTICE = FILE_HEAD + 'ابدأ بسؤال جديد بنفس الشكل على «النموذج الخطي»: القصة والقسم أ بس، واستنى.';
+const FILE_MOCK = FILE_HEAD + 'اعطيه امتحان تجريبي كامل بنفس الشكل على المواضيع المختارة.';
 const NOTE_RULE = 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز. إلا إذا بتطلب تعطيه الحل بوضع التدريب أو الامتحان قبل ما يحاول، أو بتطلب إشي برا منهاجه: ساعتها قله بلطف ليش لأ، وكمّل حسب القواعد.';
 
 test('the teacher\'s file: its section and the new closing line, only with "تدرّب" and "امتحان تجريبي"', () => {
@@ -389,7 +392,7 @@ test('the teacher\'s file: its section and the new closing line, only with "تد
     assert.equal(built.teacherFile, true);
     const lines = built.text.trim().split('\n');
     assert.ok(built.text.includes(TEACHER_SECTION + '\n'), mode);
-    assert.equal(lines.pop(), 'إذا الطالب ما رفع الملف، اطلبه منه أول.', mode);
+    assert.equal(lines.pop(), mode === 'practice' ? FILE_PRACTICE : FILE_MOCK, mode);
     assert.ok(built.text.indexOf('== ملف من الأستاذ ==') > built.text.indexOf('== قواعد لكل رد =='), 'before the closing line, after the rules');
     assert.ok(!built.text.includes('ابدأ مباشرة'), mode + ': the closing line is the one about the file');
     assert.equal(built.text.split('== ملف من الأستاذ ==').length, 2, 'once');
@@ -418,13 +421,13 @@ test('the note of the student: its own section before the closing line, only whe
   assert.equal(built.note, true);
   assert.ok(built.text.includes(`== ملاحظة من الطالب ==\nبحب الفيزيا، خلّي الأمثلة منها\n${NOTE_RULE}\n`));
   assert.ok(built.text.indexOf('== ملاحظة من الطالب ==') > built.text.indexOf('== قواعد لكل رد =='));
-  assert.ok(built.text.trim().endsWith(`${NOTE_RULE}\n\nابدأ مباشرة بشرح النموذج الخطي.`), 'the section is right before the first move');
+  assert.ok(built.text.trim().endsWith(`${NOTE_RULE}\n\nابدأ مباشرة بشرح «النموذج الخطي».`), 'the section is right before the first move');
   // with every mode, and next to the teacher's file: the file first, then the note, then the closing line
   for (const mode of MODES) assert.ok(build({ topics: ['m10-3-12'], note: 'اشرح ببطء', mode }).text.includes('== ملاحظة من الطالب =='), mode);
   const both = build({ topics: ['m10-3-12'], note: 'اشرح ببطء', mode: 'mock', teacherFile: true }).text;
   assert.ok(both.indexOf('== ملف من الأستاذ ==') < both.indexOf('== ملاحظة من الطالب =='));
   assert.ok(both.indexOf('== ملاحظة من الطالب ==') < both.lastIndexOf('إذا الطالب ما رفع الملف'));
-  assert.ok(both.trim().endsWith('إذا الطالب ما رفع الملف، اطلبه منه أول.'));
+  assert.ok(both.trim().endsWith(FILE_MOCK));
 });
 
 test('the note is plain text: one line, 200 characters, and it cannot open a section', () => {
@@ -447,4 +450,26 @@ test('the note is plain text: one line, 200 characters, and it cannot open a sec
   assert.ok(!ID.test(build({ topics: ['m10-3-12'], note: 'راجع m10-3-12' }).text));
   // a long note is part of the length
   assert.ok(build({ topics: ['m10-3-12'], note: 'ب'.repeat(200) }).length > build({ topics: ['m10-3-12'] }).length + 200);
+});
+
+test('the first move with the teacher\'s file is complete: ask, analyse, check with the student, then start', () => {
+  assert.equal(FILE_PRACTICE, 'إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها ابدأ بسؤال جديد بنفس الشكل على «النموذج الخطي»: القصة والقسم أ بس، واستنى.');
+  assert.equal(build({ topics: ['m10-3-12'], mode: 'practice', teacherFile: true }).text.trim().split('\n').pop(), FILE_PRACTICE);
+  assert.equal(build({ topics: ['m10-3-12'], mode: 'mock', teacherFile: true }).text.trim().split('\n').pop(), FILE_MOCK);
+  // several topics: the first one of the list; none: the student chooses, the tutor does not invent one
+  assert.ok(build({ topics: ['m10-3-13', 'm10-3-03'], mode: 'practice', teacherFile: true }).text.trim().endsWith('على «الإحصاء»: القصة والقسم أ بس، واستنى.'));
+  assert.ok(build({ topics: [], mode: 'practice', teacherFile: true }).text.trim().endsWith('على الموضوع اللي بيختاره الطالب: القصة والقسم أ بس، واستنى.'));
+});
+
+test('topic names are between « » in the first moves and in the title of the example', () => {
+  const linear = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
+  assert.ok(linear.includes('-- مثال على الشكل، ما تعيده (موضوع: «النموذج الخطي») --'));
+  assert.ok(linear.trim().endsWith('على «النموذج الخطي»: القصة والقسم أ بس، واستنى.'));
+  const derivative = P.buildPrompt(data, { subject: 'math', grade: 10, units: 5, target: null, all: false, topics: ['m10-5-06'], mode: 'practice' }).text;
+  assert.ok(derivative.includes('(موضوع: «التفاضل: المشتقة»)'));
+  assert.ok(derivative.trim().endsWith('على «التفاضل: المشتقة»: القصة والقسم أ بس، واستنى.'));
+  assert.ok(build({ topics: ['m10-3-12'], mode: 'explain' }).text.trim().endsWith('ابدأ مباشرة بشرح «النموذج الخطي».'));
+  // the mock exam and the plan name no topic in their first move
+  assert.ok(!build({ topics: ['m10-3-12'], mode: 'mock' }).text.trim().split('\n').pop().includes('«'));
+  assert.ok(!build({ topics: ['m10-3-12'], mode: 'plan' }).text.trim().split('\n').pop().includes('«'));
 });
