@@ -6,11 +6,12 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  /* Longest prompt we are happy to send, in characters. The biggest whole level (5 units, every topic) is about
-     14,700, so one level with every topic fits. 15,500 characters is about 5,500 tokens in Arabic: a free-tier chat
-     takes it, a phone pastes it without trouble, and the model still follows the rules at the top instead of
-     drowning in text. A whole own level plus a whole target level is about 16,500 and gets the warning. */
-  const MAX_LENGTH = 15500;
+  /* Longest prompt we are happy to send, in characters. The biggest whole level (grade 10, 5 units, every topic) with
+     any set of modes is about 15,700, so one level with every topic fits. 16,000 characters is about 5,700 tokens in
+     Arabic: a free-tier chat takes it, a phone pastes it without trouble, and the model still follows the rules at the
+     top instead of drowning in text. A prompt that is longer (a whole level with a long mistakes section, or a whole own
+     level plus a whole target level) is not refused: the page warns the student. */
+  const MAX_LENGTH = 16000;
 
   /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
   const MAX_CUSTOM = 5;
@@ -68,6 +69,9 @@
   };
   /* The tables of the guide describe exams that cover more than one grade: only their shape is for the student. */
   const PATTERNS_NOTE = 'الجداول بتوصف امتحانات بتغطي أكتر من صف. استعمل بس شكل الأسئلة (القصة، والأقسام، ونوع الطلبات)، وخلّي المحتوى والصعوبة من مواضيع الطالب المختارة ومن صفه بس.';
+  /* The student chose the target topics on purpose, to move up a level: the notes of his own level may say that some of
+     them are outside his curriculum, and the tutor must not refuse them because of that. */
+  const TARGET_NOTE = 'الطالب اختار هالمواضيع قصداً عشان ينتقل لمستوى أعلى. علّمها عادي، حتى لو مكتوب فوق إنها خارج منهاج مستواه.';
   /* "افهم" with more topics than this: the tutor asks which one to start with, instead of picking the first. */
   const MAX_DIRECT_START = 3;
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
@@ -89,7 +93,7 @@
     'المواضيع: ...',
     'ضبط: ...',
     'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)',
-    'وقله: \'انسخ هاد والصقه بالعدّة بصفحة سجلّي، عشان بالمرة الجاية أفحصك على غلطاتك.\''
+    'وقله: \'إذا بدك، انسخ هاد والصقه بالعدّة بصفحة سجلّي. مش إجباري، بس بيخلّيني أفحصك على غلطاتك بالمرة الجاية.\''
   ];
   const MISTAKES_RULE = 'خلال الجلسة، افحصه على هالغلطات بسؤال واحد على الأقل. ما تذكرها إلا إذا إلها علاقة بالسؤال.';
   const MAX_MISTAKES = 600;
@@ -288,6 +292,7 @@
     if (pickedTarget.length) {
       sources.push('');
       sources.push('-- مواضيع مستوى الهدف (' + sel.target + ' وحدات) --');
+      sources.push(TARGET_NOTE);
       pickedTarget.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
     }
     if (custom.length) {
@@ -350,6 +355,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

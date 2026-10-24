@@ -521,6 +521,16 @@
     var loaded = L.load(storage());
     var level = currentLevel() || L.lastLevel(storage());
     var section = h('section', { class: 'step', id: 'log-page', 'data-step': 'log' }, h('h1', { text: 'سجلّي' }),
+      /* why the log, and how: short, right under the title, before the privacy line */
+      h('div', { class: 'summary', id: 'log-why' },
+        h('strong', { text: 'ليش سجلّي؟ (اختياري، بس مفضّل)' }),
+        h('p', { text: 'المحادثة الجديدة ما بتتذكّر غلطاتك. سجلّي بيحفظها، وبيخلّي المدرّس يفحصك عليها بالمرة الجاية.' }),
+        h('strong', { text: 'كيف؟' }),
+        h('ol', null,
+          h('li', { text: 'بآخر الجلسة اكتب للمدرّس: خلصت' }),
+          h('li', { text: 'انسخ الملخص اللي بيبلّش بـ NMI-LOG' }),
+          h('li', { text: 'الصقه هون واضغط احفظ' }),
+          h('li', { text: 'بالمرة الجاية علّم «ذكّرني بغلطاتي القديمة»' }))),
       h('p', { class: 'hint', id: 'log-privacy', text: 'السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.' }));
     if (!loaded.ok) section.appendChild(h('p', { class: 'warn', id: 'log-unavailable', role: 'alert', text: L.NO_STORAGE }));
 

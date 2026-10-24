@@ -695,6 +695,19 @@ for (const [name, profile] of Object.entries(profiles)) {
       expect(top.y).toBeLessThan(120);
       await bigTargets(page, '#log-link', name + ' log link');
       await openLog(page);
+      // the short box right under the title and before the privacy line: why the log, and how
+      const why = page.locator('#log-why');
+      await expect(why).toBeVisible();
+      await expect(why.locator('strong').nth(0)).toHaveText('ليش سجلّي؟ (اختياري، بس مفضّل)');
+      await expect(why.locator('p')).toHaveText('المحادثة الجديدة ما بتتذكّر غلطاتك. سجلّي بيحفظها، وبيخلّي المدرّس يفحصك عليها بالمرة الجاية.');
+      await expect(why.locator('strong').nth(1)).toHaveText('كيف؟');
+      expect(await why.locator('ol li').allTextContents()).toEqual(['بآخر الجلسة اكتب للمدرّس: خلصت', 'انسخ الملخص اللي بيبلّش بـ NMI-LOG', 'الصقه هون واضغط احفظ', 'بالمرة الجاية علّم «ذكّرني بغلطاتي القديمة»']);
+      expect(await page.evaluate(() => {
+        const title = document.querySelector('#log-page h1'), box = document.querySelector('#log-why'), privacy = document.querySelector('#log-privacy');
+        const follows = (a, b) => !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+        return follows(title, box) && follows(box, privacy);
+      })).toBe(true);
+      expect(await why.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(242, 242, 242)');  // the same soft box as the summary
       await expect(page.locator('#log-privacy')).toHaveText('السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.');
       await expect(page.getByLabel('الصق ملخّص الجلسة')).toBeVisible();
       await expect(page.locator('#log-save')).toHaveText('احفظ');

@@ -409,6 +409,22 @@ class KitFilesTests(unittest.TestCase):
         for scheme in ('chatgpt://', 'claude://', 'gemini://', 'googlechrome://', 'x-apple'):
             self.assertNotIn(scheme, app)
 
+    def test_the_base_prompt_has_the_marks_the_hint_ladder_and_the_no_hint_rule(self):
+        base = read(ROOT / 'kit' / 'base_prompt.txt')
+        lines = base.splitlines()
+        self.assertIn('   - ما تعطي تلميح مع قسم جديد. التلميح بس بعد ما الطالب يحاول ويغلط، أو لما يطلب.', lines)
+        self.assertIn('   - العلامة لازم تعكس الحل الحقيقي: إذا الطالب حل لحاله من أول مرة، علامة القسم كاملة. إذا احتاج تلميح صغير، نقّص ربع العلامة. '
+                      'إذا احتاج تلميح كبير، نقّص النص. إذا حليت الخطوة قدامه، ما بياخد علامة عليها. قله بجملة وحدة ليش نقصت. بالملخص اكتب العلامة الحقيقية.', lines)
+        self.assertIn("- غلطة أولى بنفس القسم: قول وين الغلط بالضبط، وتلميح صغير: سؤال أو جملة بتوجّهه، بدون ما تكتب المعادلة أو تعوّض الأرقام عنه. "
+                      "مثال: 'عوّض نقطة A بمعادلتك، هل بتطلع صح؟'", lines)
+        self.assertNotIn('ارجع للقصة', base)
+        # the rules are in the practice mode (3), before the mock exam (4)
+        practice = base[base.index('3) تدرّب:'):base.index('4) امتحان تجريبي:')]
+        self.assertIn('العلامة لازم تعكس الحل الحقيقي', practice)
+        self.assertIn('ما تعطي تلميح مع قسم جديد', practice)
+        self.assertEqual(json.loads(read(build_kit.OUTPUT))['base_prompt'], base.strip())
+        self.assertIn('TARGET_NOTE', read(ROOT / 'kit' / 'prompt.js'))
+
     def test_the_log_stays_on_the_device_and_the_page_loads_it(self):
         html, app, log, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'log.js', 'prompt.js'))
         self.assertIn('<script src="log.js"></script>', html)
@@ -421,14 +437,16 @@ class KitFilesTests(unittest.TestCase):
         for word in ('fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket', 'navigator.share', 'window.open', 'eval(', 'innerHTML'):
             self.assertNotIn(word, log, word)
         self.assertNotIn('innerHTML', app)  # the log and the notes are shown as text, never as HTML
-        for part in ('السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.', 'الصق ملخّص الجلسة', 'ذكّرني بغلطاتي القديمة', 'امسح الكل'):
+        for part in ('السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.', 'الصق ملخّص الجلسة', 'ذكّرني بغلطاتي القديمة', 'امسح الكل', 'ليش سجلّي؟ (اختياري، بس مفضّل)',
+                     'المحادثة الجديدة ما بتتذكّر غلطاتك. سجلّي بيحفظها، وبيخلّي المدرّس يفحصك عليها بالمرة الجاية.', 'بآخر الجلسة اكتب للمدرّس: خلصت',
+                     'انسخ الملخص اللي بيبلّش بـ NMI-LOG', 'الصقه هون واضغط احفظ'):
             self.assertIn(part, app)
         for part in ('هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.', 'هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.'):
             self.assertIn(part, log)
         # every storage call of the log is inside a try
         self.assertEqual(log.count('try {'), log.count('catch ('))
         self.assertGreaterEqual(log.count("try {"), 5)
-        for part in ('NMI-LOG', 'المواضيع: ...', 'ضبط: ...', 'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)', 'عشان بالمرة الجاية أفحصك على غلطاتك',
+        for part in ('NMI-LOG', 'المواضيع: ...', 'ضبط: ...', 'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)', 'إذا بدك، انسخ هاد والصقه بالعدّة بصفحة سجلّي. مش إجباري، بس بيخلّيني أفحصك على غلطاتك بالمرة الجاية.',
                      'خلال الجلسة، افحصه على هالغلطات بسؤال واحد على الأقل. ما تذكرها إلا إذا إلها علاقة بالسؤال.', '== غلطات من جلسات قبل ==',
                      'الطالب اختار: ', 'ابدأ بأول وحدة. لما يخلص أو يطلب، انتقل للي بعدها.'):
             self.assertIn(part, prompt)

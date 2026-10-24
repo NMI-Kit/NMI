@@ -159,6 +159,10 @@ pre#preview {
 
 .loglink { min-height: 44px; padding: 4px 14px; border-width: 1px; }
 .loglink[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+#log-why { margin: 8px 0 4px; }
+#log-why strong { display: block; margin-top: 6px; }
+#log-why ol { margin: 4px 0 0; padding-inline-start: 24px; }
+#log-why li { margin: 2px 0; }
 .logtitle { display: block; font-weight: 700; margin: 16px 0 6px; }
 #log-input { display: block; width: 100%; font: inherit; min-height: 140px; padding: 10px 12px; border: 2px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); resize: vertical; }
 .loglist { list-style: none; margin: 0; padding: 0; }

@@ -396,7 +396,7 @@ test('custom topics are cleaned: plain one-line text, no duplicates, 5 at most, 
 });
 
 test('the length limit: one whole level fits in every mode, a very big choice is flagged', () => {
-  assert.equal(P.MAX_LENGTH, 15500);
+  assert.equal(P.MAX_LENGTH, 16000);
   for (const g of math.grades) for (const l of g.levels) {
     for (const mode of MODES) {
       const built = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, target: null, all: true, topics: [], mode });
@@ -637,7 +637,7 @@ test('modes: the teacher file works when practice or the mock exam is ticked', (
 });
 
 const LOG_LINES = ['لما الطالب يحكي \'خلصت\'، أو بعد ملخص آخر سؤال، اكتب ملخص للعدّة جوّا code block، بهالشكل بالضبط:', 'NMI-LOG', 'المواضيع: ...', 'ضبط: ...',
-  'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)', 'وقله: \'انسخ هاد والصقه بالعدّة بصفحة سجلّي، عشان بالمرة الجاية أفحصك على غلطاتك.\''];
+  'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)', 'وقله: \'إذا بدك، انسخ هاد والصقه بالعدّة بصفحة سجلّي. مش إجباري، بس بيخلّيني أفحصك على غلطاتك بالمرة الجاية.\''];
 
 test('the NMI-LOG rule is in every mode except a plan alone', () => {
   const rule = `== ملخص الجلسة للعدّة ==\n${LOG_LINES.join('\n')}\n`;
@@ -695,22 +695,98 @@ test('old mistakes: their own section before the closing line, only when there a
   assert.equal(injected.filter((l) => l === '== اللغة ==').length, 1);
 });
 
-test('the length limit with every mode ticked: the biggest level with the longest mistakes section', () => {
+test('the length limit is 16,000: every level with every topic and any set of modes fits; a long mistakes section can pass it', () => {
   const long = [];
   for (let i = 0; i < 30; i++) long.push('غلط: ' + 'ب'.repeat(50) + ' ' + i);
-  const rows = [];
-  for (const g of math.grades) for (const l of g.levels) {
-    const base = { subject: 'math', grade: g.id, units: l.units, all: true, topics: [], modes: ['plan', 'explain', 'practice', 'mock'] };
-    const without = P.buildPrompt(data, base);
+  const sets = [];
+  for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
+  assert.equal(sets.length, 15);
+  assert.equal(P.MAX_LENGTH, 16000);
+  let biggest = 0;
+  let cases = 0;
+  const overWithMistakes = [];
+  for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
+    const base = { subject: 'math', grade: g.id, units: l.units, all: true, topics: [], modes };
+    const built = P.buildPrompt(data, base);
+    biggest = Math.max(biggest, built.length);
+    cases += 1;
+    assert.equal(built.tooLong, built.length > 16000);
+    assert.equal(built.tooLong, false, `${g.id}/${l.units} ${modes.join('+')}: ${built.length}`);
     const withMistakes = P.buildPrompt(data, Object.assign({ mistakes: long }, base));
-    rows.push({ label: `${g.id}/${l.units}`, without: without.length, withMistakes: withMistakes.length, over: withMistakes.tooLong });
-    assert.equal(without.tooLong, without.length > 15500);
+    assert.equal(withMistakes.tooLong, withMistakes.length > 16000);
+    if (withMistakes.tooLong) overWithMistakes.push(`${g.id}/${l.units} ${modes.join('+')}`);
   }
-  assert.equal(P.MAX_LENGTH, 15500);  // the limit was not changed
-  // without the section every level fits; with 600 characters of old mistakes only the biggest level, 10 / 5 units, is over
-  assert.deepEqual(rows.filter((r) => r.without > P.MAX_LENGTH).map((r) => r.label), []);
-  assert.deepEqual(rows.filter((r) => r.over).map((r) => r.label), ['10/5']);
-  const biggest = rows.reduce((a, b) => (b.withMistakes > a.withMistakes ? b : a));
-  assert.equal(biggest.label, '10/5');
-  assert.ok(biggest.withMistakes < 16500, String(biggest.withMistakes));
+  assert.equal(cases, 135);
+  assert.ok(biggest > 15600 && biggest <= 16000, String(biggest));
+  // a full mistakes section (600 characters) can pass the limit, only on the biggest level (10 / 5 units) and only with
+  // practice or the mock exam: the page warns the student and does not block him
+  assert.ok(overWithMistakes.length > 0);
+  assert.ok(overWithMistakes.every((x) => x.startsWith('10/5 ') && /practice|mock/.test(x)), overWithMistakes.join(' | '));
+  // a normal choice (a few topics) is far from the limit, in every level and with every set of modes
+  for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
+    const few = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: l.topics.slice(0, 3).map((t) => t.id), modes });
+    assert.ok(few.length < 13000, `${g.id}/${l.units} ${modes.join('+')}: ${few.length}`);
+  }
+});
+
+const PROMPT_MODES = ['plan', 'explain', 'practice', 'mock'];
+
+// ----------------------------------------------------------------------------- task 4: marks, hint ladder, no hint with a new section, target topics
+const MARKS_RULE = 'العلامة لازم تعكس الحل الحقيقي: إذا الطالب حل لحاله من أول مرة، علامة القسم كاملة. إذا احتاج تلميح صغير، نقّص ربع العلامة. إذا احتاج تلميح كبير، نقّص النص. إذا حليت الخطوة قدامه، ما بياخد علامة عليها. قله بجملة وحدة ليش نقصت. بالملخص اكتب العلامة الحقيقية.';
+const FIRST_HINT = "غلطة أولى بنفس القسم: قول وين الغلط بالضبط، وتلميح صغير: سؤال أو جملة بتوجّهه، بدون ما تكتب المعادلة أو تعوّض الأرقام عنه. مثال: 'عوّض نقطة A بمعادلتك، هل بتطلع صح؟'";
+const NO_HINT_WITH_NEW_SECTION = 'ما تعطي تلميح مع قسم جديد. التلميح بس بعد ما الطالب يحاول ويغلط، أو لما يطلب.';
+const TARGET_NOTE = 'الطالب اختار هالمواضيع قصداً عشان ينتقل لمستوى أعلى. علّمها عادي، حتى لو مكتوب فوق إنها خارج منهاج مستواه.';
+
+test('practice rules: the marks follow the real solution, no hint with a new section', () => {
+  for (const g of math.grades) for (const l of g.levels) {
+    const text = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: [l.topics[0].id], modes: ['practice'] }).text;
+    assert.ok(text.includes(`   - ${MARKS_RULE}\n`), `${g.id}/${l.units}: marks rule`);
+    assert.ok(text.includes(`   - ${NO_HINT_WITH_NEW_SECTION}\n`), `${g.id}/${l.units}: no hint with a new section`);
+  }
+  // they are part of the practice mode (3), between the "wrong answer" line and the summary line, once each
+  const text = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
+  assert.equal(text.split(MARKS_RULE).length, 2);
+  assert.equal(text.split(NO_HINT_WITH_NEW_SECTION).length, 2);
+  const practice = text.slice(text.indexOf('3) تدرّب:'), text.indexOf('4) امتحان تجريبي:'));
+  assert.ok(practice.includes(MARKS_RULE) && practice.includes(NO_HINT_WITH_NEW_SECTION));
+  assert.ok(practice.indexOf('و. إذا غلط: اتبع سلّم التلميحات.') < practice.indexOf(NO_HINT_WITH_NEW_SECTION));
+  // the three marks steps, in the words of the rule
+  for (const part of ['من أول مرة، علامة القسم كاملة', 'تلميح صغير، نقّص ربع العلامة', 'تلميح كبير، نقّص النص', 'إذا حليت الخطوة قدامه، ما بياخد علامة عليها', 'قله بجملة وحدة ليش نقصت', 'بالملخص اكتب العلامة الحقيقية']) {
+    assert.ok(practice.includes(part), part);
+  }
+  // the rules are in the base prompt: the same text in the other modes' prompts, they only matter for practice
+  assert.ok(build({ topics: ['m10-3-12'], mode: 'explain' }).text.includes(MARKS_RULE));
+});
+
+test('hint ladder: the first hint guides with a question and does not write the equation or put the numbers in', () => {
+  const text = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
+  assert.ok(text.includes(`- ${FIRST_HINT}\n`));
+  assert.ok(!text.includes('ارجع للقصة: شو بيندفع عند الاستلام؟'), 'the old, bigger first hint is gone');
+  const ladder = text.slice(text.indexOf('== سلّم التلميحات'), text.indexOf('== صور الحلول =='));
+  assert.ok(ladder.indexOf('غلطة أولى') < ladder.indexOf('غلطة تانية') && ladder.indexOf('غلطة تانية') < ladder.indexOf('غلطة تالتة'));
+  assert.ok(ladder.includes('بدون ما تكتب المعادلة أو تعوّض الأرقام عنه'));
+  assert.ok(ladder.includes("'عوّض نقطة A بمعادلتك، هل بتطلع صح؟'"));
+  // the second and third steps are as they were
+  assert.ok(ladder.includes('- غلطة تانية بنفس القسم: تلميح أكبر، أو أول خطوة من الحل.'));
+  assert.ok(ladder.includes('- غلطة تالتة: احل الخطوة قدامه واشرحها، وبعدها اعطيه سؤال صغير مشابه يحله لحاله.'));
+});
+
+test('target topics: the note is right under their heading, only when target topics are in the prompt', () => {
+  assert.equal(P.TARGET_NOTE, TARGET_NOTE);
+  const target = level(10, 5).topics;
+  const withTarget = build({ target: 5, topics: [target[1].id, target[2].id] }).text;
+  const heading = '-- مواضيع مستوى الهدف (5 وحدات) --';
+  assert.ok(withTarget.includes(`${heading}\n${TARGET_NOTE}\n\n### ${target[1].title_full}`), 'right under the heading, before the first topic');
+  assert.equal(withTarget.split(TARGET_NOTE).length, 2, 'once');
+  // the notes of the own level still say that these topics are outside it: that is why the sentence is there
+  assert.ok(withTarget.includes('## خارج منهاج 3 وحدات'));
+  assert.ok(withTarget.indexOf('## خارج منهاج 3 وحدات') < withTarget.indexOf(heading));
+  // no target topic ticked, no target level, a target that is not higher, only the own topics: no heading and no note
+  for (const extra of [{ target: 5, topics: ['m10-3-12'] }, { target: 5, all: true }, { topics: ['m10-3-12'] }, { units: 4, target: 3, topics: ['m10-4-06'] }, { target: 5, topics: [] }]) {
+    const text = build(extra).text;
+    assert.ok(!text.includes(TARGET_NOTE), JSON.stringify(extra));
+    assert.ok(!text.includes('مواضيع مستوى الهدف'), JSON.stringify(extra));
+  }
+  // in every mode that has them
+  for (const mode of MODES) assert.ok(build({ target: 5, topics: [target[0].id], mode }).text.includes(`${heading}\n${TARGET_NOTE}\n`), mode);
 });
