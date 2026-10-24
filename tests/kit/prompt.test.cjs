@@ -790,3 +790,43 @@ test('target topics: the note is right under their heading, only when target top
   // in every mode that has them
   for (const mode of MODES) assert.ok(build({ target: 5, topics: [target[0].id], mode }).text.includes(`${heading}\n${TARGET_NOTE}\n`), mode);
 });
+
+// ----------------------------------------------------------------------------- the plan: the exam section is said not to be repeated to the student
+const EXAM_NOTE = 'هاي المعلومات إلك عشان تبني الخطة. ما تذكر كلمة بجروت أو أرقام الاستمارات للطالب، إلا إذا سأل عنها أو حكى إن امتحانه بجروت.';
+
+test('plan: right after the "## الامتحان" section a line says not to mention the Bagrut or the form numbers unless asked', () => {
+  assert.equal(P.EXAM_SECTION_NOTE, EXAM_NOTE);
+  for (const g of math.grades) for (const l of g.levels) {
+    const exam = l.notes.split(/\n\n(?=## )/).find((part) => part.split('\n')[0].trim() === '## الامتحان');
+    assert.ok(exam, `${g.id}/${l.units}: the level has an exam section`);
+    const text = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: [l.topics[0].id], modes: ['plan'] }).text;
+    // the section, then a blank line, then the note: nothing in between
+    assert.ok(text.includes(`${exam}\n\n${EXAM_NOTE}\n`), `${g.id}/${l.units}`);
+    assert.equal(text.split(EXAM_NOTE).length, 2, `${g.id}/${l.units}: once`);
+    assert.ok(text.indexOf(exam) < text.indexOf(EXAM_NOTE));
+    // the section is the first of the two: the curriculum file itself is not changed
+    assert.ok(!l.notes.includes(EXAM_NOTE));  // the curriculum files are not changed
+  }
+  assert.ok(level(10, 3).notes.includes('بجروت'), 'the curriculum notes of grade 10 / 3 units still say Bagrut');
+});
+
+test('plan: with other modes too, and never without the plan', () => {
+  for (const modes of [['plan'], ['plan', 'explain'], ['plan', 'practice'], ['plan', 'explain', 'practice', 'mock'], ['mock', 'plan']]) {
+    const text = multi(modes).text;
+    assert.ok(text.includes(EXAM_NOTE), modes.join('+'));
+    assert.ok(text.includes('## الامتحان'), modes.join('+'));
+  }
+  for (const modes of [['explain'], ['practice'], ['mock'], ['explain', 'practice', 'mock']]) {
+    const text = multi(modes).text;
+    assert.ok(!text.includes(EXAM_NOTE), modes.join('+'));
+    assert.ok(!text.includes('## الامتحان'), modes.join('+'));
+  }
+  // the next sections of the notes (grade 10, 4 units has one more) still follow the note
+  const four = P.buildPrompt(data, { subject: 'math', grade: 10, units: 4, topics: ['m10-4-06'], modes: ['plan'] }).text;
+  assert.ok(four.indexOf(EXAM_NOTE) < four.indexOf('## مواضيع من الإعدادي لازم تتراجع'));
+  // "بجروت" is in the plan prompt only in the exam section, in the note, and in the one sentence of the rules
+  const plan = multi(['plan']).text;
+  const rest = plan.split(EXAM_NOTE).join('').split('ما تحكي عن البجروت إلا إذا الطالب سأل عنه.').join('');
+  const exam = level(10, 3).notes.split(/\n\n(?=## )/).find((part) => part.startsWith('## الامتحان'));
+  assert.ok(!rest.split(exam).join('').includes('بجروت'));
+});

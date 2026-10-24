@@ -425,6 +425,34 @@ class KitFilesTests(unittest.TestCase):
         self.assertEqual(json.loads(read(build_kit.OUTPUT))['base_prompt'], base.strip())
         self.assertIn('TARGET_NOTE', read(ROOT / 'kit' / 'prompt.js'))
 
+    def test_the_app_link_test_page_is_not_part_of_the_kit_and_uses_official_hosts_only(self):
+        page = read(ROOT / 'kit' / 'applinks.html')
+        self.assertIn('<title>فحص فتح التطبيقات</title>', page)
+        self.assertIn('اضغط كل زر. إذا فتح التطبيق، اكتب الحرف. إذا فتح الموقع، ارجع وجرّب اللي بعده.', page)
+        self.assertIn('href="style.css"', page)
+        self.assertEqual(sorted(re.findall(r'data-variant="([a-z-]+)"', page)),
+                         sorted(['chatgpt-a', 'chatgpt-b', 'chatgpt-c', 'chatgpt-d', 'gemini-a', 'gemini-b', 'gemini-c', 'gemini-d', 'claude-a']))
+        hrefs = re.findall(r'<a class="linkbtn" href="([^"]+)"', page)
+        self.assertEqual(len(hrefs), 9)
+        for href in hrefs:
+            self.assertRegex(href, r'^(https://(chatgpt\.com|gemini\.google\.com)/|intent://(chatgpt\.com|gemini\.google\.com|claude\.ai)/)')
+            for scheme in ('chatgpt://', 'claude://', 'gemini://', 'googlechrome://', 'market://', 'javascript:'):
+                self.assertNotIn(scheme, href)
+            if href.startswith('intent://'):
+                self.assertRegex(href, r';S\.browser_fallback_url=https%3A%2F%2F(chatgpt\.com|gemini\.google\.com|claude\.ai)%2F')
+                self.assertTrue(href.endswith(';end'))
+        # the exact address is printed under every button
+        for href in hrefs:
+            self.assertIn(f'<code>{href}</code>', page)
+        # a plain page: no script, no network, nothing stored
+        for word in ('<script', 'fetch(', 'localStorage', 'XMLHttpRequest'):
+            self.assertNotIn(word, page, word)
+        # it is not linked from the kit, and not part of the app
+        for name in ('index.html', 'app.js', 'prompt.js', 'log.js', 'manifest.webmanifest'):
+            self.assertNotIn('applinks', read(ROOT / 'kit' / name), name)
+        # it is published with the site, because the workflow publishes the whole kit folder
+        self.assertRegex(read(ROOT / '.github' / 'workflows' / 'kit-pages.yml'), r'path: kit\s')
+
     def test_the_log_stays_on_the_device_and_the_page_loads_it(self):
         html, app, log, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'log.js', 'prompt.js'))
         self.assertIn('<script src="log.js"></script>', html)

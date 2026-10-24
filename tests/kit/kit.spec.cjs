@@ -1051,3 +1051,62 @@ test.describe('computer and Android keep the way they had', () => {
     expect(events[1]).toEqual(['open', 'https://chatgpt.com/', '_blank']);
   });
 });
+
+// ----------------------------------------------------------------------------- the app-link test page (not part of the kit)
+const VARIANTS = {
+  'chatgpt-a': 'intent://chatgpt.com/#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end',
+  'chatgpt-b': 'intent://chatgpt.com/?model=auto#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F%3Fmodel%3Dauto;end',
+  'chatgpt-c': 'intent://chatgpt.com/#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end',
+  'chatgpt-d': 'https://chatgpt.com/',
+  'gemini-a': 'intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.apps.bard;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end',
+  'gemini-b': 'intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.googlequicksearchbox;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end',
+  'gemini-c': 'intent://gemini.google.com/app#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end',
+  'gemini-d': 'https://gemini.google.com/app',
+  'claude-a': 'intent://claude.ai/new#Intent;scheme=https;package=com.anthropic.claude;S.browser_fallback_url=https%3A%2F%2Fclaude.ai%2Fnew;end'
+};
+
+for (const [name, profile] of Object.entries(profiles)) {
+  test.describe(`${name}: the app-link test page`, () => {
+    test.use(profile);
+
+    test('title, the one line on top, nine big buttons with their exact address under each', async ({ page, request }) => {
+      expect((await request.get('/applinks.html')).ok()).toBeTruthy();
+      await page.goto('/applinks.html');
+      await expect(page).toHaveTitle('فحص فتح التطبيقات');
+      await expect(page.locator('h1')).toHaveText('فحص فتح التطبيقات');
+      await expect(page.locator('#how')).toHaveText('اضغط كل زر. إذا فتح التطبيق، اكتب الحرف. إذا فتح الموقع، ارجع وجرّب اللي بعده.');
+      // the line is above every button
+      expect(await page.evaluate(() => !!(document.querySelector('#how').compareDocumentPosition(document.querySelector('.variant a')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+      const found = await page.$$eval('.variant', (nodes) => Object.fromEntries(nodes.map((n) => [n.dataset.variant, [n.querySelector('a').getAttribute('href'), n.querySelector('code').textContent, n.querySelector('a').textContent]])));
+      expect(Object.keys(found).sort()).toEqual(Object.keys(VARIANTS).sort());
+      for (const [variant, href] of Object.entries(VARIANTS)) {
+        expect(found[variant][0], variant).toBe(href);
+        expect(found[variant][1], `${variant}: the exact address under the button`).toBe(href);
+        expect(found[variant][2].length, `${variant}: a short label`).toBeLessThan(80);
+      }
+      // the sections: ChatGPT A to D, Gemini A to D, Claude A
+      expect(await page.$$eval('#chatgpt .variant', (n) => n.map((x) => x.dataset.variant))).toEqual(['chatgpt-a', 'chatgpt-b', 'chatgpt-c', 'chatgpt-d']);
+      expect(await page.$$eval('#gemini .variant', (n) => n.map((x) => x.dataset.variant))).toEqual(['gemini-a', 'gemini-b', 'gemini-c', 'gemini-d']);
+      expect(await page.$$eval('#claude .variant', (n) => n.map((x) => x.dataset.variant))).toEqual(['claude-a']);
+      // official hosts only, no private scheme
+      for (const href of Object.values(VARIANTS)) {
+        expect(href).toMatch(/^(https:\/\/(chatgpt\.com|gemini\.google\.com)\/|intent:\/\/(chatgpt\.com|gemini\.google\.com|claude\.ai)\/)/);
+        expect(href).not.toMatch(/^(chatgpt|claude|gemini|googlechrome|market):/);
+      }
+      // big buttons, black and white, no side scroll
+      await noSideScroll(page, name + ' applinks');
+      const heights = await page.$$eval('.variant a', (n) => n.map((x) => Math.round(x.getBoundingClientRect().height)));
+      expect(Math.min(...heights)).toBeGreaterThanOrEqual(56);
+      expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgb(255, 255, 255)');
+      const addressBox = await page.$$eval('.variant code', (n) => n.map((x) => x.scrollWidth <= x.clientWidth + 1));
+      expect(addressBox.every(Boolean), 'the long address wraps inside the screen').toBe(true);
+    });
+
+    test('it is not linked from the kit and the kit does not know it', async ({ page }) => {
+      await page.goto('/index.html');
+      await page.getByRole('button', { name: 'رياضيات' }).click();
+      expect(await page.$$eval('a[href]', (a) => a.map((x) => x.getAttribute('href')).filter((h) => /applinks/.test(h)))).toEqual([]);
+      expect(await page.locator('#app').innerHTML()).not.toContain('applinks');
+    });
+  });
+}

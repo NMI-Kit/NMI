@@ -72,6 +72,8 @@
   /* The student chose the target topics on purpose, to move up a level: the notes of his own level may say that some of
      them are outside his curriculum, and the tutor must not refuse them because of that. */
   const TARGET_NOTE = 'الطالب اختار هالمواضيع قصداً عشان ينتقل لمستوى أعلى. علّمها عادي، حتى لو مكتوب فوق إنها خارج منهاج مستواه.';
+  /* Said right after the "## الامتحان" section of the notes, which is only in the plan mode. */
+  const EXAM_SECTION_NOTE = 'هاي المعلومات إلك عشان تبني الخطة. ما تذكر كلمة بجروت أو أرقام الاستمارات للطالب، إلا إذا سأل عنها أو حكى إن امتحانه بجروت.';
   /* "افهم" with more topics than this: the tutor asks which one to start with, instead of picking the first. */
   const MAX_DIRECT_START = 3;
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
@@ -174,9 +176,15 @@
   /* The notes of a level are "## heading" sections. "## الامتحان" (form numbers, "Bagrut at the end of grade 11")
      is only for the plan mode. */
   function notesText(notes, mode) {
-    return notes.split(/\n\n(?=## )/).filter(function (part) {
-      return mode === 'plan' || part.split('\n')[0].trim() !== '## الامتحان';
-    }).join('\n\n').trim();
+    const parts = [];
+    notes.split(/\n\n(?=## )/).forEach(function (part) {
+      if (part.split('\n')[0].trim() !== '## الامتحان') { parts.push(part); return; }
+      if (mode !== 'plan') return;
+      /* the exam section talks about the Bagrut (form numbers): it is there to build the plan, and the tutor is told
+         right after it not to say the word to the student */
+      parts.push(part, EXAM_SECTION_NOTE);
+    });
+    return parts.join('\n\n').trim();
   }
 
   /* The exam patterns of the student's own level: the general rules, the form sections of the level (a form written
@@ -355,6 +363,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

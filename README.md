@@ -52,7 +52,7 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 
 - **Lab version (first):** a local web app that called the Claude API directly, with 60+ evaluation cases scored by an AI judge and by code checks. It taught me which teaching rules work. It also taught me that students would not leave ChatGPT for it, so the product became the toolkit.
 - **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding curriculum files, not code.
-- **Tests:** 187 offline tests, 77 local tests, 43 prompt tests, 8 log tests, 102 browser tests on iPhone, Android and desktop sizes.
+- **Tests:** 188 offline tests, 77 local tests, 45 prompt tests, 8 log tests, 108 browser tests on iPhone, Android and desktop sizes.
 - **Tools:** I designed the product, made the decisions and tested it with real study sessions. I wrote the code with AI coding assistants (Claude Code), and checked the content against official sources.
 
 ## The lab version

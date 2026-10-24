@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light">
+<title>فحص فتح التطبيقات</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* only for this test page: big buttons, and the exact address under each one */
+  .variant { margin: 0 0 18px; }
+  .variant .linkbtn { display: flex; width: 100%; min-height: 60px; font-size: 20px; font-weight: 700; }
+  .variant code { display: block; direction: ltr; text-align: left; font: 12px/1.5 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; word-break: break-all; margin-top: 6px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>فحص فتح التطبيقات</h1>
+  <p class="note" id="how">اضغط كل زر. إذا فتح التطبيق، اكتب الحرف. إذا فتح الموقع، ارجع وجرّب اللي بعده.</p>
+
+  <section id="chatgpt">
+    <h2>ChatGPT</h2>
+    <div class="variant" data-variant="chatgpt-a">
+      <a class="linkbtn" href="intent://chatgpt.com/#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end">ChatGPT A: النمط الحالي (intent مع package)</a>
+      <code>intent://chatgpt.com/#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end</code>
+    </div>
+    <div class="variant" data-variant="chatgpt-b">
+      <a class="linkbtn" href="intent://chatgpt.com/?model=auto#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F%3Fmodel%3Dauto;end">ChatGPT B: نفس الـ intent مع /?model=auto</a>
+      <code>intent://chatgpt.com/?model=auto#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F%3Fmodel%3Dauto;end</code>
+    </div>
+    <div class="variant" data-variant="chatgpt-c">
+      <a class="linkbtn" href="intent://chatgpt.com/#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end">ChatGPT C: intent بدون package</a>
+      <code>intent://chatgpt.com/#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end</code>
+    </div>
+    <div class="variant" data-variant="chatgpt-d">
+      <a class="linkbtn" href="https://chatgpt.com/">ChatGPT D: رابط https عادي</a>
+      <code>https://chatgpt.com/</code>
+    </div>
+  </section>
+
+  <section id="gemini">
+    <h2>Gemini</h2>
+    <div class="variant" data-variant="gemini-a">
+      <a class="linkbtn" href="intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.apps.bard;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end">Gemini A: النمط الحالي (package com.google.android.apps.bard)</a>
+      <code>intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.apps.bard;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end</code>
+    </div>
+    <div class="variant" data-variant="gemini-b">
+      <a class="linkbtn" href="intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.googlequicksearchbox;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end">Gemini B: package com.google.android.googlequicksearchbox</a>
+      <code>intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.googlequicksearchbox;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end</code>
+    </div>
+    <div class="variant" data-variant="gemini-c">
+      <a class="linkbtn" href="intent://gemini.google.com/app#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end">Gemini C: intent بدون package</a>
+      <code>intent://gemini.google.com/app#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end</code>
+    </div>
+    <div class="variant" data-variant="gemini-d">
+      <a class="linkbtn" href="https://gemini.google.com/app">Gemini D: رابط https عادي</a>
+      <code>https://gemini.google.com/app</code>
+    </div>
+  </section>
+
+  <section id="claude">
+    <h2>Claude</h2>
+    <div class="variant" data-variant="claude-a">
+      <a class="linkbtn" href="intent://claude.ai/new#Intent;scheme=https;package=com.anthropic.claude;S.browser_fallback_url=https%3A%2F%2Fclaude.ai%2Fnew;end">Claude A: النمط الحالي (للمقارنة، بيشتغل)</a>
+      <code>intent://claude.ai/new#Intent;scheme=https;package=com.anthropic.claude;S.browser_fallback_url=https%3A%2F%2Fclaude.ai%2Fnew;end</code>
+    </div>
+  </section>
+</main>
+</body>
+</html>
