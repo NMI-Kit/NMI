@@ -3,6 +3,7 @@
   'use strict';
 
   var P = window.NMIPrompt;
+  var L = window.NMILog;
   var APPS = [
     { name: 'ChatGPT', url: 'https://chatgpt.com/', host: 'chatgpt.com', path: '', package: 'com.openai.chatgpt' },
     { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', package: 'com.anthropic.claude' },
@@ -19,10 +20,11 @@
   var TOTAL = 4;
 
   var data = null;
-  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], mode: null, teacherFile: false, note: '', targetOpen: false };
+  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], modes: {}, teacherFile: false, remind: false, note: '', targetOpen: false, view: 'main' };
   var app = document.getElementById('app');
   var backButton = document.getElementById('back');
   var progress = document.getElementById('progress');
+  var logLink = document.getElementById('log-link');
   var wide = window.matchMedia ? window.matchMedia('(min-width: 960px)') : { matches: false };
   var status = '';
 
@@ -56,6 +58,36 @@
     return g ? g.levels.filter(function (l) { return l.units === units; })[0] || null : null;
   }
 
+  /* the ticked modes, in the order of the prompt (the plan first) */
+  function pickedModes() {
+    return P.PROMPT_ORDER.filter(function (m) { return state.modes[m]; });
+  }
+
+  function modeLabels() {
+    return pickedModes().map(function (m) { return P.MODES[m].label; }).join(' + ');
+  }
+
+  function currentLevel() {
+    return state.subject && state.grade && state.units ? { subject: state.subject, grade: state.grade, units: state.units } : null;
+  }
+
+  /* localStorage can be missing, blocked or full: it is only touched inside try/catch (here and in log.js) */
+  function storage() {
+    try { return window.localStorage; } catch (error) { return null; }
+  }
+
+  function levelLabel(level) {
+    var subject = data.subjects.filter(function (s) { return s.id === level.subject; })[0];
+    var grade = subject && subject.grades.filter(function (g) { return g.id === level.grade; })[0];
+    return (subject ? subject.name : level.subject) + '، الصف ' + (grade ? grade.name : level.grade) + '، ' + level.units + ' وحدات';
+  }
+
+  function oldMistakes() {
+    var level = currentLevel();
+    var loaded = L.load(storage());
+    return level && loaded.ok ? L.mistakesFor(loaded.entries, level) : [];
+  }
+
   function selectedTopicIds() {
     return Object.keys(state.topics).filter(function (id) { return state.topics[id]; });
   }
@@ -83,7 +115,7 @@
     state.target = null;
     state.step = 1;
     state.topics = {};
-    state.mode = null;
+    state.modes = {};
   }
 
   function go(step) {
@@ -263,23 +295,30 @@
   function stepMode() {
     var section = h('section', { class: 'step', 'data-step': '3' }, h('h1', { text: 'شو بدك تعمل؟' }));
     var subject = subjectData();
+    section.appendChild(h('p', { class: 'hint', text: 'اختار وضع أو أكتر. بيبلّش بأول واحد وبينتقل للباقي.' }));
     P.MODE_ORDER.forEach(function (key) {
       /* practice and the mock exam are built on the exam patterns: a subject without them only gets explain and plan */
       if ((key === 'practice' || key === 'mock') && !(subject && subject.patterns)) return;
-      /* a tap only marks the mode: the options under the four buttons (the teacher's file, the note) are still to be seen */
-      section.appendChild(h('button', { type: 'button', class: 'mode', 'data-mode': key, 'aria-pressed': state.mode === key ? 'true' : 'false', onclick: function () {
-        state.mode = key;
+      /* a tap only ticks the mode: the options under the four cards (the teacher's file, the note) are still to be seen */
+      var box = h('input', { type: 'checkbox', 'data-mode': key, id: 'mode-' + key });
+      box.checked = !!state.modes[key];
+      var card = h('label', { class: 'mode', 'data-mode': key, 'data-on': box.checked ? 'true' : 'false' }, box,
+        h('span', { class: 'mode-text' }, h('strong', { class: 'mode-title', text: P.MODES[key].label }), h('span', { class: 'mode-note', text: P.MODES[key].description })));
+      box.addEventListener('change', function () {
+        state.modes[key] = box.checked;
         if (state.step > 3) { render(); return; }
-        Array.prototype.forEach.call(document.querySelectorAll('button.mode'), function (button) {
-          button.setAttribute('aria-pressed', button.getAttribute('data-mode') === key ? 'true' : 'false');
-        });
-        document.getElementById('prepare').disabled = false;
-      } }, h('strong', { class: 'mode-title', text: P.MODES[key].label }), h('span', { class: 'mode-note', text: P.MODES[key].description })));
+        card.setAttribute('data-on', box.checked ? 'true' : 'false');
+        document.getElementById('prepare').disabled = pickedModes().length === 0;
+      });
+      section.appendChild(card);
     });
     section.appendChild(extrasBox(subject));
     if (state.step === 3) {
       section.appendChild(h('div', { class: 'stack sticky' },
-        h('button', { type: 'button', class: 'primary', id: 'prepare', disabled: !state.mode, onclick: function () { go(4); } }, 'جهّز البرومبت')));
+        h('button', { type: 'button', class: 'primary', id: 'prepare', disabled: pickedModes().length === 0, onclick: function () {
+          L.rememberLevel(storage(), currentLevel());  // so that "سجلّي" knows the level after a reload
+          go(4);
+        } }, 'جهّز البرومبت')));
     }
     return section;
   }
@@ -294,6 +333,16 @@
       tick.addEventListener('change', function () { state.teacherFile = tick.checked; });
       box.appendChild(h('label', { class: 'topic' }, tick, h('span', null, 'عندي امتحان قديم أو ورقة عمل من أستاذي',
         h('small', { class: 'hint', text: 'بيشتغل مع "تدرّب" و"امتحان تجريبي" بس.' }))));
+    }
+    /* only when this student has saved entries for this very level */
+    var level = currentLevel();
+    var saved = level ? L.forLevel(L.load(storage()).entries, level) : [];
+    if (saved.length) {
+      var remind = h('input', { type: 'checkbox', id: 'remind' });
+      remind.checked = state.remind;
+      remind.addEventListener('change', function () { state.remind = remind.checked; });
+      box.appendChild(h('label', { class: 'topic' }, remind, h('span', null, 'ذكّرني بغلطاتي القديمة',
+        h('small', { class: 'hint', text: 'من ' + saved.length + ' جلسة محفوظة بسجلّي لهالمستوى.' }))));
     }
     var area = h('textarea', { id: 'note', maxlength: String(P.MAX_NOTE), rows: '3', 'aria-label': 'ملاحظة للمدرّس (اختياري)' });
     area.value = state.note;
@@ -319,7 +368,8 @@
   function currentPrompt() {
     return P.buildPrompt(data, {
       subject: state.subject, grade: state.grade, units: state.units, target: state.target,
-      all: isAll(), topics: selectedTopicIds(), custom: checkedCustom(), mode: state.mode,
+      all: isAll(), topics: selectedTopicIds(), custom: checkedCustom(), modes: pickedModes(),
+      mistakes: state.remind ? oldMistakes() : [],
       teacherFile: state.teacherFile, note: state.note
     });
   }
@@ -400,7 +450,7 @@
     if (checkedCustom().length) titles += (titles ? ' + ' : '') + checkedCustom().length + ' من عندك';
     section.appendChild(h('div', { class: 'summary', id: 'summary' },
       h('p', { text: subject.name + '، الصف ' + grade.name + '، ' + state.units + ' وحدات' + (state.target ? ' (هدف: ' + state.target + ' وحدات)' : '') }),
-      h('p', { text: titles + ' • ' + P.MODES[state.mode].label }),
+      h('p', { id: 'summary-modes', text: titles + ' • ' + modeLabels() }),
       h('p', { id: 'length', text: 'طول البرومبت: ' + built.length + ' حرف' })));
 
     if (built.tooLong) {
@@ -442,8 +492,65 @@
     return section;
   }
 
+  /* ---------------------------------------------------------------- سجلّي */
+  var logMessage = '';
+  var logDraft = '';
+
+  function logPage() {
+    var loaded = L.load(storage());
+    var level = currentLevel() || L.lastLevel(storage());
+    var section = h('section', { class: 'step', id: 'log-page', 'data-step': 'log' }, h('h1', { text: 'سجلّي' }),
+      h('p', { class: 'hint', id: 'log-privacy', text: 'السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.' }));
+    if (!loaded.ok) section.appendChild(h('p', { class: 'warn', id: 'log-unavailable', role: 'alert', text: L.NO_STORAGE }));
+
+    section.appendChild(h('p', { class: 'note', id: 'log-level', text: level ? 'المستوى: ' + levelLabel(level) : 'لسا ما اخترت مستواك: ابنِ برومبت من الصفحة الرئيسية وبعدين ارجع.' }));
+    var area = h('textarea', { id: 'log-input', rows: '6', 'aria-label': 'الصق ملخّص الجلسة' });
+    area.value = logDraft;
+    area.addEventListener('input', function () { logDraft = area.value; });
+    section.appendChild(h('label', { for: 'log-input', class: 'logtitle', text: 'الصق ملخّص الجلسة' }));
+    section.appendChild(area);
+    section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', class: 'primary', id: 'log-save', onclick: function () {
+      var result = L.add(storage(), area.value, level, new Date());
+      if (result.ok) { logDraft = ''; logMessage = 'انحفظ.'; } else logMessage = result.message;
+      render();
+    } }, 'احفظ')));
+    section.appendChild(h('p', { class: 'status', id: 'log-msg', role: 'status', 'aria-live': 'polite', text: logMessage }));
+
+    if (loaded.entries.length) {
+      var list = h('ul', { class: 'loglist', id: 'log-list' });
+      loaded.entries.forEach(function (entry) {
+        list.appendChild(h('li', { class: 'logitem', 'data-id': entry.id },
+          h('p', { class: 'logmeta', text: entry.date.slice(0, 10) + ' • ' + levelLabel(entry) }),
+          h('pre', { class: 'logtext', text: entry.text }),
+          h('button', { type: 'button', class: 'del', 'aria-label': 'امسح هالمدخل', onclick: function () {
+            var result = L.remove(storage(), entry.id);
+            logMessage = result.ok ? '' : result.message;
+            render();
+          } }, 'امسح')));
+      });
+      section.appendChild(h('h2', { text: 'الجلسات المحفوظة' }));
+      section.appendChild(list);
+      section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-clear', onclick: function () {
+        var result = L.clear(storage());
+        logMessage = result.ok ? '' : result.message;
+        render();
+      } }, 'امسح الكل')));
+    }
+    section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-close', onclick: function () { state.view = 'main'; render(); } }, 'رجوع للعدّة')));
+    return section;
+  }
+
   /* ---------------------------------------------------------------- page */
   function render() {
+    logLink.setAttribute('aria-pressed', state.view === 'log' ? 'true' : 'false');
+    if (state.view === 'log') {
+      app.textContent = '';
+      app.appendChild(logPage());
+      backButton.hidden = true;
+      progress.textContent = '';
+      document.body.setAttribute('data-step', 'log');
+      return;
+    }
     var steps = [stepLevel, stepTopics, stepMode, stepReady];
     var visible = wide.matches ? steps.slice(0, state.step) : [steps[state.step - 1]];
     app.textContent = '';
@@ -457,6 +564,12 @@
     document.body.setAttribute('data-step', String(state.step));
   }
 
+  logLink.addEventListener('click', function () {
+    if (!data) return;
+    state.view = state.view === 'log' ? 'main' : 'log';
+    render();
+    if (!wide.matches) window.scrollTo(0, 0);
+  });
   backButton.addEventListener('click', function () { if (state.step > 1) go(state.step - 1); });
   if (wide.addEventListener) wide.addEventListener('change', render);
 

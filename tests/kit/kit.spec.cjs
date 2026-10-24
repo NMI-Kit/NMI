@@ -75,7 +75,7 @@ async function walkToReady(page, { grade = 'العاشر', units = '3 وحدات
     await page.getByText('ملاحظة للمدرّس (اختياري)').click();
     await page.locator('#note').fill(note);
   }
-  await page.locator(`button[data-mode="${mode}"]`).click();
+  for (const m of [].concat(mode)) await page.locator(`input[data-mode="${m}"]`).check();
   await page.locator('#prepare').click();
   await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
 }
@@ -114,21 +114,21 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#next-2').click();
 
       await expect(page.locator('#progress')).toHaveText('الخطوة 3 من 4');
-      await expect(page.locator('button.mode')).toHaveCount(4);
-      expect(await page.$$eval('button.mode .mode-title', (n) => n.map((x) => x.textContent))).toEqual(['افهم', 'تدرّب', 'امتحان تجريبي', 'خطة']);
-      expect(await page.$$eval('button.mode', (n) => n.map((x) => x.dataset.mode))).toEqual(['explain', 'practice', 'mock', 'plan']);
+      await expect(page.locator('label.mode')).toHaveCount(4);
+      expect(await page.$$eval('label.mode .mode-title', (n) => n.map((x) => x.textContent))).toEqual(['افهم', 'تدرّب', 'امتحان تجريبي', 'خطة']);
+      expect(await page.$$eval('label.mode', (n) => n.map((x) => x.dataset.mode))).toEqual(['explain', 'practice', 'mock', 'plan']);
       await noSideScroll(page, name + ' step 3');
-      await bigTargets(page, 'button.mode', name + ' step 3');
+      await bigTargets(page, 'label.mode', name + ' step 3');
       // the title and its description are two lines, the description smaller (they used to be glued together)
-      for (const box of await page.locator('button.mode').all()) {
+      for (const box of await page.locator('label.mode').all()) {
         const title = await box.locator('.mode-title').boundingBox();
         const note = await box.locator('.mode-note').boundingBox();
         expect(note.y, 'description under the title').toBeGreaterThanOrEqual(title.y + title.height - 1);
         const sizes = await box.evaluate((el) => [parseFloat(getComputedStyle(el.querySelector('.mode-title')).fontSize), parseFloat(getComputedStyle(el.querySelector('.mode-note')).fontSize)]);
         expect(sizes[1], 'description font smaller than the title').toBeLessThan(sizes[0]);
       }
-      await expect(page.locator('button.mode[data-mode="explain"] .mode-note')).toHaveText('شرح موضوع خطوة خطوة.');
-      await expect(page.locator('button.mode[data-mode="plan"] .mode-note')).toHaveText('خطة مراجعة لامتحانك بالأيام.');
+      await expect(page.locator('label.mode[data-mode="explain"] .mode-note')).toHaveText('شرح موضوع خطوة خطوة.');
+      await expect(page.locator('label.mode[data-mode="plan"] .mode-note')).toHaveText('خطة مراجعة لامتحانك بالأيام.');
 
       if (name === 'desktop') {
         await expect(page.locator('#back')).toBeHidden();  // the steps are all on the page, nothing to go back to
@@ -139,7 +139,7 @@ for (const [name, profile] of Object.entries(profiles)) {
         await expect(page.getByLabel('النموذج الخطي', { exact: true })).toBeChecked();  // the choice is kept
         await page.locator('#next-2').click();
       }
-      await page.locator('button[data-mode="practice"]').click();
+      await page.locator('input[data-mode=\"practice\"]').check();
       await page.locator('#prepare').click();
 
       await expect(page.locator('#progress')).toHaveText('الخطوة 4 من 4');
@@ -244,7 +244,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await expect(page.locator('input[data-topic="m10-5-02"]')).toBeChecked();
       await page.locator('#all-topics').click();
       await page.locator('#next-2').click();
-      await page.locator('button[data-mode="explain"]').click();
+      await page.locator('input[data-mode=\"explain\"]').check();
       await page.locator('#prepare').click();
       await expect(page.locator('#too-long')).toHaveCount(0);  // a whole level and one target topic still fit
       await expect(page.locator('#summary')).toContainText('(هدف: 5 وحدات)');
@@ -260,7 +260,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#target-topics > summary').click();
       for (const box of await page.locator('input[data-topic^="m10-5"]').all()) await box.check();
       await page.locator('#next-2').click();
-      await page.locator('button[data-mode="practice"]').click();
+      await page.locator('input[data-mode=\"practice\"]').check();
       await page.locator('#prepare').click();
       await expect(page.locator('#too-long')).toBeVisible();
       await expect(page.locator('#too-long')).toContainText('اخترت مواضيع كتير');
@@ -321,7 +321,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       // untick one: it stays on the list but not in the prompt
       await page.locator('#custom-list li').nth(3).locator('input').uncheck();  // the last one, 'د'
       await page.locator('#next-2').click();
-      await page.locator('button[data-mode="explain"]').click();
+      await page.locator('input[data-mode=\"explain\"]').check();
       await page.locator('#prepare').click();
       await expect(page.locator('#summary')).toContainText('3 من عندك');
       await page.getByText('شوف البرومبت').click();
@@ -412,12 +412,12 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#next-1').click();
       await page.getByLabel('النموذج الخطي', { exact: true }).check();
       await page.locator('#next-2').click();
-      await expect(page.locator('button.mode')).toHaveCount(4);
+      await expect(page.locator('label.mode')).toHaveCount(4);
       await expect(page.getByText('عندي امتحان قديم أو ورقة عمل من أستاذي')).toBeVisible();
       await expect(page.getByText('بيشتغل مع "تدرّب" و"امتحان تجريبي" بس.')).toBeVisible();
       await expect(page.locator('#teacher-file')).not.toBeChecked();
       // the tick and the note come after the four modes
-      const lastMode = await page.locator('button.mode').last().boundingBox();
+      const lastMode = await page.locator('label.mode').last().boundingBox();
       expect((await page.locator('#teacher-file').boundingBox()).y).toBeGreaterThan(lastMode.y);
       await expect(page.locator('input[type="file"]')).toHaveCount(0);
       await noSideScroll(page, name + ' step 3 extras');
@@ -550,77 +550,302 @@ test.describe('the intent links only use the official apps and sites', () => {
   });
 });
 
-// ----------------------------------------------------------------------------- step 3: a tap marks the mode, a big button goes on
+// ----------------------------------------------------------------------------- step 3: the modes are checkboxes, at least one, then the big button
+const SUMMARY_TEXT = (mistake, topics = 'النموذج الخطي') => `NMI-LOG\nالمواضيع: ${topics}\nضبط: كتابة المعادلات\nغلط: ${mistake}`;
+
+async function toStep3(page, { units = '3 وحدات' } = {}) {
+  await page.goto('/index.html');
+  await page.getByRole('button', { name: 'رياضيات' }).click();
+  await page.getByRole('button', { name: 'العاشر', exact: true }).click();
+  await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: units }).click();
+  await page.locator('#next-1').click();
+  await page.getByLabel('النموذج الخطي', { exact: true }).check();
+  await page.locator('#next-2').click();
+  await expect(page.getByRole('heading', { name: 'شو بدك تعمل؟' })).toBeVisible();
+}
+
 for (const [name, profile] of Object.entries(profiles)) {
-  test.describe(`${name}: step 3 marks the mode and waits for the big button`, () => {
+  test.describe(`${name}: step 3 checkboxes`, () => {
     test.use(profile);
 
-    async function toStep3(page) {
-      await page.goto('/index.html');
-      await page.getByRole('button', { name: 'رياضيات' }).click();
-      await page.getByRole('button', { name: 'العاشر', exact: true }).click();
-      await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: '3 وحدات' }).click();
-      await page.locator('#next-1').click();
-      await page.getByLabel('النموذج الخطي', { exact: true }).check();
-      await page.locator('#next-2').click();
-      await expect(page.getByRole('heading', { name: 'شو بدك تعمل؟' })).toBeVisible();
-    }
-
-    test('a tap on a mode stays on step 3, marks it clearly, and the options under the buttons stay on the page', async ({ page }) => {
+    test('none is ticked at first and "next" is disabled; one or more enable it; unticking the last disables it again', async ({ page }) => {
       await toStep3(page);
+      await expect(page.locator('input[data-mode]')).toHaveCount(4);
+      await expect(page.locator('input[data-mode]:checked')).toHaveCount(0);
       await expect(page.locator('#prepare')).toHaveText('جهّز البرومبت');
-      await expect(page.locator('#prepare')).toBeDisabled();  // no mode yet
-      await expect(page.locator('button.mode[aria-pressed="true"]')).toHaveCount(0);
-      for (const key of ['explain', 'practice', 'mock', 'plan']) {
-        await page.locator(`button[data-mode="${key}"]`).click();
-        await expect(page.getByRole('heading', { name: 'شو بدك تعمل؟' })).toBeVisible();  // still step 3
-        await expect(page.locator('#progress')).toHaveText('الخطوة 3 من 4');
-        await expect(page.getByRole('heading', { name: 'جاهز' })).toHaveCount(0);
-        await expect(page.locator('button.mode[aria-pressed="true"]')).toHaveCount(1);
-        await expect(page.locator(`button[data-mode="${key}"]`)).toHaveAttribute('aria-pressed', 'true');
-        await expect(page.locator('#prepare')).toBeEnabled();
-        // the marked button is the black one, the others are white
-        const colors = await page.$$eval('button.mode', (b) => b.map((x) => [x.dataset.mode, getComputedStyle(x).backgroundColor, getComputedStyle(x).color]));
-        for (const [mode, background, color] of colors) {
-          expect([background, color], mode).toEqual(mode === key ? ['rgb(0, 0, 0)', 'rgb(255, 255, 255)'] : ['rgb(255, 255, 255)', 'rgb(0, 0, 0)']);
+      await expect(page.locator('#prepare')).toBeDisabled();
+      await page.locator('input[data-mode="practice"]').check();
+      await expect(page.locator('#prepare')).toBeEnabled();
+      await page.locator('input[data-mode="explain"]').check();
+      await expect(page.locator('input[data-mode]:checked')).toHaveCount(2);  // not a radio: both stay ticked
+      await expect(page.locator('#prepare')).toBeEnabled();
+      await page.locator('input[data-mode="practice"]').uncheck();
+      await expect(page.locator('#prepare')).toBeEnabled();
+      await page.locator('input[data-mode="explain"]').uncheck();
+      await expect(page.locator('#prepare')).toBeDisabled();
+      // still on step 3 the whole time
+      await expect(page.getByRole('heading', { name: 'شو بدك تعمل؟' })).toBeVisible();
+      await expect(page.locator('#progress')).toHaveText('الخطوة 3 من 4');
+      await expect(page.getByRole('heading', { name: 'جاهز' })).toHaveCount(0);
+    });
+
+    test('ticked cards are black, the others white, and the options under the cards stay on the page', async ({ page }) => {
+      await toStep3(page);
+      for (const keys of [['explain'], ['explain', 'mock'], ['plan', 'explain', 'practice', 'mock']]) {
+        for (const key of ['explain', 'practice', 'mock', 'plan']) {
+          const box = page.locator(`input[data-mode="${key}"]`);
+          if ((await box.isChecked()) !== keys.includes(key)) await (keys.includes(key) ? box.check() : box.uncheck());
         }
-        // the teacher's file tick and the note box are on the page, under the four modes, and the big button under them
+        const colors = await page.$$eval('label.mode', (b) => b.map((x) => [x.dataset.mode, getComputedStyle(x).backgroundColor, getComputedStyle(x).color]));
+        for (const [mode, background, color] of colors) {
+          expect([background, color], `${keys} ${mode}`).toEqual(keys.includes(mode) ? ['rgb(0, 0, 0)', 'rgb(255, 255, 255)'] : ['rgb(255, 255, 255)', 'rgb(0, 0, 0)']);
+        }
         await expect(page.locator('#teacher-file')).toBeVisible();
         await expect(page.getByText('ملاحظة للمدرّس (اختياري)')).toBeVisible();
-        const last = await page.locator('button.mode').last().boundingBox();
-        const prepare = await page.locator('#prepare').boundingBox();
-        const tick = await page.locator('#teacher-file').boundingBox();
-        expect(tick.y).toBeGreaterThan(last.y);
-        void prepare;  // the big button is stuck to the bottom of the screen: it is after the options in the page, not in the scroll position
         expect(await page.evaluate(() => !!(document.querySelector('#teacher-file').compareDocumentPosition(document.querySelector('#prepare')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
       }
       await noSideScroll(page, name + ' step 3');
-      await bigTargets(page, 'button, label.topic, summary', name + ' step 3');
-      await page.locator('#prepare').click();
-      await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
-      await expect(page.locator('#progress')).toHaveText('الخطوة 4 من 4');
-      await expect(page.locator('#summary')).toContainText('خطة');  // the last mode that was marked
+      await bigTargets(page, 'button, label.topic, label.mode, summary', name + ' step 3');
     });
 
-    test('the choices under the buttons can be made after the mode, and they and the mode survive a trip back', async ({ page }) => {
+    test('step 4 lists every ticked mode joined with " + " in the order of the prompt, and the prompt follows them', async ({ page }) => {
       await toStep3(page);
-      await page.locator('button[data-mode="practice"]').click();
+      await page.locator('input[data-mode="mock"]').check();
+      await page.locator('input[data-mode="explain"]').check();
+      await page.locator('input[data-mode="plan"]').check();
+      await page.locator('#prepare').click();
+      await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
+      await expect(page.locator('#summary-modes')).toContainText('خطة + افهم + امتحان تجريبي');
+      await page.getByText('شوف البرومبت').click();
+      const text = await page.locator('#preview').innerText();
+      expect(text).toContain('الوضع اللي اختاره: خطة + افهم + امتحان تجريبي');
+      expect(text).toContain('الطالب اختار: خطة + افهم + امتحان تجريبي. ابدأ بأول وحدة. لما يخلص أو يطلب، انتقل للي بعدها.');
+      expect(text.trim().split(/\r?\n/).pop()).toBe('ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟');
+      expect(text).toContain('-- دليل أنماط الامتحانات لمستواك --');  // the mock exam is ticked
+      expect(text).toContain('## الامتحان');  // the plan is ticked
+      expect(text).toContain('NMI-LOG');
+      await noSideScroll(page, name + ' step 4 modes');
+    });
+
+    test('one mode: no order line, no patterns for "افهم" alone; the choices survive a trip back', async ({ page }) => {
+      await toStep3(page);
+      await page.locator('input[data-mode="explain"]').check();
       await page.locator('#teacher-file').check();
       await page.getByText('ملاحظة للمدرّس (اختياري)').click();
       await page.locator('#note').fill('اشرح ببطء');
+      await page.locator('#prepare').click();
+      await expect(page.locator('#summary-modes')).toContainText('افهم');
+      await expect(page.locator('#attach')).toHaveCount(0);  // the teacher's file needs practice or the mock exam
+      await page.getByText('شوف البرومبت').click();
+      const text = await page.locator('#preview').innerText();
+      expect(text).not.toContain('الطالب اختار:');
+      expect(text).not.toContain('-- دليل أنماط الامتحانات لمستواك --');
+      expect(text).not.toContain('== ملف من الأستاذ ==');
+      expect(text).toContain('== ملاحظة من الطالب ==\nاشرح ببطء\n');
+      if (name !== 'desktop') {
+        await page.locator('#back').click();
+        await expect(page.locator('input[data-mode="explain"]')).toBeChecked();
+        await expect(page.locator('#teacher-file')).toBeChecked();
+        await expect(page.locator('#note')).toHaveValue('اشرح ببطء');
+        await expect(page.locator('#prepare')).toBeEnabled();
+      }
+    });
+
+    test('the teacher file works as soon as practice or the mock exam is one of the ticked modes', async ({ page }) => {
+      await toStep3(page);
+      await page.locator('input[data-mode="explain"]').check();
+      await page.locator('input[data-mode="practice"]').check();
+      await page.locator('#teacher-file').check();
       await page.locator('#prepare').click();
       await expect(page.locator('#attach')).toBeVisible();
       await page.getByText('شوف البرومبت').click();
       const text = await page.locator('#preview').innerText();
       expect(text).toContain('== ملف من الأستاذ ==');
-      expect(text).toContain('== ملاحظة من الطالب ==\nاشرح ببطء\n');
-      if (name !== 'desktop') {
-        await page.locator('#back').click();
-        await expect(page.locator('button[data-mode="practice"]')).toHaveAttribute('aria-pressed', 'true');
-        await expect(page.locator('#teacher-file')).toBeChecked();
-        await expect(page.locator('#note')).toHaveValue('اشرح ببطء');
-        await expect(page.locator('#prepare')).toBeEnabled();
-      }
+      expect(text).toContain('الطالب اختار: افهم + تدرّب.');
+      expect(text.trim().split(/\r?\n/).pop()).toBe('ابدأ مباشرة بشرح «النموذج الخطي».');  // the first mode starts
+    });
+  });
+}
+
+// ----------------------------------------------------------------------------- the mistakes log (سجلّي)
+const seed = async (page, entries) => page.addInitScript((list) => {
+  if (!window.sessionStorage.getItem('seeded')) {
+    window.localStorage.setItem('nmi-log-v1', JSON.stringify(list));
+    window.sessionStorage.setItem('seeded', '1');
+  }
+}, entries);
+const entry = (id, mistake, units = 3, day = 1) => ({ id: `e${id}`, date: `2026-10-${String(day).padStart(2, '0')}T10:00:00.000Z`, subject: 'math', grade: 10, units, text: SUMMARY_TEXT(mistake) });
+
+async function openLog(page) {
+  await page.locator('#app h1').first().waitFor();  // the page has loaded its data
+  await page.locator('#log-link').click();
+  await expect(page.getByRole('heading', { name: 'سجلّي' })).toBeVisible();
+}
+
+for (const [name, profile] of Object.entries(profiles)) {
+  test.describe(`${name}: سجلّي`, () => {
+    test.use(profile);
+
+    test('the link is at the top of every step and opens a page with the privacy line, the box and the button', async ({ page }) => {
+      await page.goto('/index.html');
+      await expect(page.locator('#log-link')).toHaveText('سجلّي');
+      await expect(page.locator('#log-link')).toBeVisible();
+      const top = await page.locator('#log-link').boundingBox();
+      expect(top.y).toBeLessThan(120);
+      await bigTargets(page, '#log-link', name + ' log link');
+      await openLog(page);
+      await expect(page.locator('#log-privacy')).toHaveText('السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.');
+      await expect(page.getByLabel('الصق ملخّص الجلسة')).toBeVisible();
+      await expect(page.locator('#log-save')).toHaveText('احفظ');
+      await expect(page.locator('#log-list')).toHaveCount(0);
+      await noSideScroll(page, name + ' log');
+      await bigTargets(page, 'button', name + ' log');
+      // back to the kit
+      await page.locator('#log-close').click();
+      await expect(page.getByRole('heading', { name: 'شو مستواك؟' })).toBeVisible();
+      await page.locator('#log-link').click();
+      await page.locator('#log-link').click();  // the link closes the page too
+      await expect(page.getByRole('heading', { name: 'شو مستواك؟' })).toBeVisible();
+    });
+
+    test('text that does not start with NMI-LOG is refused with the message, nothing is saved', async ({ page }) => {
+      await walkToReady(page);
+      await openLog(page);
+      await page.locator('#log-input').fill('مرحبا، هاد مش ملخص');
+      await page.locator('#log-save').click();
+      await expect(page.locator('#log-msg')).toHaveText('هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.');
+      await expect(page.locator('#log-list')).toHaveCount(0);
+      await expect(page.locator('#log-input')).toHaveValue('مرحبا، هاد مش ملخص');  // the student's text is not lost
+      expect(await page.evaluate(() => window.localStorage.getItem('nmi-log-v1'))).toBeNull();
+    });
+
+    test('a summary is saved with the date and the level, shown newest first, as plain text', async ({ page }) => {
+      await walkToReady(page);
+      await openLog(page);
+      await expect(page.locator('#log-level')).toHaveText('المستوى: رياضيات، الصف العاشر، 3 وحدات');
+      await page.locator('#log-input').fill('  \n' + SUMMARY_TEXT('الأولى') + '\n  ');
+      await page.locator('#log-save').click();
+      await expect(page.locator('#log-msg')).toHaveText('انحفظ.');
+      await expect(page.locator('#log-input')).toHaveValue('');
+      await page.locator('#log-input').fill('NMI-LOG\nغلط: <img src=x onerror=alert(1)> التانية\n== اللغة ==\nضبط: <b>كويس</b>');
+      await page.locator('#log-save').click();
+      const items = page.locator('#log-list li');
+      await expect(items).toHaveCount(2);
+      await expect(items.nth(0).locator('.logtext')).toContainText('التانية');
+      await expect(items.nth(1).locator('.logtext')).toContainText('الأولى');
+      await expect(items.nth(0).locator('.logmeta')).toContainText(new Date().toISOString().slice(0, 4));
+      await expect(items.nth(0).locator('.logmeta')).toContainText('رياضيات، الصف العاشر، 3 وحدات');
+      const shown = await items.nth(0).locator('.logtext').innerText();
+      expect(shown).not.toContain('<');
+      expect(shown.split('\n').every((l) => !l.trim().startsWith('=='))).toBe(true);
+      await expect(page.locator('#log-list img')).toHaveCount(0);
+      const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('nmi-log-v1')));
+      expect(stored).toHaveLength(2);
+      expect(stored[0].text).not.toContain('<');
+      expect(stored.every((e) => e.subject === 'math' && e.grade === 10 && e.units === 3)).toBe(true);
+      // it is still there after the page is reloaded, and the level is remembered
+      await page.reload();
+      await openLog(page);
+      await expect(page.locator('#log-list li')).toHaveCount(2);
+      await expect(page.locator('#log-level')).toHaveText('المستوى: رياضيات، الصف العاشر، 3 وحدات');
+    });
+
+    test('delete one and delete all', async ({ page }) => {
+      await seed(page, [entry(3, 'ثالثة', 3, 3), entry(2, 'تانية', 3, 2), entry(1, 'أولى', 3, 1)]);
+      await page.goto('/index.html');
+      await openLog(page);
+      const items = page.locator('#log-list li');
+      await expect(items).toHaveCount(3);
+      await items.nth(1).getByRole('button', { name: 'امسح' }).click();
+      await expect(items).toHaveCount(2);
+      await expect(page.locator('#log-list')).not.toContainText('تانية');
+      expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem('nmi-log-v1')).length)).toBe(2);
+      await expect(page.locator('#log-clear')).toHaveText('امسح الكل');
+      await page.locator('#log-clear').click();
+      await expect(page.locator('#log-list')).toHaveCount(0);
+      await expect(page.locator('#log-clear')).toHaveCount(0);
+      expect(await page.evaluate(() => window.localStorage.getItem('nmi-log-v1'))).toBeNull();
+    });
+
+    test('at most 20 entries: the 21st drops the oldest', async ({ page }) => {
+      const twenty = [];
+      for (let i = 20; i >= 1; i--) twenty.push(entry(i, `رقم ${i}`, 3, i));
+      await seed(page, twenty);
+      await walkToReady(page);
+      await openLog(page);
+      await expect(page.locator('#log-list li')).toHaveCount(20);
+      await page.locator('#log-input').fill(SUMMARY_TEXT('رقم 21'));
+      await page.locator('#log-save').click();
+      await expect(page.locator('#log-list li')).toHaveCount(20);
+      await expect(page.locator('#log-list li').first()).toContainText('رقم 21');
+      await expect(page.locator('#log-list li').last()).toContainText('رقم 2');
+      const mistakes = await page.$$eval('#log-list .logtext', (n) => n.map((x) => x.textContent.split(/\r?\n/).find((l) => l.startsWith('غلط:'))));
+      expect(mistakes).not.toContain('غلط: رقم 1');
+      expect(mistakes).toContain('غلط: رقم 2');
+      expect(new Set(mistakes).size).toBe(20);
+    });
+
+    test('without a level (nothing built yet, nothing remembered) a summary is not saved and the page says why', async ({ page }) => {
+      await page.goto('/index.html');
+      await openLog(page);
+      await expect(page.locator('#log-level')).toContainText('لسا ما اخترت مستواك');
+      await page.locator('#log-input').fill(SUMMARY_TEXT('x'));
+      await page.locator('#log-save').click();
+      await expect(page.locator('#log-msg')).toContainText('اختار مستواك أول');
+      await expect(page.locator('#log-list')).toHaveCount(0);
+    });
+
+    test('a browser that cannot store: the page says so and the rest of the kit still works', async ({ page }) => {
+      await page.addInitScript(() => {
+        const fail = () => { throw new DOMException('blocked', 'SecurityError'); };
+        Storage.prototype.getItem = fail;
+        Storage.prototype.setItem = fail;
+        Storage.prototype.removeItem = fail;
+      });
+      const errors = [];
+      page.on('pageerror', (e) => errors.push(e.message));
+      await walkToReady(page);  // the whole kit works to the last step
+      await expect(page.locator('#open-app')).toBeEnabled();
+      await openLog(page);
+      await expect(page.locator('#log-unavailable')).toHaveText('هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.');
+      await page.locator('#log-input').fill(SUMMARY_TEXT('x'));
+      await page.locator('#log-save').click();
+      await expect(page.locator('#log-msg')).toHaveText('هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.');
+      await expect(page.locator('#log-list')).toHaveCount(0);
+      await page.locator('#log-close').click();
+      await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
+      expect(errors).toEqual([]);
+    });
+
+    test('"ذكّرني بغلطاتي القديمة" only appears with saved entries of the same level, and adds only their mistakes', async ({ page }) => {
+      await seed(page, [entry(3, 'خلط بين الميل والثابت', 3, 3), entry(2, 'غلط جمع بالربح', 3, 2), entry(9, 'من مستوى 4 وحدات', 4, 4)]);
+      // no entries for 5 units: no tick
+      await page.goto('/index.html');
+      await page.getByRole('button', { name: 'رياضيات' }).click();
+      await page.getByRole('button', { name: 'العاشر', exact: true }).click();
+      await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: '5 وحدات' }).click();
+      await page.locator('#next-1').click();
+      await page.getByLabel('مقدمة للهندسة التحليلية', { exact: true }).check();
+      await page.locator('#next-2').click();
+      await expect(page.locator('#remind')).toHaveCount(0);
+      // 3 units: the tick is there
+      await toStep3(page);
+      await expect(page.getByText('ذكّرني بغلطاتي القديمة')).toBeVisible();
+      await expect(page.locator('#remind')).not.toBeChecked();
+      await page.locator('input[data-mode="explain"]').check();
+      await page.locator('#prepare').click();
+      await page.getByText('شوف البرومبت').click();
+      expect(await page.locator('#preview').innerText()).not.toContain('== غلطات من جلسات قبل ==');
+      await toStep3(page);  // again, and this time with the tick
+      await page.locator('#remind').check();
+      await page.locator('input[data-mode="explain"]').check();
+      await page.locator('#prepare').click();
+      await expect(page.getByRole('heading', { name: 'جاهز' })).toBeVisible();
+      await page.getByText('شوف البرومبت').click();
+      const text = await page.locator('#preview').innerText();
+      expect(text).toContain('== غلطات من جلسات قبل ==\nغلط: خلط بين الميل والثابت\nغلط: غلط جمع بالربح\nخلال الجلسة، افحصه على هالغلطات بسؤال واحد على الأقل. ما تذكرها إلا إذا إلها علاقة بالسؤال.');
+      expect(text).not.toContain('من مستوى 4 وحدات');
+      expect(text).not.toContain('المواضيع: النموذج الخطي\nضبط');  // only the "غلط:" lines, not the whole summary
     });
   });
 }
@@ -659,7 +884,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.locator('#next-2').click();
       expect(await insideScreen(page, '#prepare')).toBe(true);
-      await page.locator('button[data-mode="explain"]').click();
+      await page.locator('input[data-mode=\"explain\"]').check();
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
       expect(await insideScreen(page, '#prepare')).toBe(true);
       await noSideScroll(page, name + ' sticky');

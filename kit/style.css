@@ -31,7 +31,7 @@ body {
 
 .top {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 8px var(--gutter);
   padding-block: 16px 8px;
@@ -77,12 +77,16 @@ button[disabled] { color: #8a8a8a; border-color: #8a8a8a; cursor: not-allowed; }
 .choice[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
 .choice .badge { font-size: 13px; border: 1px solid currentColor; border-radius: 99px; padding: 0 8px; }
 
-.mode { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; width: 100%; text-align: start; margin-bottom: 10px; padding: 14px 16px; gap: 2px; }
+.mode { display: flex; flex-direction: row; align-items: flex-start; gap: 12px; width: 100%; text-align: start; margin-bottom: 10px; padding: 14px 16px; border: 2px solid var(--line); border-radius: var(--radius); background: var(--bg); cursor: pointer; min-height: 52px; }
+.mode input { width: 26px; height: 26px; margin: 2px 0 0; flex: none; accent-color: #fff; background: var(--bg); }
+.mode[data-on="false"] input { accent-color: #000; }
+.mode-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mode .mode-title { display: block; font-size: 20px; }
 .mode .mode-note { display: block; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .mode:hover { background: var(--soft); }
-.mode[aria-pressed="true"], .mode[aria-pressed="true"]:hover { background: var(--ink); color: var(--bg); }
-.mode[aria-pressed="true"] .mode-note { color: var(--bg); }
+.mode[data-on="true"], .mode[data-on="true"]:hover { background: var(--ink); color: var(--bg); }
+.mode[data-on="true"] .mode-note { color: var(--bg); }
+.mode:focus-within { outline: 3px solid var(--ink); outline-offset: 3px; }
 
 .primary { background: var(--ink); color: var(--bg); width: 100%; min-height: 60px; font-size: 20px; font-weight: 700; }
 .primary[disabled] { background: #d6d6d6; color: #6b6b6b; border-color: #d6d6d6; }
@@ -152,6 +156,16 @@ pre#preview {
 .targetbox { margin-top: 16px; }
 .targetbox > summary { font-weight: 700; }
 .targetbox .group { margin-top: 4px; }
+
+.loglink { min-height: 44px; padding: 4px 14px; border-width: 1px; }
+.loglink[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.logtitle { display: block; font-weight: 700; margin: 16px 0 6px; }
+#log-input { display: block; width: 100%; font: inherit; min-height: 140px; padding: 10px 12px; border: 2px solid var(--line); border-radius: var(--radius); background: var(--bg); color: var(--ink); resize: vertical; }
+.loglist { list-style: none; margin: 0; padding: 0; }
+.logitem { border-top: 1px solid #c8c8c8; padding: 10px 0; display: grid; gap: 6px; }
+.logmeta { margin: 0; font-weight: 700; font-size: 15px; }
+.logtext { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.6 var(--font); background: var(--soft); padding: 8px 10px; border-radius: 8px; }
+.logitem .del { justify-self: start; }
 
 a { color: var(--ink); text-underline-offset: 3px; }
 

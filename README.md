@@ -27,12 +27,13 @@ NMI brings the curriculum **into** the app the student already uses.
 
 1. The student picks a subject, grade, level (3, 4 or 5 units) and an optional target level (for example 3 → 5).
 2. The student ticks the topics to review, or adds a topic of their own.
-3. The student picks a mode: **Understand**, **Practice**, **Mock exam** or **Plan**. Optional: "I have an old exam from my teacher" and a short note to the tutor.
+3. The student picks one or more modes: **Understand**, **Practice**, **Mock exam**, **Plan**. Optional: "I have an old exam from my teacher", "Remind me of my old mistakes", and a short note to the tutor.
 4. NMI builds one prompt and opens the student's AI app with it (Android share sheet, or copy and paste).
+5. At the end of a session, the AI writes a short summary. The student pastes it into **My log** in NMI, and the next prompt tests them on their old mistakes.
 
 The prompt contains only what that student needs: their topics from the official curriculum, the exam patterns for their level, one example question per topic, and the teaching rules (one question at a time, hints before answers, read photos of handwritten work).
 
-Nothing is uploaded to NMI and nothing is stored about the student. There is no server and no cost.
+Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. There is no server and no cost.
 
 ## What is inside
 
@@ -47,7 +48,7 @@ Nothing is uploaded to NMI and nothing is stored about the student. There is no 
 
 - **Lab version (first):** a local web app that called the Claude API directly, with 60+ evaluation cases scored by an AI judge and by code checks. It taught me which teaching rules work. It also taught me that students would not leave ChatGPT for it, so the product became the toolkit.
 - **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding curriculum files, not code.
-- **Tests:** 183 offline tests, 77 local tests, 33 prompt tests, 64 browser tests on iPhone, Android and desktop sizes.
+- **Tests:** 185 offline tests, 77 local tests, 40 prompt tests, 8 log tests, 97 browser tests on iPhone, Android and desktop sizes.
 - **Tools:** I designed the product, made the decisions and tested it with real study sessions. I wrote the code with AI coding assistants (Claude Code), and checked the content against official sources.
 
 ## Honest limits

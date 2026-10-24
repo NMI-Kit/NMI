@@ -391,6 +391,37 @@ class KitFilesTests(unittest.TestCase):
         for part in ('ملف الأستاذ', 'ملاحظة للمدرّس', 'أندرويد', 'محادثة جديدة'):
             self.assertIn(part, guide)
 
+    def test_the_log_stays_on_the_device_and_the_page_loads_it(self):
+        html, app, log, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'log.js', 'prompt.js'))
+        self.assertIn('<script src="log.js"></script>', html)
+        self.assertIn('id="log-link"', html)
+        self.assertLess(html.index('prompt.js'), html.index('log.js'))
+        self.assertLess(html.index('log.js'), html.index('app.js'))
+        # nothing the student pastes leaves the browser: the only request of the page is the data file
+        self.assertEqual(app.count('fetch('), 1)
+        self.assertIn("fetch('data.json')", app)
+        for word in ('fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket', 'navigator.share', 'window.open', 'eval(', 'innerHTML'):
+            self.assertNotIn(word, log, word)
+        self.assertNotIn('innerHTML', app)  # the log and the notes are shown as text, never as HTML
+        for part in ('السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.', 'الصق ملخّص الجلسة', 'ذكّرني بغلطاتي القديمة', 'امسح الكل'):
+            self.assertIn(part, app)
+        for part in ('هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.', 'هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.'):
+            self.assertIn(part, log)
+        # every storage call of the log is inside a try
+        self.assertEqual(log.count('try {'), log.count('catch ('))
+        self.assertGreaterEqual(log.count("try {"), 5)
+        for part in ('NMI-LOG', 'المواضيع: ...', 'ضبط: ...', 'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)', 'عشان بالمرة الجاية أفحصك على غلطاتك',
+                     'خلال الجلسة، افحصه على هالغلطات بسؤال واحد على الأقل. ما تذكرها إلا إذا إلها علاقة بالسؤال.', '== غلطات من جلسات قبل ==',
+                     'الطالب اختار: ', 'ابدأ بأول وحدة. لما يخلص أو يطلب، انتقل للي بعدها.'):
+            self.assertIn(part, prompt)
+
+    def test_the_node_tests_of_the_kit_are_all_in_the_package_script(self):
+        script = json.loads(read(ROOT / 'package.json'))['scripts']['test:kit']
+        for name in ('tests/kit/prompt.test.cjs', 'tests/kit/log.test.cjs', 'playwright.kit.config.cjs'):
+            self.assertIn(name, script)
+        for path in sorted((ROOT / 'tests' / 'kit').glob('*.test.cjs')):
+            self.assertIn(f'tests/kit/{path.name}', script)
+
     def test_the_pages_workflow_publishes_only_the_kit_folder_and_checks_the_data(self):
         workflow = read(ROOT / '.github' / 'workflows' / 'kit-pages.yml')
         self.assertRegex(workflow, r'path: kit\s')
