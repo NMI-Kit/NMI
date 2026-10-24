@@ -419,13 +419,33 @@
     return /android/i.test(navigator.userAgent || '');
   }
 
+  /* iPhone, iPad and iPod. An iPad with "desktop" Safari says it is a Mac, but it has a touch screen. */
+  function isIOS() {
+    return /iPhone|iPad|iPod/.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  }
+
   function appAddress(app) {
     if (!isAndroid()) return app.url;
     return 'intent://' + app.host + '/' + app.path + '#Intent;scheme=https;package=' + app.package +
       ';S.browser_fallback_url=' + encodeURIComponent(app.url) + ';end';
   }
 
-  /* The button of an app copies the prompt first, says so, and only then opens the app. */
+  /* iOS opens the installed app (a universal link) only when the student taps a normal link. So on iOS the click is not
+     stopped and nothing is opened by the script: the link goes to the plain https address by itself, in the same tab.
+     The copy has to start inside the click, before the page is left. */
+  function copyInsideClick(text) {
+    var failed = 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت" وانسخه.';
+    setStatus('انسخنا البرومبت. الصقه بالتطبيق.');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        navigator.clipboard.writeText(text).then(null, function () { if (!legacyCopy(text)) setStatus(failed); });
+        return;
+      } catch (error) { /* an old browser: the fallback below */ }
+    }
+    if (!legacyCopy(text)) setStatus(failed);
+  }
+
+  /* On Android and on a computer: the button of an app copies the prompt first, says so, and only then opens the app. */
   function openApp(app, text) {
     return copyText(text).then(function (copied) {
       setStatus(copied ? 'انسخنا البرومبت. الصقه بالتطبيق.' : 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت" وانسخه.');
@@ -475,8 +495,9 @@
     section.appendChild(h('h2', { text: 'أو افتح التطبيق بنفسك والصق' }));
     var apps = h('div', { class: 'apps' });
     APPS.forEach(function (a) {
-      apps.appendChild(h('a', { class: 'linkbtn', href: appAddress(a), target: '_blank', rel: 'noopener noreferrer', 'data-app': a.name,
-        onclick: function (event) { event.preventDefault(); openApp(a, built.text); } }, a.name));
+      var ios = isIOS();
+      apps.appendChild(h('a', { class: 'linkbtn', href: appAddress(a), target: ios ? null : '_blank', rel: 'noopener noreferrer', 'data-app': a.name,
+        onclick: ios ? function () { copyInsideClick(built.text); } : function (event) { event.preventDefault(); openApp(a, built.text); } }, a.name));
     });
     section.appendChild(apps);
 

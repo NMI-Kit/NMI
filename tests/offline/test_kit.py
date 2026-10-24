@@ -391,6 +391,24 @@ class KitFilesTests(unittest.TestCase):
         for part in ('ملف الأستاذ', 'ملاحظة للمدرّس', 'أندرويد', 'محادثة جديدة'):
             self.assertIn(part, guide)
 
+    def test_on_ios_the_app_buttons_are_normal_links_and_nothing_else_changed(self):
+        app = read(ROOT / 'kit' / 'app.js')
+        for part in ('function isIOS()', '/iPhone|iPad|iPod/.test(navigator.userAgent', "navigator.platform === 'MacIntel'", 'navigator.maxTouchPoints > 1',
+                     'function copyInsideClick(text)', "target: ios ? null : '_blank'", 'onclick: ios ? function () { copyInsideClick(built.text); }'):
+            self.assertIn(part, app)
+        # on iOS nothing stops the click or opens a window: copyInsideClick has no preventDefault and no window.open
+        inside = app[app.index('function copyInsideClick(text)'):app.index('/* On Android and on a computer')]
+        self.assertNotIn('preventDefault', inside)
+        self.assertNotIn('window.open', inside)
+        self.assertIn('navigator.clipboard.writeText(text)', inside)
+        self.assertIn('legacyCopy(text)', inside)
+        # Android and the computer keep their way: stop the click, copy, then open
+        self.assertIn("if (isAndroid()) { window.open(address, '_self'); return; }", app)
+        self.assertIn("var tab = window.open(address, '_blank');", app)
+        # still no private scheme, only the official https addresses
+        for scheme in ('chatgpt://', 'claude://', 'gemini://', 'googlechrome://', 'x-apple'):
+            self.assertNotIn(scheme, app)
+
     def test_the_log_stays_on_the_device_and_the_page_loads_it(self):
         html, app, log, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'log.js', 'prompt.js'))
         self.assertIn('<script src="log.js"></script>', html)

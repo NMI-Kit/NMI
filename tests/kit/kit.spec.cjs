@@ -154,9 +154,9 @@ for (const [name, profile] of Object.entries(profiles)) {
         ['ChatGPT', INTENTS.ChatGPT, '_blank', 'noopener noreferrer'],
         ['Claude', INTENTS.Claude, '_blank', 'noopener noreferrer'],
         ['Gemini', INTENTS.Gemini, '_blank', 'noopener noreferrer']] : [
-        ['ChatGPT', 'https://chatgpt.com/', '_blank', 'noopener noreferrer'],
-        ['Claude', 'https://claude.ai/new', '_blank', 'noopener noreferrer'],
-        ['Gemini', 'https://gemini.google.com/app', '_blank', 'noopener noreferrer']]);
+        ['ChatGPT', 'https://chatgpt.com/', name === 'iphone' ? '' : '_blank', 'noopener noreferrer'],
+        ['Claude', 'https://claude.ai/new', name === 'iphone' ? '' : '_blank', 'noopener noreferrer'],
+        ['Gemini', 'https://gemini.google.com/app', name === 'iphone' ? '' : '_blank', 'noopener noreferrer']]);
       await expect(page.getByText('صوّر حلّك على الورقة وابعته بالتطبيق.')).toBeVisible();
       await expect(page.getByText('بدك تتدرّب على امتحان كامل؟ نزّله وارفعه للأداة.')).toBeVisible();
       await expect(page.locator('#exams-link')).toHaveAttribute('href', 'https://meyda.education.gov.il/');
@@ -511,6 +511,7 @@ for (const [name, profile] of Object.entries(profiles)) {
     });
 
     test('each small app button copies the prompt first, says so, and then opens the app (an intent on Android, https elsewhere)', async ({ page }) => {
+      test.skip(name === 'iphone', 'on an iPhone the link navigates by itself: see the iOS tests below');
       await page.addInitScript(() => {
         window.__events = [];
         Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (t) => { window.__events.push(['copy', t.length]); return Promise.resolve(); } } });
@@ -935,3 +936,105 @@ for (const [name, profile] of Object.entries(profiles)) {
     });
   });
 }
+
+// ----------------------------------------------------------------------------- iOS: a normal link, so that iOS can open the installed app
+const EXTERNAL = { ChatGPT: 'https://chatgpt.com/', Claude: 'https://claude.ai/new', Gemini: 'https://gemini.google.com/app' };
+
+// what the page does inside the click, without leaving the page: the copy, the status, and whether the click was stopped
+async function watchTheClick(page, app) {
+  return page.evaluate((name) => new Promise((resolve) => {
+    const a = document.querySelector(`a[data-app="${name}"]`);
+    window.__events.length = 0;
+    // the handler of the page is registered first, so this one runs after it
+    a.addEventListener('click', (event) => {
+      const prevented = event.defaultPrevented;
+      event.preventDefault();  // only for this check: do not leave the page
+      setTimeout(() => resolve({ prevented, events: window.__events.slice(), status: document.getElementById('status').textContent }), 50);
+    }, { once: true });
+    a.click();
+  }), app);
+}
+
+const copyAndOpenSpies = () => {
+  window.__events = [];
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: (t) => { window.__events.push(['copy', t.length]); return Promise.resolve(); } } });
+  window.open = (url, target) => { window.__events.push(['open', url, target]); return {}; };
+};
+
+test.describe('iPhone: the app buttons are normal links', () => {
+  test.use(profiles.iphone);
+
+  test('no target, the https address, the prompt copied inside the click, the click not stopped, nothing opened by script', async ({ page }) => {
+    await page.addInitScript(copyAndOpenSpies);
+    await walkToReady(page);
+    for (const app of ['ChatGPT', 'Claude', 'Gemini']) {
+      const link = page.locator(`a[data-app="${app}"]`);
+      expect(await link.getAttribute('href'), app).toBe(EXTERNAL[app]);
+      expect(await link.getAttribute('target'), app + ' has no target="_blank"').toBeNull();
+      expect(await link.getAttribute('rel')).toBe('noopener noreferrer');
+      const result = await watchTheClick(page, app);
+      expect(result.prevented, app + ': the click is not stopped').toBe(false);
+      expect(result.events.filter((e) => e[0] === 'open'), app + ': no window.open').toEqual([]);
+      expect(result.events[0][0], 'the copy started inside the click').toBe('copy');
+      expect(result.events[0][1]).toBeGreaterThan(1000);
+      expect(result.status).toBe('انسخنا البرومبت. الصقه بالتطبيق.');
+    }
+    // the plain href is what is left: an official https address, no private scheme
+    const hrefs = await page.$$eval('.apps a', (a) => a.map((x) => x.getAttribute('href')));
+    for (const href of hrefs) expect(href).toMatch(/^https:\/\/(chatgpt\.com|claude\.ai|gemini\.google\.com)\//);
+  });
+
+  test('a real tap goes to the https address in the same tab and opens no new tab', async ({ page, context }) => {
+    await page.route(/^https:\/\/(chatgpt\.com|claude\.ai|gemini\.google\.com)\//, (route) => route.fulfill({ contentType: 'text/html', body: '<html><body>the site</body></html>' }));
+    await page.addInitScript(copyAndOpenSpies);
+    await walkToReady(page);
+    await page.locator('a[data-app="Claude"]').click();
+    await page.waitForURL('https://claude.ai/new');
+    expect(context.pages()).toHaveLength(1);
+  });
+});
+
+test.describe('iPad: a Mac that has a touch screen is iOS too, a Mac without one is not', () => {
+  const macUserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+  test.use({ viewport: { width: 820, height: 1180 }, userAgent: macUserAgent });
+
+  const pretend = (touchPoints) => (points) => {
+    Object.defineProperty(navigator, 'platform', { configurable: true, get: () => 'MacIntel' });
+    Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, get: () => points });
+  };
+
+  test('maxTouchPoints > 1: no target, the click is not stopped', async ({ page }) => {
+    await page.addInitScript(copyAndOpenSpies);
+    await page.addInitScript(pretend(5), 5);
+    await walkToReady(page);
+    expect(await page.locator('a[data-app="Gemini"]').getAttribute('target')).toBeNull();
+    const result = await watchTheClick(page, 'Gemini');
+    expect(result.prevented).toBe(false);
+    expect(result.events.filter((e) => e[0] === 'open')).toEqual([]);
+    expect(result.events[0][0]).toBe('copy');
+  });
+
+  test('a Mac without a touch screen opens the app in a new tab, like any computer', async ({ page }) => {
+    await page.addInitScript(copyAndOpenSpies);
+    await page.addInitScript(pretend(0), 0);
+    await walkToReady(page);
+    expect(await page.locator('a[data-app="Gemini"]').getAttribute('target')).toBe('_blank');
+    const result = await watchTheClick(page, 'Gemini');
+    expect(result.prevented).toBe(true);  // the page copies, then opens the tab
+  });
+});
+
+test.describe('computer and Android keep the way they had', () => {
+  test.use(profiles.desktop);
+  test('a computer: the click is stopped, the prompt is copied, and a new tab is opened by script', async ({ page }) => {
+    await page.addInitScript(copyAndOpenSpies);
+    await walkToReady(page);
+    expect(await page.locator('a[data-app="ChatGPT"]').getAttribute('target')).toBe('_blank');
+    const result = await watchTheClick(page, 'ChatGPT');
+    expect(result.prevented).toBe(true);
+    await expect(page.locator('#status')).toHaveText('انسخنا البرومبت. الصقه بالتطبيق.');
+    const events = await page.evaluate(() => window.__events);
+    expect(events.map((e) => e[0])).toEqual(['copy', 'open']);
+    expect(events[1]).toEqual(['open', 'https://chatgpt.com/', '_blank']);
+  });
+});
