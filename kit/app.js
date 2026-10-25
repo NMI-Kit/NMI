@@ -5,10 +5,13 @@
   var P = window.NMIPrompt;
   var L = window.NMILog;
   var I = window.NMII18n;
+  /* url: the plain https address (iPhone and computer). host, path, package, suffix: the Chrome intent of Android, as it was
+     tested on a real phone with the link test page: ChatGPT variant B (the path "?model=auto", with its package), Claude
+     variant A, Gemini variant C (no package: Android picks the app that handles Gemini on each phone). */
   var APPS = [
-    { name: 'ChatGPT', url: 'https://chatgpt.com/', host: 'chatgpt.com', path: '', package: 'com.openai.chatgpt' },
-    { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', package: 'com.anthropic.claude' },
-    { name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', package: 'com.google.android.apps.bard' }
+    { name: 'ChatGPT', url: 'https://chatgpt.com/', host: 'chatgpt.com', path: '?model=auto', suffix: '?model=auto', package: 'com.openai.chatgpt' },
+    { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', suffix: '', package: 'com.anthropic.claude' },
+    { name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', suffix: '', package: null }
   ];
   var MINISTRY = 'https://meyda.education.gov.il/';
   var TOTAL = 4;
@@ -436,8 +439,8 @@
 
   function appAddress(app) {
     if (!isAndroid()) return app.url;
-    return 'intent://' + app.host + '/' + app.path + '#Intent;scheme=https;package=' + app.package +
-      ';S.browser_fallback_url=' + encodeURIComponent(app.url) + ';end';
+    return 'intent://' + app.host + '/' + app.path + '#Intent;scheme=https;' + (app.package ? 'package=' + app.package + ';' : '') +
+      'S.browser_fallback_url=' + encodeURIComponent(app.url + app.suffix) + ';end';
   }
 
   /* iOS opens the installed app (a universal link) only when the student taps a normal link. So on iOS the click is not

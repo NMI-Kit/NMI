@@ -80,7 +80,7 @@ test('t(): placeholders, a missing key and a missing language', () => {
   assert.equal(I.t('en', 'no-such-key'), 'no-such-key');
   assert.equal(I.t('fr', 'next'), I.STRINGS.next.ar, 'an unknown language falls back to Arabic');
   assert.equal(I.t('en', 'customLimit', { n: 5 }), 'You reached the limit: 5 topics.');
-  assert.equal(I.t('en', 'tooLong', { n: 17000, max: 16000 }).includes('17000'), true);
+  assert.equal(I.t('en', 'tooLong', { n: 17000, max: 16200 }).includes('17000'), true);
 });
 
 test('the default language: Hebrew or English from the browser, otherwise Arabic', () => {

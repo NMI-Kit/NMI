@@ -352,7 +352,15 @@ class KitFilesTests(unittest.TestCase):
         self.assertEqual(sorted(re.findall(r"https://[^'\"]+", app)),
                          sorted(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app', 'https://meyda.education.gov.il/']))
         # the Android buttons use Chrome intents of the three official apps, with the official site as the fallback
-        self.assertEqual(sorted(re.findall(r"package: '([a-z.]+)'", app)), ['com.anthropic.claude', 'com.google.android.apps.bard', 'com.openai.chatgpt'])
+        # ChatGPT variant B, Claude variant A and Gemini variant C of kit/applinks.html: the ones that opened the app on a real phone
+        self.assertEqual(sorted(re.findall(r"package: '([a-z.]+)'", app)), ['com.anthropic.claude', 'com.openai.chatgpt'])
+        self.assertIn("name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', suffix: '', package: null", app)
+        self.assertIn("name: 'ChatGPT', url: 'https://chatgpt.com/', host: 'chatgpt.com', path: '?model=auto', suffix: '?model=auto', package: 'com.openai.chatgpt'", app)
+        self.assertIn("name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', suffix: '', package: 'com.anthropic.claude'", app)
+        self.assertIn("(app.package ? 'package=' + app.package + ';' : '')", app)
+        self.assertNotIn('com.google.android.apps.bard', app)  # Gemini has no package any more
+        page = read(ROOT / 'kit' / 'applinks.html')
+        self.assertIn('com.google.android.apps.bard', page)  # the test page keeps all its variants
         self.assertEqual(app.count("'intent://'"), 1)
         self.assertIn('S.browser_fallback_url=', app)
         for scheme in ('chatgpt://', 'claude://', 'gemini://', 'googlechrome://', 'market://'):

@@ -7,11 +7,11 @@
   'use strict';
 
   /* Longest prompt we are happy to send, in characters. The biggest whole level (grade 10, 5 units, every topic) with
-     any set of modes is about 15,700, so one level with every topic fits. 16,000 characters is about 5,700 tokens in
-     Arabic: a free-tier chat takes it, a phone pastes it without trouble, and the model still follows the rules at the
-     top instead of drowning in text. A prompt that is longer (a whole level with a long mistakes section, or a whole own
-     level plus a whole target level) is not refused: the page warns the student. */
-  const MAX_LENGTH = 16000;
+     any set of modes and any page language is about 16,100, so one level with every topic fits. 16,200 characters is
+     about 5,700 tokens in Arabic: a free-tier chat takes it, a phone pastes it without trouble, and the model still
+     follows the rules at the top instead of drowning in text. A prompt that is longer (a whole level with a long
+     mistakes section, or a whole own level plus a whole target level) is not refused: the page warns the student. */
+  const MAX_LENGTH = 16200;
 
   /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
   const MAX_CUSTOM = 5;

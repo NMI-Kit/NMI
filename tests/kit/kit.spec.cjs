@@ -33,11 +33,15 @@ async function markExperimental(page, grade, units) {
 }
 
 // what an Android phone gets for the three small buttons: a Chrome intent with the app package and the site as fallback
+// tested on a real Android phone with kit/applinks.html: ChatGPT variant B, Claude variant A, Gemini variant C (no package)
 const INTENTS = {
-  ChatGPT: 'intent://chatgpt.com/#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F;end',
+  ChatGPT: 'intent://chatgpt.com/?model=auto#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F%3Fmodel%3Dauto;end',
   Claude: 'intent://claude.ai/new#Intent;scheme=https;package=com.anthropic.claude;S.browser_fallback_url=https%3A%2F%2Fclaude.ai%2Fnew;end',
-  Gemini: 'intent://gemini.google.com/app#Intent;scheme=https;package=com.google.android.apps.bard;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end'
+  Gemini: 'intent://gemini.google.com/app#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end'
 };
+// the same addresses, read from the test page itself: the buttons of the kit use the hrefs that worked there
+const APPLINKS_PAGE = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '..', 'kit', 'applinks.html'), 'utf8');
+const hrefOfVariant = (variant) => APPLINKS_PAGE.match(new RegExp(`data-variant="${variant}">\\s*<a class="linkbtn" href="([^"]+)"`))[1];
 
 // clipboard and share are mocked: the page must copy first, then call share with the same text
 async function mockShare(page, behaviour) {
@@ -544,10 +548,38 @@ test.describe('the intent links only use the official apps and sites', () => {
     const hrefs = await page.$$eval('.apps a', (a) => a.map((x) => x.getAttribute('href')));
     expect(hrefs).toHaveLength(3);
     for (const href of hrefs) {
-      expect(href).toMatch(/^intent:\/\/[a-z.]+\/[a-z]*#Intent;scheme=https;package=[a-z.]+;S\.browser_fallback_url=https%3A%2F%2F[^;]+;end$/);
+      expect(href).toMatch(/^intent:\/\/[a-z.]+\/[?=a-z]*#Intent;scheme=https;(package=[a-z.]+;)?S\.browser_fallback_url=https%3A%2F%2F[^;]+;end$/);
       expect(href).not.toMatch(/^(chatgpt|claude|gemini|googlechrome):/);
     }
-    expect(hrefs.map((h) => h.match(/package=([a-z.]+);/)[1])).toEqual(['com.openai.chatgpt', 'com.anthropic.claude', 'com.google.android.apps.bard']);
+    // ChatGPT and Claude name their app; Gemini has no package, so Android picks the app that handles Gemini on each phone
+    expect(hrefs.map((h) => (h.match(/package=([a-z.]+);/) || [null, null])[1])).toEqual(['com.openai.chatgpt', 'com.anthropic.claude', null]);
+  });
+
+  test('the three buttons are exactly the variants that worked on a real phone: ChatGPT B, Claude A, Gemini C', async ({ page }) => {
+    await walkToReady(page);
+    const hrefs = await page.$$eval('.apps a', (a) => Object.fromEntries(a.map((x) => [x.dataset.app, x.getAttribute('href')])));
+    expect(hrefs.ChatGPT).toBe(hrefOfVariant('chatgpt-b'));
+    expect(hrefs.Claude).toBe(hrefOfVariant('claude-a'));
+    expect(hrefs.Gemini).toBe(hrefOfVariant('gemini-c'));
+    expect(hrefs).toEqual(INTENTS);
+    // the exact address of ChatGPT B, and no package for Gemini
+    expect(hrefs.ChatGPT).toBe('intent://chatgpt.com/?model=auto#Intent;scheme=https;package=com.openai.chatgpt;S.browser_fallback_url=https%3A%2F%2Fchatgpt.com%2F%3Fmodel%3Dauto;end');
+    expect(hrefs.Gemini).toBe('intent://gemini.google.com/app#Intent;scheme=https;S.browser_fallback_url=https%3A%2F%2Fgemini.google.com%2Fapp;end');
+    expect(hrefs.Gemini).not.toContain('package=');
+    // the browser fallback is still the official site when the app is not installed
+    for (const href of Object.values(hrefs)) expect(href).toMatch(/S\.browser_fallback_url=https%3A%2F%2F(chatgpt\.com|claude\.ai|gemini\.google\.com)%2F/);
+  });
+
+  test('on iPhone and on a computer the addresses did not change: the plain https links', async ({ browser }) => {
+    const desktopAgent = { ...profiles.desktop, userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' };
+    for (const [name, options] of [['iphone', profiles.iphone], ['desktop', desktopAgent]]) {
+      const context = await browser.newContext(options);
+      const page = await context.newPage();
+      await walkToReady(page);
+      const hrefs = await page.$$eval('.apps a', (a) => a.map((x) => x.getAttribute('href')));
+      expect(hrefs, name).toEqual(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app']);
+      await context.close();
+    }
   });
 });
 
@@ -1422,7 +1454,7 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await page.locator('#teacher-file').check();
         await page.locator('#prepare').click();
         await expect(page.locator('#too-long')).toBeVisible();
-        await expect(page.locator('#too-long')).toContainText(t('tooLong', { n: '', max: 16000 }).split('(')[0].trim());
+        await expect(page.locator('#too-long')).toContainText(t('tooLong', { n: '', max: 16200 }).split('(')[0].trim());
         await expect(page.locator('#attach')).toHaveText(t('attach'));
         await expect(page.locator('#summary')).toContainText(t('customCount', { n: 1 }));
         await expect(page.locator('#summary')).toContainText(t('fromTarget'));
