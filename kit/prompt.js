@@ -78,7 +78,14 @@
   const MAX_DIRECT_START = 3;
   /* Only for a student whose page is in Hebrew or English; nothing is added for Arabic. */
   const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };
-  const STUDENT_LANGUAGE_LINE = 'لغة الطالب: [language]. كل ردودك لازم تكون بهاللغة من أول رد، والمصطلحات بالعبري.';
+  const STUDENT_LANGUAGE_LINE = 'لغة الطالب: [language]. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:';
+  const STUDENT_LANGUAGE_RULES = [
+    '- كل ردودك بهاللغة من أول رد: الشرح، والقصص، والأسئلة، والملخص.',
+    '- المصطلحات بالعبري. (للإنجليزي: المصطلح بالإنجليزي وجنبه العبري بين قوسين.) ما تكتب مصطلحات بالعربي.',
+    '- الجمل الجاهزة تحت (مثل \'هاد مش بمنهاجك...\') قولها بمعناها بلغة الطالب.',
+    '- كلام الطالب بلغته إله نفس المعنى: \'לא הבנתי\' / \'I don\'t understand\' = \'مش فاهم\'، \'סיימתי\' / \'I\'m done\' = \'خلصت\'.',
+    '- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط \'المواضيع:\' و\'ضبط:\' و\'غلط:\' بالعربي، والباقي بلغة الطالب.'
+  ];
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
   /* the order in the prompt, whatever the order of the ticks: the plan first, then understand, practice, mock exam */
   const PROMPT_ORDER = ['plan', 'explain', 'practice', 'mock'];
@@ -274,7 +281,10 @@
     if (modes.length > 1) student.push('الطالب اختار: ' + labels.join(' + ') + '. ابدأ بأول وحدة بس. كل رد بوضع واحد بس. لما تخلص الوضع، اسأله إذا جاهز للي بعده، وما تنتقل قبل ما يجاوب.');
 
     /* the prompt is Arabic (the curriculum is Arabic): a student whose page is in Hebrew or English is told so, once */
-    if (STUDENT_LANGUAGE[sel.language]) student.push(STUDENT_LANGUAGE_LINE.replace('[language]', STUDENT_LANGUAGE[sel.language]));
+    if (STUDENT_LANGUAGE[sel.language]) {
+      student.push(STUDENT_LANGUAGE_LINE.replace('[language]', STUDENT_LANGUAGE[sel.language]));
+      STUDENT_LANGUAGE_RULES.forEach(function (rule) { student.push(rule); });
+    }
 
     /* what the tutor starts with: the first topic of the student, in the order of the list, then the ones he wrote */
     const everyName = names(pickedOwn.concat(pickedTarget)).concat(custom);
@@ -370,6 +380,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, STUDENT_LANGUAGE_RULES: STUDENT_LANGUAGE_RULES, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

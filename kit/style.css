@@ -65,7 +65,7 @@ button, .linkbtn {
   justify-content: center;
   gap: 8px;
 }
-button:focus-visible, .linkbtn:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
+button:focus-visible, .linkbtn:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 3px;
 }

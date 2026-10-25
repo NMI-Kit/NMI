@@ -60,7 +60,7 @@ test('Hebrew uses the words of Israeli students: יח"ל for units, no בגרו�
   assert.equal(I.t('he', 'unitsN', { n: 4 }), '4 יח"ל');
   assert.ok(I.t('he', 'units').includes('יח"ל'));
   assert.ok(I.t('he', 'targetSummary', { n: 5 }).includes('5 יח"ל'));
-  assert.equal(I.t('he', 'modeMockLabel'), 'מבחן דמה');
+  assert.equal(I.t('he', 'modeMockLabel'), 'סימולציה');
   assert.equal(I.t('he', 'grade10'), 'כיתה י׳');
   assert.equal(I.t('he', 'grade11'), 'כיתה י״א');
   assert.equal(I.t('he', 'grade12'), 'כיתה י״ב');

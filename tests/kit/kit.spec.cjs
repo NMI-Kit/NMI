@@ -436,6 +436,10 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#note').fill('س'.repeat(250));
       expect((await page.locator('#note').inputValue()).length).toBe(200);
       await expect(page.locator('#note-count')).toHaveText('200 / 200');
+      // the focus ring of the note is the black one of the buttons and the inputs, not the orange one of the browser
+      await page.locator('#note').focus();
+      const ring = await page.locator('#note').evaluate((el) => { const s = getComputedStyle(el); return { style: s.outlineStyle, width: s.outlineWidth, color: s.outlineColor, offset: s.outlineOffset }; });
+      expect(ring).toEqual({ style: 'solid', width: '3px', color: 'rgb(0, 0, 0)', offset: '3px' });
       await noSideScroll(page, name + ' step 3 note');
     });
 
@@ -1366,12 +1370,13 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await page.locator('#app details').last().locator('summary').click();
         const text = await page.locator('#preview').innerText();
         const language = lang === 'he' ? 'עברית' : 'English';
-        expect(text).toContain(`لغة الطالب: ${language}. كل ردودك لازم تكون بهاللغة من أول رد، والمصطلحات بالعبري.`);
+        expect(text).toContain(`لغة الطالب: ${language}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`);
         expect(text).toContain('== الطالب ==');  // the rest of the prompt is Arabic
         expect(text).toContain('الوضع اللي اختاره: تدرّب');
         expect(text).toContain('المواضيع اللي بدو يراجعها: الاحتمال');  // the topic name in the prompt is the Arabic one
         const student = text.slice(text.indexOf('== الطالب =='), text.indexOf('== المصادر =='));
-        expect(student.trim().split(/\r?\n/).pop()).toContain('لغة الطالب: ' + language);
+        expect(student.trim().split(/\r?\n/).slice(-6)[0]).toContain('لغة الطالب: ' + language);
+        expect(student.trim().split(/\r?\n/).pop()).toContain('NMI-LOG');
         // the preview of the prompt is right to left whatever the page is
         expect(await page.locator('#preview').evaluate((el) => getComputedStyle(el).direction)).toBe('rtl');
       });

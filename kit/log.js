@@ -15,7 +15,8 @@
   const MAX_ENTRIES = 20;    // the oldest is dropped
   const MISTAKES_ENTRIES = 3;
   const MISTAKES_CHARS = 600;
-  const MISTAKE_PREFIX = 'غلط:';
+  /* the prompt asks for "غلط:" even on a page in Hebrew or English; the Hebrew and English words are only a safety net */
+  const MISTAKE_PREFIXES = ['غلط:', 'טעויות:', 'טעות:', 'Mistakes:', 'Mistake:'];
   const NEWLINE = String.fromCharCode(10);
 
   /* The reasons why something is not done are codes, not texts: the page says them in its own language (kit/i18n.js). */
@@ -154,7 +155,7 @@
     chosen.forEach(function (entry) {
       entry.text.split(/\n/).forEach(function (line) {
         const trimmed = line.trim();
-        if (trimmed.slice(0, MISTAKE_PREFIX.length) !== MISTAKE_PREFIX) return;
+        if (!MISTAKE_PREFIXES.some(function (prefix) { return trimmed.slice(0, prefix.length) === prefix; })) return;
         const room = MISTAKES_CHARS - (lines.length ? lines.join(NEWLINE).length + 1 : 0);  // + the line break before this line
         if (room < 12) return;
         lines.push(trimmed.slice(0, room).trim());

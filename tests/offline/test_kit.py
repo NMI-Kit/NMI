@@ -478,7 +478,9 @@ class KitFilesTests(unittest.TestCase):
             self.assertNotRegex(re.sub(r"/\*.*?\*/", '', code), r"'[^']*[\u0600-\u06ff][^']*'", line)
         # the prompt line for the student's language is in prompt.js and nothing else of the prompt is translated
         self.assertIn("const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };", prompt)
-        self.assertEqual(len(re.findall(r'[\u0590-\u05ff]+', prompt.replace("{ he: 'עברית', en: 'English' }", ''))), 0)
+        # the only Hebrew words in the prompt code: the name of the language, and the two phrases of the student in the language block
+        hebrew_free = prompt.replace("{ he: 'עברית', en: 'English' }", '').replace('לא הבנתי', '').replace('סיימתי', '')
+        self.assertEqual(len(re.findall(r'[\u0590-\u05ff]+', hebrew_free)), 0)
         # the data keeps the Hebrew heading of the clusters, for the pages in Hebrew and English
         data = json.loads(read(build_kit.OUTPUT))
         topic = data['subjects'][0]['grades'][0]['levels'][0]['topics'][0]

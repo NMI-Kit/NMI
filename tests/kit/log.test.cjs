@@ -169,6 +169,31 @@ test('the mistakes of one level: the "غلط:" lines of the last 3 entries, 600 
   assert.equal(L.MISTAKES_CHARS, 600);
 });
 
+test('summaries in Hebrew or English: the mistake lines "טעויות:", "טעות:", "Mistakes:" and "Mistake:" count like "غلط:"', () => {
+  const store = memory();
+  const he = L.add(store, 'NMI-LOG\nالمواضيع: הסתברות\nضبط: חישוב\nטעויות: שכחתי לחלק במספר המקרים\nטעות: בלבלתי בין סכום למכפלה', LEVEL, at(1));
+  const en = L.add(store, 'NMI-LOG\nالمواضيع: Probability\nضبط: counting\nMistakes: forgot to divide by all outcomes\nMistake: mixed up sum and product', LEVEL, at(2));
+  assert.equal(he.ok, true);
+  assert.equal(en.ok, true);
+  assert.deepEqual(L.mistakesFor(L.load(store).entries, LEVEL), [
+    'Mistakes: forgot to divide by all outcomes', 'Mistake: mixed up sum and product',
+    'טעויות: שכחתי לחלק במספר המקרים', 'טעות: בלבלתי בין סכום למכפלה'
+  ]);
+  // with the Arabic lines of the same session, in the order of the summary
+  const mixed = memory();
+  L.add(mixed, 'NMI-LOG\nغلط: أ\nMistake: b\nضبط: ج\nטעות: ד', LEVEL, at(1));
+  assert.deepEqual(L.mistakesFor(L.load(mixed).entries, LEVEL), ['غلط: أ', 'Mistake: b', 'טעות: ד']);
+  // other lines and other spellings are not mistakes
+  const other = memory();
+  L.add(other, 'NMI-LOG\nmistake: lower case\nMistakes without a colon\nTopic: Mistakes: inside\nמשהו טעות: באמצע\nבסדר: x', LEVEL, at(1));
+  assert.deepEqual(L.mistakesFor(L.load(other).entries, LEVEL), []);
+  // the 600 characters limit is the same for every language
+  const big = memory();
+  for (let i = 0; i < 3; i++) L.add(big, 'NMI-LOG\n' + ['Mistakes:', 'טעויות:', 'Mistake:'].map((x) => `${x} ${'b'.repeat(120)} ${i}`).join('\n'), LEVEL, at(i + 1));
+  const lines = L.mistakesFor(L.load(big).entries, LEVEL);
+  assert.ok(lines.join('\n').length <= 600 && lines.join('\n').length >= 560, String(lines.join('\n').length));
+});
+
 test('the level of the last prompt is remembered, so the log knows it after a reload', () => {
   const store = memory();
   assert.equal(L.lastLevel(store), null);
