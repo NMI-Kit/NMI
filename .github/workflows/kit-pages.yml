@@ -1,11 +1,13 @@
 name: Deploy the NMI kit to GitHub Pages
 
-# Publishes only the kit/ folder (static files). Nothing else of the repository is served.
+# Publishes a small site folder: the kit/ folder at the root, and the static demo of the lab version under lab/
+# (only the nine files that tools/serve_preview.py allows). Nothing else of the repository is served.
 on:
   push:
     branches: [main]
     paths:
       - 'kit/**'
+      - 'preview/**'
       - 'curriculum/**'
       - 'tools/build_kit.py'
       - '.github/workflows/kit-pages.yml'
@@ -30,9 +32,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: kit/data.json must match the curriculum folder
         run: python3 tools/build_kit.py --check
+      - name: Build the site folder (the kit at the root, the static demo under lab/)
+        run: |
+          mkdir -p _site/lab/assets
+          cp -r kit/. _site/
+          for f in index.html tokens.css styles.css preview.js; do cp "preview/$f" "_site/lab/$f"; done
+          for f in nmi-mark.svg nmi-mark-light.svg nmi-mark-dark.svg nmi-mark-white.svg nmi-mark-black.svg; do cp "preview/assets/$f" "_site/lab/assets/$f"; done
+      - name: lab/ has exactly the nine static files, and no key, no student data and no server code
+        run: |
+          find _site/lab -type f | sort > lab-files.txt
+          printf '%s\n' _site/lab/assets/nmi-mark-black.svg _site/lab/assets/nmi-mark-dark.svg _site/lab/assets/nmi-mark-light.svg _site/lab/assets/nmi-mark-white.svg _site/lab/assets/nmi-mark.svg _site/lab/index.html _site/lab/preview.js _site/lab/styles.css _site/lab/tokens.css | sort > lab-expected.txt
+          diff lab-expected.txt lab-files.txt
+          if grep -rIlE -i 'sk-ant|ANTHROPIC_API_KEY|local_web|live\.js|live\.css|\.local-data|fetch\(|XMLHttpRequest|WebSocket|sendBeacon|EventSource' _site/lab; then echo 'forbidden text under lab/'; exit 1; fi
+          rm lab-files.txt lab-expected.txt
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: kit
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

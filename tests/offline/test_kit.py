@@ -2,6 +2,7 @@
 
 No network, no API. The prompt itself is tested in tests/kit/prompt.test.cjs and the page in tests/kit/kit.spec.cjs.
 """
+import importlib.util
 import json
 import re
 import sys
@@ -457,8 +458,8 @@ class KitFilesTests(unittest.TestCase):
         # it is not linked from the kit, and not part of the app
         for name in ('index.html', 'app.js', 'prompt.js', 'log.js', 'manifest.webmanifest'):
             self.assertNotIn('applinks', read(ROOT / 'kit' / name), name)
-        # it is published with the site, because the workflow publishes the whole kit folder
-        self.assertRegex(read(ROOT / '.github' / 'workflows' / 'kit-pages.yml'), r'path: kit\s')
+        # it is published with the site, because the workflow copies the whole kit folder to the root of the site folder
+        self.assertIn('cp -r kit/. _site/', read(ROOT / '.github' / 'workflows' / 'kit-pages.yml'))
 
     def test_the_page_is_in_three_languages_and_the_texts_are_in_one_dictionary(self):
         html, app, texts, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'i18n.js', 'prompt.js'))
@@ -526,15 +527,58 @@ class KitFilesTests(unittest.TestCase):
         for path in sorted((ROOT / 'tests' / 'kit').glob('*.test.cjs')):
             self.assertIn(f'tests/kit/{path.name}', script)
 
-    def test_the_pages_workflow_publishes_only_the_kit_folder_and_checks_the_data(self):
+    def test_the_pages_workflow_publishes_only_the_kit_and_the_static_demo_and_checks_the_data(self):
         workflow = read(ROOT / '.github' / 'workflows' / 'kit-pages.yml')
-        self.assertRegex(workflow, r'path: kit\s')
+        self.assertRegex(workflow, r'path: _site\s')  # a small site folder, not a folder of the repository
         self.assertIn('python3 tools/build_kit.py --check', workflow)
         self.assertIn('actions/deploy-pages@v4', workflow)
         self.assertRegex(workflow, r'pages: write')
         self.assertNotRegex(workflow, r'path: \.\s')  # never the whole repository
+        self.assertNotRegex(workflow, r'path: (kit|preview)\s')
         self.assertNotIn('secrets.', workflow)  # no key of any kind
         self.assertIn('workflow_dispatch', workflow)
+        # a change of the demo publishes it too
+        self.assertIn("- 'preview/**'", workflow)
+        self.assertIn("- 'kit/**'", workflow)
+
+    def test_the_lab_demo_is_published_under_lab_with_the_nine_static_files_only(self):
+        workflow = read(ROOT / '.github' / 'workflows' / 'kit-pages.yml')
+        spec = importlib.util.spec_from_file_location('serve_preview', ROOT / 'tools' / 'serve_preview.py')
+        serve_preview = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(serve_preview)
+        allowed = set(serve_preview.ALLOWED)
+        self.assertEqual(len(allowed), 9)
+        # the files the workflow copies are exactly the files the local preview server allows
+        copied = set()
+        for names, folder in re.findall(r'for f in ([^;]+); do cp "preview/(assets/)?\$f"', workflow):
+            copied.update(folder + name for name in names.split())
+        self.assertEqual(copied, allowed)
+        self.assertIn('cp -r kit/. _site/', workflow)
+        self.assertEqual(len(re.findall(r'cp -r', workflow)), 1)  # nothing else is copied as a folder
+        for name in allowed:
+            self.assertTrue((ROOT / 'preview' / name).is_file(), name)
+        # the guard of the workflow: the exact list of files, and the words that must never be there
+        for part in ('diff lab-expected.txt lab-files.txt', 'sk-ant', 'ANTHROPIC_API_KEY', 'local_web', 'live\\.js', 'live\\.css', '.local-data', 'fetch\\('):
+            self.assertIn(part, workflow)
+        for name in ('live.js', 'live.css', 'local_web.py'):
+            self.assertNotIn(f'preview/{name}', workflow)
+            self.assertNotIn(f'_site/lab/{name}', workflow)
+        # the demo itself: no network, no key, no live server in the files that are published
+        for name in sorted(allowed):
+            text = read(ROOT / 'preview' / name)
+            for word in ('fetch(', 'XMLHttpRequest', 'WebSocket', 'sendBeacon', 'EventSource', 'sk-ant', 'ANTHROPIC_API_KEY', 'live.js', 'live.css', 'local_web', '.local-data'):
+                self.assertNotIn(word, text, f'{name}: {word}')
+        page = read(ROOT / 'preview' / 'index.html')
+        self.assertIn("connect-src 'none'", page)
+        self.assertNotIn('nmi-live-server', page)  # the live page is Flask only
+        # the one line of the demo, in English and Arabic, and the link in the README
+        for part in ('Demo of the first NMI version, with made-up replies. The real version talked to the Claude API on my computer.',
+                     'نسخة عرض من أول نسخة من NMI، بردود جاهزة. النسخة الحقيقية كانت تحكي مع Claude على كمبيوتري.'):
+            self.assertEqual(page.count(part), 1, part)
+        readme = read(ROOT / 'README.md')
+        self.assertIn('You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/', readme)
+        self.assertLess(readme.index('## The lab version'), readme.index('https://m0502223641-coder.github.io/NMI/lab/'))
+        self.assertLess(readme.index('https://m0502223641-coder.github.io/NMI/lab/'), readme.index('![Lab version 1]'))
 
     def test_the_deploy_guide_names_the_exact_buttons(self):
         guide = read(ROOT / 'docs' / 'KIT.md')
