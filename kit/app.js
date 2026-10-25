@@ -4,23 +4,17 @@
 
   var P = window.NMIPrompt;
   var L = window.NMILog;
+  var I = window.NMII18n;
   var APPS = [
     { name: 'ChatGPT', url: 'https://chatgpt.com/', host: 'chatgpt.com', path: '', package: 'com.openai.chatgpt' },
     { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', package: 'com.anthropic.claude' },
     { name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', package: 'com.google.android.apps.bard' }
   ];
-  var CHAT_TIP = [
-    'الذكاء الاصطناعي بيقرأ البرومبت بأول المحادثة. كل ما طوّلت المحادثة، بينسى قواعده: بيصير يعطيك الحل مباشرة، أو بيخلط بين المواد. محادثة جديدة يعني قواعد جديدة ومركّزة على موضوعك.',
-    '✅ نفس المحادثة: مواضيع مرتبطة ببعض، أو امتحان تجريبي.',
-    '🆕 محادثة جديدة: مادة تانية، أو موضوع جديد بيوم تاني، أو محادثة صارت طويلة كتير.'
-  ];
-  var ATTACH = '📎 الصق البرومبت، وبعدين اضغط + بالتطبيق، وارفق الصور (2 لـ 4 صور، كل صفحة بصورة، مستقيمة وبضو منيح)، وابعتهم مع بعض برسالة وحدة.';
-  var NOTE_EXAMPLES = 'مثلاً: بحب الفيزيا، خلّي الأمثلة منها · ركّز على الغلطات بالإشارات · اشرح ببطء · امتحاني يوم الأحد';
   var MINISTRY = 'https://meyda.education.gov.il/';
   var TOTAL = 4;
 
   var data = null;
-  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], modes: {}, teacherFile: false, remind: false, note: '', targetOpen: false, view: 'main' };
+  var state = { step: 1, subject: null, grade: null, units: null, target: null, topics: {}, custom: [], modes: {}, teacherFile: false, remind: false, note: '', targetOpen: false, view: 'main', lang: 'ar' };
   var app = document.getElementById('app');
   var backButton = document.getElementById('back');
   var progress = document.getElementById('progress');
@@ -46,6 +40,28 @@
     return el;
   }
 
+  /* every text of the page comes from kit/i18n.js, in the language of the page */
+  function T(key, params) {
+    return I.t(state.lang, key, params);
+  }
+
+  function cap(word) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }
+
+  /* the name of a subject or a grade in the language of the page (the name of the curriculum file when there is none) */
+  function subjectName(subject) {
+    return I.STRINGS['subject' + cap(subject.id)] ? T('subject' + cap(subject.id)) : subject.name;
+  }
+
+  function gradeLabel(grade) {
+    return I.STRINGS['grade' + grade.id] ? I.gradeName(state.lang, grade.id) : grade.name;
+  }
+
+  function modeText(mode, part) {
+    return T('mode' + cap(mode) + part);
+  }
+
   function subjectData() {
     return data.subjects.filter(function (s) { return s.id === state.subject; })[0] || null;
   }
@@ -64,7 +80,7 @@
   }
 
   function modeLabels() {
-    return pickedModes().map(function (m) { return P.MODES[m].label; }).join(' + ');
+    return pickedModes().map(function (m) { return modeText(m, 'Label'); }).join(' + ');
   }
 
   function currentLevel() {
@@ -77,9 +93,7 @@
   }
 
   function levelLabel(level) {
-    var subject = data.subjects.filter(function (s) { return s.id === level.subject; })[0];
-    var grade = subject && subject.grades.filter(function (g) { return g.id === level.grade; })[0];
-    return (subject ? subject.name : level.subject) + '، الصف ' + (grade ? grade.name : level.grade) + '، ' + level.units + ' وحدات';
+    return I.levelLabel(state.lang, level);
   }
 
   function oldMistakes() {
@@ -133,12 +147,12 @@
   }
 
   function stepLevel() {
-    var section = h('section', { class: 'step', 'data-step': '1' }, h('h1', { text: 'شو مستواك؟' }));
+    var section = h('section', { class: 'step', 'data-step': '1' }, h('h1', { text: T('s1Title') }));
 
-    section.appendChild(h('h2', { text: 'المادة' }));
-    var subjects = h('div', { class: 'choices', role: 'group', 'aria-label': 'المادة' });
+    section.appendChild(h('h2', { text: T('subject') }));
+    var subjects = h('div', { class: 'choices', role: 'group', 'aria-label': T('subject') });
     data.subjects.forEach(function (s) {
-      subjects.appendChild(choiceButton(s.name, state.subject === s.id, function () {
+      subjects.appendChild(choiceButton(subjectName(s), state.subject === s.id, function () {
         if (state.subject !== s.id) { state.subject = s.id; state.grade = null; state.units = null; resetFrom(); }
         render();
       }));
@@ -147,10 +161,10 @@
 
     var subject = subjectData();
     if (subject) {
-      section.appendChild(h('h2', { text: 'الصف' }));
-      var grades = h('div', { class: 'choices', role: 'group', 'aria-label': 'الصف' });
+      section.appendChild(h('h2', { text: T('grade') }));
+      var grades = h('div', { class: 'choices', role: 'group', 'aria-label': T('grade') });
       subject.grades.forEach(function (g) {
-        grades.appendChild(choiceButton(g.name, state.grade === g.id, function () {
+        grades.appendChild(choiceButton(gradeLabel(g), state.grade === g.id, function () {
           if (state.grade !== g.id) { state.grade = g.id; state.units = null; resetFrom(); }
           render();
         }));
@@ -160,27 +174,27 @@
 
     var grade = gradeData();
     if (grade) {
-      section.appendChild(h('h2', { text: 'الوحدات' }));
-      var units = h('div', { class: 'choices', role: 'group', 'aria-label': 'الوحدات' });
+      section.appendChild(h('h2', { text: T('units') }));
+      var units = h('div', { class: 'choices', role: 'group', 'aria-label': T('units') });
       grade.levels.forEach(function (l) {
-        units.appendChild(choiceButton(l.units + ' وحدات', state.units === l.units, function () {
+        units.appendChild(choiceButton(T('unitsN', { n: l.units }), state.units === l.units, function () {
           if (state.units !== l.units) { state.units = l.units; resetFrom(); }
           render();
-        }, l.experimental ? 'تجريبي' : null));
+        }, l.experimental ? T('experimental') : null));
       });
       section.appendChild(units);
     }
 
     var higher = grade ? grade.levels.filter(function (l) { return state.units && l.units > state.units; }) : [];
     if (higher.length) {
-      section.appendChild(h('h2', { text: 'مستوى هدف (اختياري)' }));
-      section.appendChild(h('p', { class: 'small', text: 'إذا بدك تنتقل لمستوى أعلى، اختاره وبنضيف مواضيعه.' }));
-      var targets = h('div', { class: 'choices', role: 'group', 'aria-label': 'مستوى هدف' });
-      targets.appendChild(choiceButton('بدون هدف', !state.target, function () { state.target = null; state.step = 1; state.topics = {}; render(); }));
+      section.appendChild(h('h2', { text: T('targetTitle') }));
+      section.appendChild(h('p', { class: 'small', text: T('targetHint') }));
+      var targets = h('div', { class: 'choices', role: 'group', 'aria-label': T('targetTitle') });
+      targets.appendChild(choiceButton(T('noTarget'), !state.target, function () { state.target = null; state.step = 1; state.topics = {}; render(); }));
       higher.forEach(function (l) {
-        targets.appendChild(choiceButton(l.units + ' وحدات', state.target === l.units, function () {
+        targets.appendChild(choiceButton(T('unitsN', { n: l.units }), state.target === l.units, function () {
           state.target = l.units; state.step = 1; state.topics = {}; render();
-        }, l.experimental ? 'تجريبي' : null));
+        }, l.experimental ? T('experimental') : null));
       });
       section.appendChild(targets);
     }
@@ -188,7 +202,7 @@
     if (state.step === 1) {
       var ready = !!(state.subject && state.grade && state.units);
       section.appendChild(h('div', { class: 'stack sticky' },
-        h('button', { type: 'button', class: 'primary', id: 'next-1', disabled: !ready, onclick: function () { go(2); } }, 'التالي')));
+        h('button', { type: 'button', class: 'primary', id: 'next-1', disabled: !ready, onclick: function () { go(2); } }, T('next'))));
     }
     return section;
   }
@@ -203,7 +217,7 @@
       document.getElementById('all-topics').setAttribute('aria-pressed', isAll() ? 'true' : 'false');
       document.getElementById('next-2').disabled = !hasSelection();
     });
-    return h('label', { class: 'topic' }, input, h('span', { text: topic.title }));
+    return h('label', { class: 'topic' }, input, h('span', { text: I.topicName(topic, state.lang) }));
   }
 
   /* topics the student writes himself: plain text, at most 5, each at most 60 characters */
@@ -211,15 +225,15 @@
     var limit = P.MAX_CUSTOM;
     var message = h('p', { class: 'small', id: 'custom-msg', role: 'status', 'aria-live': 'polite' });
     var input = h('input', { type: 'text', id: 'custom-input', maxlength: String(P.MAX_CUSTOM_LENGTH), autocomplete: 'off',
-      'aria-label': 'ضيف موضوع مش موجود بالقائمة', placeholder: 'مثلاً: المعادلات التربيعية' });
-    var add = h('button', { type: 'submit', id: 'custom-add' }, 'ضيف');
-    if (state.custom.length >= limit) { input.disabled = true; add.disabled = true; message.textContent = 'وصلت للحد: ' + limit + ' مواضيع.'; }
+      'aria-label': T('customTitle'), placeholder: T('customPlaceholder') });
+    var add = h('button', { type: 'submit', id: 'custom-add' }, T('customAdd'));
+    if (state.custom.length >= limit) { input.disabled = true; add.disabled = true; message.textContent = T('customLimit', { n: limit }); }
 
     var form = h('form', { class: 'customform', onsubmit: function (event) {
       event.preventDefault();
       var text = P.cleanTopic(input.value);
-      if (!text) { message.textContent = 'اكتب اسم الموضوع أول.'; return; }
-      if (state.custom.some(function (c) { return c.text.toLowerCase() === text.toLowerCase(); })) { message.textContent = 'هالموضوع مضاف.'; return; }
+      if (!text) { message.textContent = T('customEmpty'); return; }
+      if (state.custom.some(function (c) { return c.text.toLowerCase() === text.toLowerCase(); })) { message.textContent = T('customDup'); return; }
       if (state.custom.length >= limit) return;
       state.custom.push({ text: text, checked: true });
       render();
@@ -237,20 +251,20 @@
         document.getElementById('next-2').disabled = !hasSelection();
       });
       list.appendChild(h('li', { class: 'customitem' },
-        h('label', { class: 'topic' }, box, h('span', { text: item.text })),
-        h('button', { type: 'button', class: 'del', 'aria-label': 'احذف: ' + item.text, onclick: function () {
+        h('label', { class: 'topic' }, box, h('span', { text: item.text, dir: 'auto' })),
+        h('button', { type: 'button', class: 'del', 'aria-label': T('customDeleteLabel', { text: item.text }), onclick: function () {
           state.custom.splice(index, 1);
           render();
           var again = document.getElementById('custom-input');
           if (again) again.focus();
-        } }, 'حذف')));
+        } }, T('customDelete'))));
     });
 
-    return h('div', { class: 'custom' }, h('h2', { text: 'ضيف موضوع مش موجود بالقائمة' }), form, message, list);
+    return h('div', { class: 'custom' }, h('h2', { text: T('customTitle') }), form, message, list);
   }
 
   function stepTopics() {
-    var section = h('section', { class: 'step', 'data-step': '2' }, h('h1', { text: 'شو بدك تراجع؟' }));
+    var section = h('section', { class: 'step', 'data-step': '2' }, h('h1', { text: T('s2Title') }));
     var levels = [levelData(state.units)];
     if (state.target) levels.push(levelData(state.target));
 
@@ -258,7 +272,7 @@
       var next = !isAll();
       allIds().forEach(function (id) { state.topics[id] = next; });
       render();
-    } }, 'كل المواضيع'));
+    } }, T('allTopics')));
 
     /* the box for a topic that is not on the list comes right under "all topics" */
     section.appendChild(customBox());
@@ -269,7 +283,7 @@
       var box = h('div', { class: 'group' });
       level.topics.forEach(function (topic) {
         if (topic.group && topic.group !== lastGroup) {
-          box.appendChild(h('h2', { text: topic.group }));
+          box.appendChild(h('h2', { text: I.groupName(topic, state.lang) }));
           lastGroup = topic.group;
         }
         box.appendChild(topicRow(topic));
@@ -277,7 +291,7 @@
       if (index === 0) { section.appendChild(box); return; }
       /* the topics of the target level are in a section that is closed until the student opens it */
       var target = h('details', { class: 'targetbox', id: 'target-topics' },
-        h('summary', { text: 'مواضيع مستوى الهدف (' + level.units + ' وحدات)' }), box);
+        h('summary', { text: T('targetSummary', { n: level.units }) }), box);
       if (state.targetOpen) target.open = true;
       target.addEventListener('toggle', function () { state.targetOpen = target.open; });
       section.appendChild(target);
@@ -286,16 +300,16 @@
     if (state.step === 2) {
       var ready = hasSelection();
       section.appendChild(h('div', { class: 'stack sticky' },
-        h('button', { type: 'button', class: 'primary', id: 'next-2', disabled: !ready, onclick: function () { go(3); } }, 'التالي')));
+        h('button', { type: 'button', class: 'primary', id: 'next-2', disabled: !ready, onclick: function () { go(3); } }, T('next'))));
     }
     return section;
   }
 
   /* ---------------------------------------------------------------- step 3 */
   function stepMode() {
-    var section = h('section', { class: 'step', 'data-step': '3' }, h('h1', { text: 'شو بدك تعمل؟' }));
+    var section = h('section', { class: 'step', 'data-step': '3' }, h('h1', { text: T('s3Title') }));
     var subject = subjectData();
-    section.appendChild(h('p', { class: 'hint', text: 'اختار وضع أو أكتر. بيبلّش بأول واحد وبينتقل للباقي.' }));
+    section.appendChild(h('p', { class: 'hint', text: T('modesHint') }));
     P.MODE_ORDER.forEach(function (key) {
       /* practice and the mock exam are built on the exam patterns: a subject without them only gets explain and plan */
       if ((key === 'practice' || key === 'mock') && !(subject && subject.patterns)) return;
@@ -303,7 +317,7 @@
       var box = h('input', { type: 'checkbox', 'data-mode': key, id: 'mode-' + key });
       box.checked = !!state.modes[key];
       var card = h('label', { class: 'mode', 'data-mode': key, 'data-on': box.checked ? 'true' : 'false' }, box,
-        h('span', { class: 'mode-text' }, h('strong', { class: 'mode-title', text: P.MODES[key].label }), h('span', { class: 'mode-note', text: P.MODES[key].description })));
+        h('span', { class: 'mode-text' }, h('strong', { class: 'mode-title', text: modeText(key, 'Label') }), h('span', { class: 'mode-note', text: modeText(key, 'Desc') })));
       box.addEventListener('change', function () {
         state.modes[key] = box.checked;
         if (state.step > 3) { render(); return; }
@@ -318,7 +332,7 @@
         h('button', { type: 'button', class: 'primary', id: 'prepare', disabled: pickedModes().length === 0, onclick: function () {
           L.rememberLevel(storage(), currentLevel());  // so that "سجلّي" knows the level after a reload
           go(4);
-        } }, 'جهّز البرومبت')));
+        } }, T('prepare'))));
     }
     return section;
   }
@@ -331,8 +345,8 @@
       var tick = h('input', { type: 'checkbox', id: 'teacher-file' });
       tick.checked = state.teacherFile;
       tick.addEventListener('change', function () { state.teacherFile = tick.checked; });
-      box.appendChild(h('label', { class: 'topic' }, tick, h('span', null, 'عندي امتحان قديم أو ورقة عمل من أستاذي',
-        h('small', { class: 'hint', text: 'بيشتغل مع "تدرّب" و"امتحان تجريبي" بس.' }))));
+      box.appendChild(h('label', { class: 'topic' }, tick, h('span', null, T('teacherFile'),
+        h('small', { class: 'hint', text: T('teacherFileHint') }))));
     }
     /* only when this student has saved entries for this very level */
     var level = currentLevel();
@@ -341,18 +355,18 @@
       var remind = h('input', { type: 'checkbox', id: 'remind' });
       remind.checked = state.remind;
       remind.addEventListener('change', function () { state.remind = remind.checked; });
-      box.appendChild(h('label', { class: 'topic' }, remind, h('span', null, 'ذكّرني بغلطاتي القديمة',
-        h('small', { class: 'hint', text: 'من ' + saved.length + ' جلسة محفوظة بسجلّي لهالمستوى.' }))));
+      box.appendChild(h('label', { class: 'topic' }, remind, h('span', null, T('remind'),
+        h('small', { class: 'hint', text: T('remindHint', { n: saved.length }) }))));
     }
-    var area = h('textarea', { id: 'note', maxlength: String(P.MAX_NOTE), rows: '3', 'aria-label': 'ملاحظة للمدرّس (اختياري)' });
+    var area = h('textarea', { id: 'note', maxlength: String(P.MAX_NOTE), rows: '3', 'aria-label': T('noteTitle') });
     area.value = state.note;
     var count = h('span', { id: 'note-count', class: 'hint', text: area.value.length + ' / ' + P.MAX_NOTE });
     area.addEventListener('input', function () {
       state.note = area.value;
       count.textContent = area.value.length + ' / ' + P.MAX_NOTE;
     });
-    var details = h('details', { class: 'notebox', id: 'note-box' }, h('summary', { text: 'ملاحظة للمدرّس (اختياري)' }), area,
-      h('p', { class: 'hint', text: NOTE_EXAMPLES }), count);
+    var details = h('details', { class: 'notebox', id: 'note-box' }, h('summary', { text: T('noteTitle') }), area,
+      h('p', { class: 'hint', text: T('noteExamples') }), count);
     if (state.note) details.open = true;
     box.appendChild(details);
     return box;
@@ -360,16 +374,14 @@
 
   /* ---------------------------------------------------------------- step 4 */
   function topicCount(n) {
-    if (n === 1) return 'موضوع واحد';
-    if (n === 2) return 'موضوعين';
-    return n + (n <= 10 ? ' مواضيع' : ' موضوع');
+    return I.count(state.lang, n);
   }
 
   function currentPrompt() {
     return P.buildPrompt(data, {
       subject: state.subject, grade: state.grade, units: state.units, target: state.target,
       all: isAll(), topics: selectedTopicIds(), custom: checkedCustom(), modes: pickedModes(),
-      mistakes: state.remind ? oldMistakes() : [],
+      mistakes: state.remind ? oldMistakes() : [], language: state.lang,
       teacherFile: state.teacherFile, note: state.note
     });
   }
@@ -398,18 +410,16 @@
     if (el) el.textContent = text;
   }
 
-  var COPIED = 'انسخنا البرومبت، افتح التطبيق والصقه';
-
   function openInApp(text) {
     return copyText(text).then(function (copied) {
       if (navigator.share) {
         return navigator.share({ text: text }).then(function () {
-          setStatus(copied ? 'تم. والبرومبت كمان منسوخ بالحافظة.' : 'تم.');
+          setStatus(copied ? T('sharedOk') : T('sharedDone'));
         }, function () {
-          setStatus(copied ? COPIED : 'ما قدرنا ننسخ لحالنا: اضغط "انسخ" أو حدّد النص من "شوف البرومبت".');
+          setStatus(copied ? T('copiedOpen') : T('copyFailedShare'));
         });
       }
-      setStatus(copied ? COPIED : 'ما قدرنا ننسخ لحالنا: اضغط "انسخ" أو حدّد النص من "شوف البرومبت".');
+      setStatus(copied ? T('copiedOpen') : T('copyFailedShare'));
     });
   }
 
@@ -434,8 +444,8 @@
      stopped and nothing is opened by the script: the link goes to the plain https address by itself, in the same tab.
      The copy has to start inside the click, before the page is left. */
   function copyInsideClick(text) {
-    var failed = 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت" وانسخه.';
-    setStatus('انسخنا البرومبت. الصقه بالتطبيق.');
+    var failed = T('copyFailedCopy');
+    setStatus(T('pasteIt'));
     if (navigator.clipboard && navigator.clipboard.writeText) {
       try {
         navigator.clipboard.writeText(text).then(null, function () { if (!legacyCopy(text)) setStatus(failed); });
@@ -448,7 +458,7 @@
   /* On Android and on a computer: the button of an app copies the prompt first, says so, and only then opens the app. */
   function openApp(app, text) {
     return copyText(text).then(function (copied) {
-      setStatus(copied ? 'انسخنا البرومبت. الصقه بالتطبيق.' : 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت" وانسخه.');
+      setStatus(copied ? T('pasteIt') : T('copyFailedCopy'));
       var address = appAddress(app);
       if (isAndroid()) { window.open(address, '_self'); return; }
       var tab = window.open(address, '_blank');
@@ -458,41 +468,41 @@
 
   function stepReady() {
     var built = currentPrompt();
-    var section = h('section', { class: 'step', 'data-step': '4' }, h('h1', { text: 'جاهز' }));
-    if (!built) { section.appendChild(h('p', { class: 'warn', text: 'ما لقينا هالمستوى. ارجع واختار من جديد.' })); return section; }
+    var section = h('section', { class: 'step', 'data-step': '4' }, h('h1', { text: T('ready') }));
+    if (!built) { section.appendChild(h('p', { class: 'warn', text: T('levelNotFound') })); return section; }
 
     var subject = subjectData();
     var grade = gradeData();
     var picked = selectedTopicIds().length;
     var own = allIds().length;
     var titles = picked ? topicCount(picked) : '';
-    if (isAll()) titles = 'كل المواضيع' + (picked > own ? ' + ' + topicCount(picked - own) + ' من الهدف' : '');
-    if (checkedCustom().length) titles += (titles ? ' + ' : '') + checkedCustom().length + ' من عندك';
+    if (isAll()) titles = T('allTopics') + (picked > own ? ' + ' + topicCount(picked - own) + ' ' + T('fromTarget') : '');
+    if (checkedCustom().length) titles += (titles ? ' + ' : '') + T('customCount', { n: checkedCustom().length });
     section.appendChild(h('div', { class: 'summary', id: 'summary' },
-      h('p', { text: subject.name + '، الصف ' + grade.name + '، ' + state.units + ' وحدات' + (state.target ? ' (هدف: ' + state.target + ' وحدات)' : '') }),
+      h('p', { text: levelLabel(currentLevel()) + (state.target ? ' ' + T('targetInLabel', { n: state.target }) : '') }),
       h('p', { id: 'summary-modes', text: titles + ' • ' + modeLabels() }),
-      h('p', { id: 'length', text: 'طول البرومبت: ' + built.length + ' حرف' })));
+      h('p', { id: 'length', text: T('lengthLine', { n: built.length }) })));
 
     if (built.tooLong) {
       section.appendChild(h('p', { class: 'warn', id: 'too-long', role: 'alert',
-        text: 'اخترت مواضيع كتير والبرومبت طويل (' + built.length + ' حرف، الحد ' + built.max + '). التطبيقات بتتعامل أحسن مع برومبت أقصر: ارجع واختار مواضيع أقل.' }));
+        text: T('tooLong', { n: built.length, max: built.max }) }));
     }
     var level = levelData(state.units);
     if (level && level.experimental) {
-      section.appendChild(h('p', { class: 'warn', id: 'experimental', text: 'هالمستوى تجريبي: لسا ما إلو أمثلة جاهزة على نمط الامتحان.' }));
+      section.appendChild(h('p', { class: 'warn', id: 'experimental', text: T('experimentalWarn') }));
     }
 
-    if (built.teacherFile) section.appendChild(h('p', { class: 'attach', id: 'attach', text: ATTACH }));
+    if (built.teacherFile) section.appendChild(h('p', { class: 'attach', id: 'attach', text: T('attach') }));
 
     section.appendChild(h('div', { class: 'stack' },
-      h('button', { type: 'button', class: 'primary', id: 'open-app', onclick: function () { openInApp(built.text); } }, 'افتح بتطبيق الذكاء الاصطناعي'),
-      h('p', { class: 'hint', id: 'open-hint', text: 'الأحسن: بيحط البرومبت جوا التطبيق مباشرة.' }),
+      h('button', { type: 'button', class: 'primary', id: 'open-app', onclick: function () { openInApp(built.text); } }, T('openApp')),
+      h('p', { class: 'hint', id: 'open-hint', text: T('openHint') }),
       h('button', { type: 'button', id: 'copy', onclick: function () {
-        copyText(built.text).then(function (ok) { setStatus(ok ? 'تم النسخ.' : 'ما قدرنا ننسخ لحالنا: حدّد النص من "شوف البرومبت".'); });
-      } }, 'انسخ')));
+        copyText(built.text).then(function (ok) { setStatus(ok ? T('copied') : T('copyFailed')); });
+      } }, T('copy'))));
     section.appendChild(h('p', { class: 'status', id: 'status', role: 'status', 'aria-live': 'polite', text: status }));
 
-    section.appendChild(h('h2', { text: 'أو افتح التطبيق بنفسك والصق' }));
+    section.appendChild(h('h2', { text: T('appsTitle') }));
     var apps = h('div', { class: 'apps' });
     APPS.forEach(function (a) {
       var ios = isIOS();
@@ -501,73 +511,75 @@
     });
     section.appendChild(apps);
 
-    section.appendChild(h('p', { class: 'note', style: 'margin-top:16px', text: 'صوّر حلّك على الورقة وابعته بالتطبيق.' }));
-    section.appendChild(h('p', { class: 'note' }, 'بدك تتدرّب على امتحان كامل؟ نزّله وارفعه للأداة. ',
-      h('a', { href: MINISTRY, target: '_blank', rel: 'noopener noreferrer', id: 'exams-link', text: 'امتحانات رسمية سابقة' })));
+    section.appendChild(h('p', { class: 'note', style: 'margin-top:16px', text: T('photoNote') }));
+    section.appendChild(h('p', { class: 'note' }, T('examNote') + ' ',
+      h('a', { href: MINISTRY, target: '_blank', rel: 'noopener noreferrer', id: 'exams-link', text: T('examsLink') })));
 
-    section.appendChild(h('details', { id: 'chat-tip' }, h('summary', { text: '💡 ليش كل مادة أو موضوع جديد بمحادثة جديدة؟' }),
-      h('div', { class: 'tip' }, h('p', { text: CHAT_TIP[0] }), h('p', { text: CHAT_TIP[1] }), h('p', { text: CHAT_TIP[2] }))));
+    section.appendChild(h('details', { id: 'chat-tip' }, h('summary', { text: T('chatTipTitle') }),
+      h('div', { class: 'tip' }, h('p', { text: T('chatTip1') }), h('p', { text: T('chatTip2') }), h('p', { text: T('chatTip3') }))));
 
     var preview = h('pre', { id: 'preview', text: built.text });
-    section.appendChild(h('details', null, h('summary', { text: 'شوف البرومبت' }), preview));
+    section.appendChild(h('details', null, h('summary', { text: T('showPrompt') }), preview));
     return section;
   }
 
   /* ---------------------------------------------------------------- سجلّي */
-  var logMessage = '';
+  var logMessage = '';  // the key of a text, so that it follows the language of the page
+  var LOG_CODES = { not_a_summary: 'logNotSummary', no_storage: 'logNoStorage', need_level: 'logNeedLevel' };
   var logDraft = '';
 
   function logPage() {
     var loaded = L.load(storage());
     var level = currentLevel() || L.lastLevel(storage());
-    var section = h('section', { class: 'step', id: 'log-page', 'data-step': 'log' }, h('h1', { text: 'سجلّي' }),
+    var section = h('section', { class: 'step', id: 'log-page', 'data-step': 'log' }, h('h1', { text: T('logTitle') }),
       /* why the log, and how: short, right under the title, before the privacy line */
       h('div', { class: 'summary', id: 'log-why' },
-        h('strong', { text: 'ليش سجلّي؟ (اختياري، بس مفضّل)' }),
-        h('p', { text: 'المحادثة الجديدة ما بتتذكّر غلطاتك. سجلّي بيحفظها، وبيخلّي المدرّس يفحصك عليها بالمرة الجاية.' }),
-        h('strong', { text: 'كيف؟' }),
+        h('strong', { text: T('logWhyTitle') }),
+        h('p', { text: T('logWhyBody') }),
+        h('strong', { text: T('logHow') }),
         h('ol', null,
-          h('li', { text: 'بآخر الجلسة اكتب للمدرّس: خلصت' }),
-          h('li', { text: 'انسخ الملخص اللي بيبلّش بـ NMI-LOG' }),
-          h('li', { text: 'الصقه هون واضغط احفظ' }),
-          h('li', { text: 'بالمرة الجاية علّم «ذكّرني بغلطاتي القديمة»' }))),
-      h('p', { class: 'hint', id: 'log-privacy', text: 'السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.' }));
-    if (!loaded.ok) section.appendChild(h('p', { class: 'warn', id: 'log-unavailable', role: 'alert', text: L.NO_STORAGE }));
+          h('li', { text: T('logStep1') }),
+          h('li', { text: T('logStep2') }),
+          h('li', { text: T('logStep3') }),
+          h('li', { text: T('logStep4') }))),
+      h('p', { class: 'hint', id: 'log-privacy', text: T('logPrivacy') }));
+    if (!loaded.ok) section.appendChild(h('p', { class: 'warn', id: 'log-unavailable', role: 'alert', text: T('logNoStorage') }));
 
-    section.appendChild(h('p', { class: 'note', id: 'log-level', text: level ? 'المستوى: ' + levelLabel(level) : 'لسا ما اخترت مستواك: ابنِ برومبت من الصفحة الرئيسية وبعدين ارجع.' }));
-    var area = h('textarea', { id: 'log-input', rows: '6', 'aria-label': 'الصق ملخّص الجلسة' });
+    section.appendChild(h('p', { class: 'note', id: 'log-level', text: level ? T('logLevel', { level: levelLabel(level) }) : T('logNoLevel') }));
+    var area = h('textarea', { id: 'log-input', rows: '6', 'aria-label': T('logPaste') });
     area.value = logDraft;
+    area.setAttribute('dir', 'auto');
     area.addEventListener('input', function () { logDraft = area.value; });
-    section.appendChild(h('label', { for: 'log-input', class: 'logtitle', text: 'الصق ملخّص الجلسة' }));
+    section.appendChild(h('label', { for: 'log-input', class: 'logtitle', text: T('logPaste') }));
     section.appendChild(area);
     section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', class: 'primary', id: 'log-save', onclick: function () {
       var result = L.add(storage(), area.value, level, new Date());
-      if (result.ok) { logDraft = ''; logMessage = 'انحفظ.'; } else logMessage = result.message;
+      if (result.ok) { logDraft = ''; logMessage = 'logSaved'; } else logMessage = LOG_CODES[result.code] || 'logNoStorage';
       render();
-    } }, 'احفظ')));
-    section.appendChild(h('p', { class: 'status', id: 'log-msg', role: 'status', 'aria-live': 'polite', text: logMessage }));
+    } }, T('logSave'))));
+    section.appendChild(h('p', { class: 'status', id: 'log-msg', role: 'status', 'aria-live': 'polite', text: logMessage ? T(logMessage) : '' }));
 
     if (loaded.entries.length) {
       var list = h('ul', { class: 'loglist', id: 'log-list' });
       loaded.entries.forEach(function (entry) {
         list.appendChild(h('li', { class: 'logitem', 'data-id': entry.id },
           h('p', { class: 'logmeta', text: entry.date.slice(0, 10) + ' • ' + levelLabel(entry) }),
-          h('pre', { class: 'logtext', text: entry.text }),
-          h('button', { type: 'button', class: 'del', 'aria-label': 'امسح هالمدخل', onclick: function () {
+          h('pre', { class: 'logtext', text: entry.text, dir: 'auto' }),
+          h('button', { type: 'button', class: 'del', 'aria-label': T('logDeleteLabel'), onclick: function () {
             var result = L.remove(storage(), entry.id);
-            logMessage = result.ok ? '' : result.message;
+            logMessage = result.ok ? '' : (LOG_CODES[result.code] || 'logNoStorage');
             render();
-          } }, 'امسح')));
+          } }, T('logDelete'))));
       });
-      section.appendChild(h('h2', { text: 'الجلسات المحفوظة' }));
+      section.appendChild(h('h2', { text: T('logSavedTitle') }));
       section.appendChild(list);
       section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-clear', onclick: function () {
         var result = L.clear(storage());
-        logMessage = result.ok ? '' : result.message;
+        logMessage = result.ok ? '' : (LOG_CODES[result.code] || 'logNoStorage');
         render();
-      } }, 'امسح الكل')));
+      } }, T('logClearAll'))));
     }
-    section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-close', onclick: function () { state.view = 'main'; render(); } }, 'رجوع للعدّة')));
+    section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-close', onclick: function () { state.view = 'main'; render(); } }, T('logClose'))));
     return section;
   }
 
@@ -591,9 +603,45 @@
       app.appendChild(section);
     });
     backButton.hidden = state.step === 1;
-    progress.textContent = 'الخطوة ' + state.step + ' من ' + TOTAL;
+    progress.textContent = T('stepOf', { n: state.step, total: TOTAL });
     document.body.setAttribute('data-step', String(state.step));
   }
+
+  /* ---------------------------------------------------------------- the language of the page */
+  var langNav = document.getElementById('langs');
+
+  /* lang and dir of the page (Arabic and Hebrew right to left, English left to right), the texts of index.html, the
+     title; the pressed language button */
+  function applyLanguage() {
+    document.documentElement.setAttribute('lang', state.lang);
+    document.documentElement.setAttribute('dir', I.DIR[state.lang]);
+    document.title = T('title');
+    var description = document.querySelector('meta[name="description"]');
+    if (description) description.setAttribute('content', T('description'));
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
+      el.textContent = T(el.getAttribute('data-i18n'));
+    });
+    langNav.setAttribute('aria-label', T('langNav'));
+    Array.prototype.forEach.call(langNav.querySelectorAll('button[data-lang]'), function (button) {
+      button.setAttribute('aria-pressed', button.getAttribute('data-lang') === state.lang ? 'true' : 'false');
+    });
+  }
+
+  function setLanguage(lang) {
+    if (I.LANGS.indexOf(lang) === -1) return;
+    state.lang = lang;
+    I.saveLang(storage(), lang);  // inside try/catch in i18n.js
+    status = '';
+    applyLanguage();
+    if (data) render();
+  }
+
+  /* the choice of the student, else the language of the browser (Hebrew or English), else Arabic */
+  state.lang = I.loadLang(storage()) || I.detect(navigator.language);
+  Array.prototype.forEach.call(langNav.querySelectorAll('button[data-lang]'), function (button) {
+    button.addEventListener('click', function () { setLanguage(button.getAttribute('data-lang')); });
+  });
+  applyLanguage();
 
   logLink.addEventListener('click', function () {
     if (!data) return;
@@ -613,6 +661,6 @@
     render();
   }).catch(function () {
     app.textContent = '';
-    app.appendChild(h('p', { class: 'warn', role: 'alert', text: 'ما قدرنا نحمّل المنهاج. افتح الصفحة من الرابط الرسمي وحدّث.' }));
+    app.appendChild(h('p', { class: 'warn', role: 'alert', text: T('loadError') }));
   });
 }());

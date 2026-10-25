@@ -32,10 +32,12 @@ test('only a summary that starts with NMI-LOG is accepted, after trimming', () =
   for (const bad of ['', '   ', 'مرحبا', 'غلط: شي', 'nmi-log\nغلط: x', 'x NMI-LOG\nغلط: x', '<b>NMI-LOG</b>', null, undefined]) {
     const result = L.add(store, bad, LEVEL, at(1));
     assert.equal(result.ok, false, JSON.stringify(bad));
-    assert.equal(result.message, 'هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.');
+    assert.equal(result.code, 'not_a_summary');
+    assert.equal(result.message, undefined, 'the log has no texts: the page says it in its own language');
   }
   assert.equal(store.data.size, 0, 'nothing was saved');
-  assert.equal(L.NOT_A_SUMMARY, 'هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.');
+  assert.equal(L.NOT_A_SUMMARY, 'not_a_summary');
+  assert.equal(L.NEED_LEVEL, 'need_level');
   for (const good of [SUMMARY('أ'), `  \n  ${SUMMARY('أ')}  \n`, `\t${SUMMARY('أ')}`, '```\n' + SUMMARY('أ') + '\n```', '```text\n' + SUMMARY('أ') + '\n```']) {
     const result = L.add(memory(), good, LEVEL, at(1));
     assert.equal(result.ok, true, JSON.stringify(good));
@@ -61,6 +63,7 @@ test('saving keeps the date and the level, newest first', () => {
   // a summary needs a level: without one it is not saved
   const noLevel = L.add(store, SUMMARY('x'), null, at(3));
   assert.equal(noLevel.ok, false);
+  assert.equal(noLevel.code, 'need_level');
   assert.equal(L.load(store).entries.length, 2);
 });
 
@@ -113,16 +116,16 @@ test('delete one, delete all', () => {
   assert.equal(store.data.size, 0);
 });
 
-test('a storage that throws: nothing breaks, the message is the one to show', () => {
+test('a storage that throws: nothing breaks, the code is the one to show', () => {
   const broken = throwing();
-  assert.equal(L.NO_STORAGE, 'هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.');
+  assert.equal(L.NO_STORAGE, 'no_storage');
   const loaded = L.load(broken);
   assert.equal(loaded.ok, false);
   assert.deepEqual(loaded.entries, []);
-  assert.equal(loaded.message, L.NO_STORAGE);
+  assert.equal(loaded.code, L.NO_STORAGE);
   const added = L.add(broken, SUMMARY('x'), LEVEL, at(1));
   assert.equal(added.ok, false);
-  assert.equal(added.message, L.NO_STORAGE);
+  assert.equal(added.code, L.NO_STORAGE);
   assert.equal(L.remove(broken, 'x').ok, false);
   assert.equal(L.clear(broken).ok, false);
   assert.doesNotThrow(() => L.rememberLevel(broken, LEVEL));
@@ -136,7 +139,7 @@ test('a storage that throws: nothing breaks, the message is the one to show', ()
   garbage.setItem(L.KEY, '{"a":1}');
   assert.deepEqual(L.load(garbage).entries, []);
   // a wrong summary is still told it is wrong when the storage is broken
-  assert.equal(L.add(broken, 'hello', LEVEL, at(1)).message, L.NOT_A_SUMMARY);
+  assert.equal(L.add(broken, 'hello', LEVEL, at(1)).code, L.NOT_A_SUMMARY);
 });
 
 test('the mistakes of one level: the "غلط:" lines of the last 3 entries, 600 characters at most', () => {

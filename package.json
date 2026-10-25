@@ -3,6 +3,6 @@
   "private": true,
   "version": "0.1.0",
   "description": "Local-only desktop preview tests; no frontend framework or backend runtime changes",
-  "scripts": { "test:frontend": "node tools/run_frontend_tests.cjs", "test:kit": "node --test tests/kit/prompt.test.cjs tests/kit/log.test.cjs && node tools/run_frontend_tests.cjs -c playwright.kit.config.cjs" },
+  "scripts": { "test:frontend": "node tools/run_frontend_tests.cjs", "test:kit": "node --test tests/kit/prompt.test.cjs tests/kit/log.test.cjs tests/kit/i18n.test.cjs && node tools/run_frontend_tests.cjs -c playwright.kit.config.cjs" },
   "devDependencies": { "@playwright/test": "1.64.0", "@axe-core/playwright": "4.13.0" }
 }

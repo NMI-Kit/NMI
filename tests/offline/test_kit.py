@@ -378,14 +378,13 @@ class KitFilesTests(unittest.TestCase):
             self.assertIn(part, js)
 
     def test_part_b_to_e_texts_are_in_the_page_and_the_prompt(self):
-        app, prompt = read(ROOT / 'kit' / 'app.js'), read(ROOT / 'kit' / 'prompt.js')
-        for part in ('عندي امتحان قديم أو ورقة عمل من أستاذي', 'الأحسن: بيحط البرومبت جوا التطبيق مباشرة.',
-                     '💡 ليش كل مادة أو موضوع جديد بمحادثة جديدة؟', '📎 الصق البرومبت، وبعدين اضغط + بالتطبيق',
-                     'ملاحظة للمدرّس (اختياري)', 'انسخنا البرومبت. الصقه بالتطبيق.', 'navigator.userAgent'):
-            self.assertIn(part, app)
-        for part in ('الطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه.',
-                     'إذا الطالب ما رفع الملف، اطلبه منه أول.', "'== ملاحظة من الطالب =='", 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز.',
-                     'const MAX_NOTE = 200;'):
+        app, prompt, texts = read(ROOT / 'kit' / 'app.js'), read(ROOT / 'kit' / 'prompt.js'), read(ROOT / 'kit' / 'i18n.js')
+        for part in ('لديّ امتحان قديم أو ورقة عمل من معلّمي', 'الأفضل: يضع البرومبت داخل التطبيق مباشرة.', '💡 لماذا نفتح محادثة جديدة لكل مادة أو موضوع جديد؟',
+                     '📎 الصق البرومبت، ثم اضغط + في التطبيق', 'ملاحظة للمدرّس (اختياري)', 'نسخنا البرومبت. الصقه في التطبيق.'):
+            self.assertIn(part, texts)
+        self.assertIn('navigator.userAgent', app)
+        for part in ('الطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه.', "'== ملاحظة من الطالب =='", 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز.',
+                     'const MAX_NOTE = 200;', 'إذا الطالب ما رفع الملف، اطلبه منه أول.'):
             self.assertIn(part, prompt)
         guide = read(ROOT / 'docs' / 'KIT.md')
         for part in ('ملف الأستاذ', 'ملاحظة للمدرّس', 'أندرويد', 'محادثة جديدة'):
@@ -453,10 +452,38 @@ class KitFilesTests(unittest.TestCase):
         # it is published with the site, because the workflow publishes the whole kit folder
         self.assertRegex(read(ROOT / '.github' / 'workflows' / 'kit-pages.yml'), r'path: kit\s')
 
+    def test_the_page_is_in_three_languages_and_the_texts_are_in_one_dictionary(self):
+        html, app, texts, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'i18n.js', 'prompt.js'))
+        self.assertIn('<html lang="ar" dir="rtl">', html)  # the default of the file; the page sets lang and dir from the language
+        self.assertIn('<nav id="langs"', html)
+        self.assertEqual(re.findall(r'data-lang="(\w+)"', html), ['ar', 'he', 'en'])
+        for label in ('عربي', 'עברית', 'English'):
+            self.assertIn(f'>{label}</button>', html)
+        self.assertIn("document.documentElement.setAttribute('dir', I.DIR[state.lang])", app)
+        self.assertIn("document.documentElement.setAttribute('lang', state.lang)", app)
+        self.assertIn('I.loadLang(storage()) || I.detect(navigator.language)', app)
+        for part in ("const DIR = { ar: 'rtl', he: 'rtl', en: 'ltr' };", "const STORAGE_KEY = 'nmi-lang-v1';", "primary === 'he' || primary === 'iw'", "primary === 'en'"):
+            self.assertIn(part, texts)
+        # the page code has no text of its own; only the log token stays
+        for line in app.splitlines():
+            code = re.sub(r"//.*$", '', line) if not line.strip().startswith('/*') else ''
+            self.assertNotRegex(re.sub(r"/\*.*?\*/", '', code), r"'[^']*[\u0600-\u06ff][^']*'", line)
+        # the prompt line for the student's language is in prompt.js and nothing else of the prompt is translated
+        self.assertIn("const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };", prompt)
+        self.assertEqual(len(re.findall(r'[\u0590-\u05ff]+', prompt.replace("{ he: 'עברית', en: 'English' }", ''))), 0)
+        # the data keeps the Hebrew heading of the clusters, for the pages in Hebrew and English
+        data = json.loads(read(build_kit.OUTPUT))
+        topic = data['subjects'][0]['grades'][0]['levels'][0]['topics'][0]
+        self.assertEqual((topic['group'], topic['group_full']), ('عنقود العلوم والمجتمع', 'عنقود العلوم والمجتمع (אשכול מדע וחברה)'))
+        self.assertIsNone(data['subjects'][0]['grades'][0]['levels'][1]['topics'][0]['group_full'])  # 4 units has no clusters
+        # the curriculum files themselves are not changed by this
+        self.assertNotIn('group_full', read(CURRICULUM / 'math' / 'grade10' / '3units.md'))
+
     def test_the_log_stays_on_the_device_and_the_page_loads_it(self):
-        html, app, log, prompt = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'log.js', 'prompt.js'))
+        html, app, log, prompt, texts = (read(ROOT / 'kit' / name) for name in ('index.html', 'app.js', 'log.js', 'prompt.js', 'i18n.js'))
         self.assertIn('<script src="log.js"></script>', html)
         self.assertIn('id="log-link"', html)
+        self.assertLess(html.index('i18n.js'), html.index('prompt.js'))  # the texts first, then the prompt, the log and the page
         self.assertLess(html.index('prompt.js'), html.index('log.js'))
         self.assertLess(html.index('log.js'), html.index('app.js'))
         # nothing the student pastes leaves the browser: the only request of the page is the data file
@@ -464,19 +491,22 @@ class KitFilesTests(unittest.TestCase):
         self.assertIn("fetch('data.json')", app)
         for word in ('fetch(', 'XMLHttpRequest', 'sendBeacon', 'WebSocket', 'navigator.share', 'window.open', 'eval(', 'innerHTML'):
             self.assertNotIn(word, log, word)
+            self.assertNotIn(word, texts, word)
         self.assertNotIn('innerHTML', app)  # the log and the notes are shown as text, never as HTML
-        for part in ('السجل محفوظ على هاد الجهاز بس. ما بيوصلنا ولا إشي.', 'الصق ملخّص الجلسة', 'ذكّرني بغلطاتي القديمة', 'امسح الكل', 'ليش سجلّي؟ (اختياري، بس مفضّل)',
-                     'المحادثة الجديدة ما بتتذكّر غلطاتك. سجلّي بيحفظها، وبيخلّي المدرّس يفحصك عليها بالمرة الجاية.', 'بآخر الجلسة اكتب للمدرّس: خلصت',
-                     'انسخ الملخص اللي بيبلّش بـ NMI-LOG', 'الصقه هون واضغط احفظ'):
-            self.assertIn(part, app)
-        for part in ('هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.', 'هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.'):
+        for part in ('السجل محفوظ على هذا الجهاز فقط. لا يصلنا منه شيء.', 'الصق ملخّص الجلسة', 'ذكّرني بأخطائي القديمة', 'امسح الكل', 'لماذا سجلّي؟ (اختياري، لكنه مفضّل)',
+                     'المحادثة الجديدة لا تتذكّر أخطاءك. سجلّي يحفظها، ويجعل المدرّس يفحصك عليها في المرة القادمة.', 'في آخر الجلسة اكتب للمدرّس: خلصت',
+                     'انسخ الملخّص الذي يبدأ بـ NMI-LOG', 'الصقه هنا واضغط «احفظ»', 'هذا ليس ملخّصًا من المدرّس. انسخ الملخّص الذي يبدأ بـ NMI-LOG.',
+                     'هذا المتصفح لا يستطيع الحفظ. لن يُحفظ السجل.'):
+            self.assertIn(part, texts)
+        # the log has codes, not texts
+        for part in ("'not_a_summary'", "'no_storage'", "'need_level'"):
             self.assertIn(part, log)
         # every storage call of the log is inside a try
         self.assertEqual(log.count('try {'), log.count('catch ('))
         self.assertGreaterEqual(log.count("try {"), 5)
         for part in ('NMI-LOG', 'المواضيع: ...', 'ضبط: ...', 'غلط: ... (كل غلطة بجملة قصيرة: شو الغلط وبأي موضوع)', 'إذا بدك، انسخ هاد والصقه بالعدّة بصفحة سجلّي. مش إجباري، بس بيخلّيني أفحصك على غلطاتك بالمرة الجاية.',
                      'خلال الجلسة، افحصه على هالغلطات بسؤال واحد على الأقل. ما تذكرها إلا إذا إلها علاقة بالسؤال.', '== غلطات من جلسات قبل ==',
-                     'الطالب اختار: ', 'ابدأ بأول وحدة. لما يخلص أو يطلب، انتقل للي بعدها.'):
+                     'الطالب اختار: ', 'ابدأ بأول وحدة بس. كل رد بوضع واحد بس. لما تخلص الوضع، اسأله إذا جاهز للي بعده، وما تنتقل قبل ما يجاوب.'):
             self.assertIn(part, prompt)
 
     def test_the_node_tests_of_the_kit_are_all_in_the_package_script(self):

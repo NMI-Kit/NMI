@@ -18,8 +18,10 @@
   const MISTAKE_PREFIX = 'غلط:';
   const NEWLINE = String.fromCharCode(10);
 
-  const NOT_A_SUMMARY = 'هاد مش ملخص من المدرّس. انسخ الملخص اللي بيبلّش بـ NMI-LOG.';
-  const NO_STORAGE = 'هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ.';
+  /* The reasons why something is not done are codes, not texts: the page says them in its own language (kit/i18n.js). */
+  const NOT_A_SUMMARY = 'not_a_summary';
+  const NO_STORAGE = 'no_storage';
+  const NEED_LEVEL = 'need_level';
 
   /* control characters and invisible direction marks, except the line break */
   const HIDDEN = /[\u0000-\u0009\u000b-\u001f\u007f-\u009f‎-‏‪-‮⁦-⁩]/g;
@@ -40,12 +42,12 @@
       .replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_ENTRY).trim();
   }
 
-  /* { ok: true, text } for a summary that starts with NMI-LOG (after trimming), { ok: false, message } otherwise. */
+  /* { ok: true, text } for a summary that starts with NMI-LOG (after trimming), { ok: false, code } otherwise. */
   function parseSummary(raw) {
     const trimmed = withoutFence(String(raw == null ? '' : raw).trim()).trim();
-    if (trimmed.slice(0, START.length) !== START) return { ok: false, message: NOT_A_SUMMARY };
+    if (trimmed.slice(0, START.length) !== START) return { ok: false, code: NOT_A_SUMMARY };
     const text = cleanText(trimmed);
-    if (text.slice(0, START.length) !== START) return { ok: false, message: NOT_A_SUMMARY };
+    if (text.slice(0, START.length) !== START) return { ok: false, code: NOT_A_SUMMARY };
     return { ok: true, text: text };
   }
 
@@ -82,18 +84,18 @@
     }
   }
 
-  /* Newest first. Returns { ok, entries, message? }. */
+  /* Newest first. Returns { ok, entries, code? }. */
   function load(storage) {
     const result = read(storage);
-    return result.ok ? result : { ok: false, entries: [], message: NO_STORAGE };
+    return result.ok ? result : { ok: false, entries: [], code: NO_STORAGE };
   }
 
   /* level: { subject, grade, units }. now: a Date. */
   function add(storage, raw, level, now) {
     const parsed = parseSummary(raw);
-    if (!parsed.ok) return { ok: false, entries: load(storage).entries, message: parsed.message };
+    if (!parsed.ok) return { ok: false, entries: load(storage).entries, code: parsed.code };
     if (!level || !level.subject || !level.grade || !level.units) {
-      return { ok: false, entries: load(storage).entries, message: 'اختار مستواك أول: ابنِ برومبت من الصفحة الرئيسية وبعدين ارجع.' };
+      return { ok: false, entries: load(storage).entries, code: NEED_LEVEL };
     }
     const current = read(storage);
     const when = now instanceof Date ? now : new Date();
@@ -102,24 +104,24 @@
       subject: String(level.subject), grade: Number(level.grade), units: Number(level.units), text: parsed.text
     };
     const entries = [entry].concat(current.entries).slice(0, MAX_ENTRIES);
-    if (!write(storage, entries)) return { ok: false, entries: current.entries, message: NO_STORAGE };
+    if (!write(storage, entries)) return { ok: false, entries: current.entries, code: NO_STORAGE };
     return { ok: true, entries: entries, entry: entry };
   }
 
   function remove(storage, id) {
     const current = read(storage);
     const entries = current.entries.filter(function (e) { return e.id !== id; });
-    if (!write(storage, entries)) return { ok: false, entries: current.entries, message: NO_STORAGE };
+    if (!write(storage, entries)) return { ok: false, entries: current.entries, code: NO_STORAGE };
     return { ok: true, entries: entries };
   }
 
   function clear(storage) {
     try {
-      if (!storage) return { ok: false, entries: [], message: NO_STORAGE };
+      if (!storage) return { ok: false, entries: [], code: NO_STORAGE };
       storage.removeItem(KEY);
       return { ok: true, entries: [] };
     } catch (error) {
-      return { ok: false, entries: read(storage).entries, message: NO_STORAGE };
+      return { ok: false, entries: read(storage).entries, code: NO_STORAGE };
     }
   }
 
@@ -163,7 +165,7 @@
 
   return {
     START: START, KEY: KEY, MAX_ENTRY: MAX_ENTRY, MAX_ENTRIES: MAX_ENTRIES, MISTAKES_CHARS: MISTAKES_CHARS,
-    NOT_A_SUMMARY: NOT_A_SUMMARY, NO_STORAGE: NO_STORAGE,
+    NOT_A_SUMMARY: NOT_A_SUMMARY, NO_STORAGE: NO_STORAGE, NEED_LEVEL: NEED_LEVEL,
     parseSummary: parseSummary, cleanText: cleanText, load: load, add: add, remove: remove, clear: clear,
     forLevel: forLevel, mistakesFor: mistakesFor, rememberLevel: rememberLevel, lastLevel: lastLevel
   };

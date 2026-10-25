@@ -49,7 +49,7 @@ def sections(text):
 def parse_topics(text):
     """Topics of a level file: id, title, the group (cluster) heading above it, and the body text."""
     lines = text.split('\n')
-    topics, group, current = [], None, None
+    topics, group, group_full, current = [], None, None, None
     for line in lines:
         heading = re.match(r'^(#{2,4}) (.+?)\s*$', line)
         if heading:
@@ -59,11 +59,12 @@ def parse_topics(text):
             match = TOPIC_HEADING.match(line)
             if match:
                 full = match.group(3)
-                current = {'id': match.group(2), 'title': HEBREW.sub('', full).strip(), 'title_full': full, 'group': group, 'body': []}
+                current = {'id': match.group(2), 'title': HEBREW.sub('', full).strip(), 'title_full': full, 'group': group, 'group_full': group_full, 'body': []}
             elif heading.group(1) == '###':
                 group = HEBREW.sub('', heading.group(2)).strip()
+                group_full = heading.group(2)  # with the Hebrew term, for the pages in Hebrew and English
             elif heading.group(1) == '##' and heading.group(2) in SKIPPED_SECTIONS + SECTION_NOTES:
-                group = None
+                group = group_full = None
             continue
         if current is not None:
             current['body'].append(line)

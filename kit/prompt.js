@@ -34,7 +34,7 @@
   const ASK_FOR_THE_FILE = 'إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها ';
   const MODES = {
     explain: {
-      label: 'افهم', description: 'شرح موضوع خطوة خطوة.', chosen: 'افهم',
+      label: 'افهم', chosen: 'افهم',
       start: function (first, all) {
         if (all && all.length > MAX_DIRECT_START) {
           return 'ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ (المواضيع: ' + all.map(quoted).join('، ') + ')';
@@ -43,7 +43,7 @@
       }
     },
     practice: {
-      label: 'تدرّب', description: 'سؤال بنمط الامتحان، قسم قسم، وبيصحّح حلك.', chosen: 'تدرّب',
+      label: 'تدرّب', chosen: 'تدرّب',
       start: function (first) {
         return first ? 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على ' + quoted(first) + ': القصة والقسم أ بس، واستنى.'
           : 'ابدأ بسؤال الطالب: "أي موضوع بدك تتدرّب عليه؟"';
@@ -53,7 +53,7 @@
       }
     },
     mock: {
-      label: 'امتحان تجريبي', description: 'امتحان كامل على المواضيع المختارة، وعلامة من 100 بالآخر.', chosen: 'امتحان تجريبي',
+      label: 'امتحان تجريبي', chosen: 'امتحان تجريبي',
       start: function (first) {
         return first ? 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.'
           : 'ابدأ بسؤال الطالب: "على أي مواضيع بدك الامتحان؟"';
@@ -63,7 +63,7 @@
       }
     },
     plan: {
-      label: 'خطة', description: 'خطة مراجعة لامتحانك بالأيام.', chosen: 'خطة',
+      label: 'خطة', chosen: 'خطة',
       start: function () { return 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟'; }
     }
   };
@@ -76,6 +76,9 @@
   const EXAM_SECTION_NOTE = 'هاي المعلومات إلك عشان تبني الخطة. ما تذكر كلمة بجروت أو أرقام الاستمارات للطالب، إلا إذا سأل عنها أو حكى إن امتحانه بجروت.';
   /* "افهم" with more topics than this: the tutor asks which one to start with, instead of picking the first. */
   const MAX_DIRECT_START = 3;
+  /* Only for a student whose page is in Hebrew or English; nothing is added for Arabic. */
+  const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };
+  const STUDENT_LANGUAGE_LINE = 'لغة الطالب: [language]. كل ردودك لازم تكون بهاللغة من أول رد، والمصطلحات بالعبري.';
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
   /* the order in the prompt, whatever the order of the ticks: the plan first, then understand, practice, mock exam */
   const PROMPT_ORDER = ['plan', 'explain', 'practice', 'mock'];
@@ -229,7 +232,8 @@
   /* sel: { subject, grade, units, target (units or null), topics (ids of the level or of the target level),
             all (every topic of the student's own level), custom (topics the student wrote), modes (the ticked modes;
             `mode` with one mode still works), mistakes (the "غلط:" lines of the old sessions),
-            teacherFile (true: he has an old exam or worksheet from his teacher), note (a note to the tutor) }
+            teacherFile (true: he has an old exam or worksheet from his teacher), note (a note to the tutor),
+            language (the language of the page: 'he' or 'en' adds the student's language line; 'ar' adds nothing) }
      Returns { text, length, tooLong, max, missingExample, topics, custom } or null when the level does not exist. */
   function buildPrompt(data, sel) {
     const modes = chosenModes(sel);
@@ -267,7 +271,10 @@
     const named = (sel.all ? ['كل المواضيع'] : names(pickedOwn)).concat(names(pickedTarget), custom);
     student.push('المواضيع اللي بدو يراجعها: ' + (named.length ? named.join('، ') : 'ما حدّد، اسأله'));
     student.push('الوضع اللي اختاره: ' + labels.join(' + '));
-    if (modes.length > 1) student.push('الطالب اختار: ' + labels.join(' + ') + '. ابدأ بأول وحدة. لما يخلص أو يطلب، انتقل للي بعدها.');
+    if (modes.length > 1) student.push('الطالب اختار: ' + labels.join(' + ') + '. ابدأ بأول وحدة بس. كل رد بوضع واحد بس. لما تخلص الوضع، اسأله إذا جاهز للي بعده، وما تنتقل قبل ما يجاوب.');
+
+    /* the prompt is Arabic (the curriculum is Arabic): a student whose page is in Hebrew or English is told so, once */
+    if (STUDENT_LANGUAGE[sel.language]) student.push(STUDENT_LANGUAGE_LINE.replace('[language]', STUDENT_LANGUAGE[sel.language]));
 
     /* what the tutor starts with: the first topic of the student, in the order of the list, then the ones he wrote */
     const everyName = names(pickedOwn.concat(pickedTarget)).concat(custom);
@@ -363,6 +370,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

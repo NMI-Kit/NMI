@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>عدّة NMI</title>
-<meta name="description" content="جهّز برومبت فيه منهاجك ونمط الامتحان وقواعد التدريس، وافتحه بتطبيق الذكاء الاصطناعي اللي عندك.">
+<meta name="description" content="جهّز نصًّا فيه منهاجك ونمط الامتحان وقواعد التدريس، وافتحه في تطبيق الذكاء الاصطناعي الذي تستخدمه.">
 <meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="light">
 <link rel="manifest" href="manifest.webmanifest">
@@ -14,18 +14,24 @@
 </head>
 <body>
 <header class="top">
-  <button type="button" id="back" class="back" hidden>→ رجوع</button>
-  <div class="brand"><img src="icon.svg" alt="" width="32" height="32"><span>عدّة NMI</span></div>
+  <nav id="langs" class="langs" aria-label="اللغة">
+    <button type="button" class="loglink" data-lang="ar" lang="ar" aria-pressed="false">عربي</button><span aria-hidden="true">·</span>
+    <button type="button" class="loglink" data-lang="he" lang="he" aria-pressed="false">עברית</button><span aria-hidden="true">·</span>
+    <button type="button" class="loglink" data-lang="en" lang="en" aria-pressed="false">English</button>
+  </nav>
+  <button type="button" id="back" class="back" data-i18n="back" hidden>→ رجوع</button>
+  <div class="brand"><img src="icon.svg" alt="" width="32" height="32"><span data-i18n="brand">عدّة NMI</span></div>
   <p id="progress" class="progress" aria-live="polite"></p>
-  <button type="button" id="log-link" class="loglink" aria-pressed="false">سجلّي</button>
+  <button type="button" id="log-link" class="loglink" data-i18n="logLink" aria-pressed="false">سجلّي</button>
 </header>
 
 <main id="app" class="app" tabindex="-1">
-  <p id="loading" class="note">لحظة، عم نجهّز المنهاج...</p>
+  <p id="loading" class="note" data-i18n="loading">لحظة، نجهّز المنهاج...</p>
 </main>
 
-<noscript><p class="note">الصفحة بتحتاج JavaScript عشان تجهّز البرومبت.</p></noscript>
+<noscript><p class="note">تحتاج الصفحة إلى JavaScript لتجهيز البرومبت.</p></noscript>
 
+<script src="i18n.js"></script>
 <script src="prompt.js"></script>
 <script src="log.js"></script>
 <script src="app.js"></script>
