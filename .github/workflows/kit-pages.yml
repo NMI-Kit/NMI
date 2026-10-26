@@ -38,6 +38,12 @@ jobs:
           cp -r kit/. _site/
           for f in index.html tokens.css styles.css preview.js; do cp "preview/$f" "_site/lab/$f"; done
           for f in nmi-mark.svg nmi-mark-light.svg nmi-mark-dark.svg nmi-mark-white.svg nmi-mark-black.svg; do cp "preview/assets/$f" "_site/lab/assets/$f"; done
+      - name: lab/ was built for computers (1280 px and wider), so phones show the published page zoomed out
+        # Only the copy under _site/lab/ changes; preview/index.html keeps its own viewport. The deploy fails if the line is not found.
+        run: |
+          sed -i 's|<meta name="viewport" content="width=device-width, initial-scale=1">|<meta name="viewport" content="width=1280">|' _site/lab/index.html
+          test "$(grep -c '<meta name="viewport" content="width=1280">' _site/lab/index.html)" = 1
+          if grep -q 'device-width' _site/lab/index.html; then echo 'the old viewport is still there'; exit 1; fi
       - name: lab/ has exactly the nine static files, and no key, no student data and no server code
         run: |
           find _site/lab -type f | sort > lab-files.txt

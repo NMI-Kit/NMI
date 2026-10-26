@@ -84,9 +84,14 @@
     '- كل ردودك بهاللغة من أول رد: الشرح، والقصص، والأسئلة، والملخص.',
     '- المصطلحات بالعبري. (للإنجليزي: المصطلح بالإنجليزي وجنبه العبري بين قوسين.) ما تكتب مصطلحات بالعربي.',
     '- الجمل الجاهزة تحت (مثل \'هاد مش بمنهاجك...\') قولها بمعناها بلغة الطالب.',
-    '- كلام الطالب بلغته إله نفس المعنى: \'לא הבנתי\' / \'I don\'t understand\' = \'مش فاهم\'، \'סיימתי\' / \'I\'m done\' = \'خلصت\'.',
-    '- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط \'المواضيع:\' و\'ضبط:\' و\'غلط:\' بالعربي، والباقي بلغة الطالب.'
+    '- كلام الطالب بلغته إله نفس المعنى: \'לא הבנתי\' / \'I don\'t understand\' = \'مش فاهم\'، \'סיימתי\' / \'I\'m done\' = \'خلصت\'.'
   ];
+  /* the last rule of the block: only when the prompt has the NMI-LOG rule (every mode except a plan alone) */
+  const STUDENT_LANGUAGE_LOG_RULE = '- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط \'المواضيع:\' و\'ضبط:\' و\'غلط:\' بالعربي، والباقي بلغة الطالب.';
+  /* the NMI-LOG rule is in the prompt with any mode except a plan alone */
+  function hasLogRule(modes) {
+    return modes.some(function (m) { return m !== 'plan'; });
+  }
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
   /* the order in the prompt, whatever the order of the ticks: the plan first, then understand, practice, mock exam */
   const PROMPT_ORDER = ['plan', 'explain', 'practice', 'mock'];
@@ -285,6 +290,7 @@
     if (STUDENT_LANGUAGE[sel.language]) {
       student.push(STUDENT_LANGUAGE_LINE.replace('[language]', STUDENT_LANGUAGE[sel.language]));
       STUDENT_LANGUAGE_RULES.forEach(function (rule) { student.push(rule); });
+      if (hasLogRule(modes)) student.push(STUDENT_LANGUAGE_LOG_RULE);
     }
 
     /* what the tutor starts with: the first topic of the student, in the order of the list, then the ones he wrote */
@@ -357,7 +363,7 @@
           /* the last section holds the closing line "ابدأ بسؤال الطالب ...". Before it: the sections of the teacher's
              file and of the student's note, when there are any. With the teacher's file the tutor first asks for it. */
           const extra = [];
-          if (modes.some(function (m) { return m !== 'plan'; })) extra.push('== ملخص الجلسة للعدّة ==', ...LOG_RULE, '');
+          if (hasLogRule(modes)) extra.push('== ملخص الجلسة للعدّة ==', ...LOG_RULE, '');
           if (mistakes.length) extra.push('== غلطات من جلسات قبل ==', ...mistakes, MISTAKES_RULE, '');
           if (teacherFile) extra.push('== ملف من الأستاذ ==', TEACHER_FILE_TEXT, '');
           if (note) extra.push('== ملاحظة من الطالب ==', note, NOTE_RULE, '');
@@ -381,6 +387,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, STUDENT_LANGUAGE_RULES: STUDENT_LANGUAGE_RULES, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, STUDENT_LANGUAGE_RULES: STUDENT_LANGUAGE_RULES, STUDENT_LANGUAGE_LOG_RULE: STUDENT_LANGUAGE_LOG_RULE, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

@@ -858,16 +858,16 @@ test('practice: the question has other numbers and another result than the expla
 });
 
 test('the language of the page: Hebrew and English add the language block at the end of the student part, Arabic adds nothing', () => {
-  const BLOCK = (language) => [
+  const BLOCK = (language, withLog = true) => [
     `لغة الطالب: ${language}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`,
     '- كل ردودك بهاللغة من أول رد: الشرح، والقصص، والأسئلة، والملخص.',
     '- المصطلحات بالعبري. (للإنجليزي: المصطلح بالإنجليزي وجنبه العبري بين قوسين.) ما تكتب مصطلحات بالعربي.',
     "- الجمل الجاهزة تحت (مثل 'هاد مش بمنهاجك...') قولها بمعناها بلغة الطالب.",
-    "- كلام الطالب بلغته إله نفس المعنى: 'לא הבנתי' / 'I don't understand' = 'مش فاهم'، 'סיימתי' / 'I'm done' = 'خلصت'.",
-    "- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط 'المواضيع:' و'ضبط:' و'غلط:' بالعربي، والباقي بلغة الطالب."
-  ];
+    "- كلام الطالب بلغته إله نفس المعنى: 'לא הבנתי' / 'I don't understand' = 'مش فاهم'، 'סיימתי' / 'I'm done' = 'خلصت'."
+  ].concat(withLog ? ["- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط 'المواضيع:' و'ضبط:' و'غلط:' بالعربي، والباقي بلغة الطالب."] : []);
   assert.equal(P.STUDENT_LANGUAGE_LINE, 'لغة الطالب: [language]. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:');
-  assert.deepEqual(P.STUDENT_LANGUAGE_RULES, BLOCK('x').slice(1));
+  assert.deepEqual(P.STUDENT_LANGUAGE_RULES, BLOCK('x', false).slice(1));
+  assert.equal(P.STUDENT_LANGUAGE_LOG_RULE, BLOCK('x').pop());
   const he = build({ topics: ['m10-3-12'], language: 'he' }).text;
   const en = build({ topics: ['m10-3-12'], language: 'en' }).text;
   assert.ok(he.includes(BLOCK('עברית').join('\n')));
@@ -898,4 +898,32 @@ test('the language of the page: Hebrew and English add the language block at the
   }
   // the log rule still asks for the Arabic words, and the block repeats them for the other languages
   assert.ok(he.includes("'المواضيع:' و'ضبط:' و'غلط:' بالعربي"));
+});
+
+test('the language block: its last rule (NMI-LOG) is only there when the NMI-LOG rule is in the prompt, so not with a plan alone', () => {
+  const RULE = P.STUDENT_LANGUAGE_LOG_RULE;
+  assert.ok(RULE.startsWith('- بملخص NMI-LOG'));
+  const studentPart = (text) => text.slice(text.indexOf('== الطالب =='), text.indexOf('== المصادر =='));
+  for (const language of ['he', 'en']) {
+    const name = language === 'he' ? 'עברית' : 'English';
+    // a plan alone: no NMI-LOG anywhere, and the block ends with the rule about the words of the student
+    const plan = multi(['plan'], { language }).text;
+    assert.ok(!plan.includes('NMI-LOG'), language);
+    assert.ok(!plan.includes('== ملخص الجلسة للعدّة =='), language);
+    const planLines = studentPart(plan).trim().split('\n');
+    assert.ok(planLines[planLines.length - 1].startsWith('- كلام الطالب بلغته إله نفس المعنى'), language);
+    assert.ok(planLines.some((line) => line === `لغة الطالب: ${name}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`), language);
+    assert.equal(planLines.filter((line) => line.startsWith('- ')).length, 4, language);
+    // every other set of modes: the NMI-LOG rule is in the prompt and the last rule of the block is there too, once, in the student part
+    for (const modes of [['explain'], ['practice'], ['mock'], ['plan', 'explain'], ['plan', 'mock'], ['plan', 'explain', 'practice', 'mock']]) {
+      const text = multi(modes, { language }).text;
+      assert.ok(text.includes('== ملخص الجلسة للعدّة =='), `${language} ${modes}`);
+      assert.equal(text.split(RULE).length, 2, `${language} ${modes}`);
+      const lines = studentPart(text).trim().split('\n');
+      assert.equal(lines[lines.length - 1], RULE, `${language} ${modes}`);
+      assert.equal(lines.filter((line) => line.startsWith('- ')).length, 5, `${language} ${modes}`);
+    }
+  }
+  // the page in Arabic has no block at all, and a plan alone in Hebrew differs from Arabic only by the four rules
+  assert.equal(multi(['plan'], { language: 'he' }).text.replace(/لغة الطالب: [^\n]*\n(- [^\n]*\n){4}/, ''), multi(['plan'], {}).text);
 });

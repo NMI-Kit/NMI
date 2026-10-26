@@ -33,6 +33,8 @@ NMI brings the curriculum **into** the app the student already uses.
 4. NMI builds one prompt and opens the student's AI app with it (Android share sheet, or copy and paste).
 5. At the end of a session, the AI writes a short summary. The student pastes it into **My log** in NMI, and the next prompt can test them on their old mistakes.
 
+The page is in Arabic, Hebrew and English. The prompt tells the AI to answer in the student's language, with the Hebrew math terms.
+
 The prompt contains only what that student needs: their topics from the official curriculum, the exam patterns for their level, one example question per topic, and the teaching rules (one question at a time, hints before answers, read photos of handwritten work).
 
 **The prompt contains no real exam.** It describes the shape of the exam, and the AI writes new questions in that shape.
@@ -51,13 +53,13 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 ## How it was built
 
 - **Lab version (first):** a local web app that called the Claude API directly, with 60+ evaluation cases scored by an AI judge and by code checks. It taught me which teaching rules work. It also taught me that students would not leave ChatGPT for it, so the product became the toolkit.
-- **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding curriculum files, not code.
-- **Tests:** 190 offline tests, 77 local tests, 48 prompt tests, 9 log tests, 12 text tests, 139 browser tests on iPhone, Android and desktop sizes.
+- **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.
+- **Tests:** 191 offline tests, 77 local tests, 49 prompt tests, 9 log tests, 12 text tests, 139 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
 - **Tools:** I designed the product, made the decisions and tested it with real study sessions. I wrote the code with AI coding assistants (Claude Code), and checked the content against official sources.
 
 ## The lab version
 
-The first version of NMI was a full tutoring website that ran on my computer and talked to the Claude API. It is not online, because it needs a server and a paid API key. These screenshots are from its demo mode, with made-up data.
+The first version of NMI was a full tutoring website that ran on my computer and talked to the Claude API. The real version is not online, because it needs a server and a paid API key. A demo with made-up replies is online, and these screenshots are from it.
 
 You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/
 
@@ -84,6 +86,9 @@ You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/
 - Common mistakes listed per topic come from general teaching experience, not from the Ministry.
 - Some 4- and 3-unit patterns (35372, 35471) were built from the matching graduates' exams.
 - Opening the installed app directly works on Android; on iPhone the student pastes the prompt.
+- The Hebrew and English page texts were written with AI and checked by me, not by a professional translator.
+- 24 of the 101 topics have no Hebrew name in the curriculum files yet, so they show in Arabic on the Hebrew and English page.
+- The lab demo was built for computers; on a phone it shows zoomed out.
 
 ## Next
 
@@ -94,7 +99,9 @@ You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/
 ## Repository map
 
 ```
-kit/                 the toolkit page (index.html, app.js, prompt.js, log.js, data.json)
+kit/                 the toolkit page (index.html, app.js, prompt.js, log.js, i18n.js, data.json)
+kit/applinks.html    a test page for opening the apps on Android (not linked)
+preview/             the lab demo, published under /lab/
 curriculum/math/     curriculum files, exam patterns, example bank
 tools/build_kit.py   builds kit/data.json from curriculum/
 tests/               offline, local, prompt and browser tests

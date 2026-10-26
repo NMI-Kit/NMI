@@ -575,10 +575,44 @@ class KitFilesTests(unittest.TestCase):
         for part in ('Demo of the first NMI version, with made-up replies. The real version talked to the Claude API on my computer.',
                      'نسخة عرض من أول نسخة من NMI، بردود جاهزة. النسخة الحقيقية كانت تحكي مع Claude على كمبيوتري.'):
             self.assertEqual(page.count(part), 1, part)
+        self.assertIn('Best on a computer.', page)
+        self.assertIn('الأفضل على كمبيوتر.', page)
+        # phones: only the published copy gets a desktop width, so that the whole page shows zoomed out; the source keeps its own viewport
+        self.assertIn('<meta name="viewport" content="width=device-width, initial-scale=1">', page)
+        self.assertNotIn('width=1280', page)
+        self.assertIn("sed -i 's|<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">|<meta name=\"viewport\" content=\"width=1280\">|' _site/lab/index.html", workflow)
+        self.assertIn("grep -c '<meta name=\"viewport\" content=\"width=1280\">' _site/lab/index.html", workflow)  # the deploy fails if the line is not found
+        self.assertIn("grep -q 'device-width' _site/lab/index.html", workflow)
+        self.assertLess(workflow.index('width=1280'), workflow.index('diff lab-expected.txt lab-files.txt'))
+        # the only line that changes the page is the viewport one (the other lines only look: grep, or the list of files)
+        changing = [line for line in workflow.splitlines() if '_site/lab/index.html' in line and re.search(r'\bsed\b|\bcp\b|>\s*_site', line)]
+        self.assertEqual(len(changing), 1, changing)
         readme = read(ROOT / 'README.md')
         self.assertIn('You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/', readme)
         self.assertLess(readme.index('## The lab version'), readme.index('https://m0502223641-coder.github.io/NMI/lab/'))
         self.assertLess(readme.index('https://m0502223641-coder.github.io/NMI/lab/'), readme.index('![Lab version 1]'))
+
+    def test_the_readme_says_what_the_product_really_is(self):
+        readme = read(ROOT / 'README.md')
+        for part in ('The real version is not online, because it needs a server and a paid API key. A demo with made-up replies is online, and these screenshots are from it.',
+                     "The page is in Arabic, Hebrew and English. The prompt tells the AI to answer in the student's language, with the Hebrew math terms.",
+                     'Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.',
+                     '- The Hebrew and English page texts were written with AI and checked by me, not by a professional translator.',
+                     '- 24 of the 101 topics have no Hebrew name in the curriculum files yet, so they show in Arabic on the Hebrew and English page.',
+                     '- The lab demo was built for computers; on a phone it shows zoomed out.',
+                     'kit/applinks.html    a test page for opening the apps on Android (not linked)',
+                     'preview/             the lab demo, published under /lab/',
+                     '(index.html, app.js, prompt.js, log.js, i18n.js, data.json)'):
+            self.assertIn(part, readme)
+        for old in ('It is not online, because', 'Adding a subject means adding curriculum files, not code.'):
+            self.assertNotIn(old, readme)
+        # the 24 topics: the number in the README is the real one
+        data = json.loads(read(build_kit.OUTPUT))
+        topics = [topic for subject in data['subjects'] for grade in subject['grades'] for level in grade['levels'] for topic in level['topics']]
+        self.assertEqual(len(topics), 101)
+        without_hebrew = [topic for topic in topics if not re.search(r'\([^)]*[\u0590-\u05ff][^)]*\)', topic.get('title_full') or '')]
+        self.assertEqual(len(without_hebrew), 24)
+        self.assertIn('24 of the 101 topics', readme)
 
     def test_the_deploy_guide_names_the_exact_buttons(self):
         guide = read(ROOT / 'docs' / 'KIT.md')
