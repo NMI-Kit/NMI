@@ -48,13 +48,13 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 | Curriculum | 9 levels: grades 10, 11, 12 × 3, 4, 5 units, in Arabic | Topic lists compared line by line with the Ministry of Education teaching recommendations for 2026–2027 and the new curriculum document |
 | Exam patterns | 7 exam forms (35172, 35371, 35372, 35471, 35472, 35571, 35572): structure, typical sections, common traps | Built from official Ministry exams; no exam question is copied |
 | Example bank | 101 exam-style questions, one per topic, with new stories and numbers | Every number checked with SymPy; stories checked for sense (no negative prices or lengths) |
-| Teaching rules | Explain / practice / mock exam / plan, a hint ladder, photo reading | Tested first in a lab version (below) |
+| Teaching rules | Explain / practice / mock exam / plan, a hint ladder, photo reading, memory methods from learning science (retrieval, spacing, interleaving), and teaching methods inspired by research at Oxford (tutorials), MIT (active learning), Stanford (Jo Boaler) and Harvard (Peer Instruction) | Tested first in a lab version (below) |
 
 ## How it was built
 
 - **Lab version (first):** a local web app that called the Claude API directly, with 60+ evaluation cases scored by an AI judge and by code checks. It taught me which teaching rules work. It also taught me that students would not leave ChatGPT for it, so the product became the toolkit.
 - **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.
-- **Tests:** 191 offline tests, 77 local tests, 49 prompt tests, 9 log tests, 12 text tests, 139 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
+- **Tests:** 192 offline tests, 77 local tests, 53 prompt tests, 9 log tests, 12 text tests, 139 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
 - **Tools:** I designed the product, made the decisions and tested it with real study sessions. I wrote the code with AI coding assistants (Claude Code), and checked the content against official sources.
 
 ## The lab version

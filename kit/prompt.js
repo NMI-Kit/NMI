@@ -7,12 +7,13 @@
   'use strict';
 
   /* Longest prompt we are happy to send, in characters. The biggest whole level (grade 10, 5 units, every topic) with
-     any set of modes and any page language is about 16,550 (Hebrew and English add a language block of about 460
-     characters), so one level with every topic fits. 16,600 characters is about 5,800 tokens in Arabic: a free-tier
-     chat takes it, a phone pastes it without trouble, and the model still follows the rules at the top instead of
-     drowning in text. A prompt that is longer (a whole level with a long mistakes section, or a whole own level plus
-     a whole target level) is not refused: the page warns the student. */
-  const MAX_LENGTH = 16600;
+     any set of modes and any page language is about 18,250 (Hebrew and English add a language block of about 460
+     characters; the section of teaching methods adds about 1,700), so one level with every topic fits. 18,300
+     characters is about 6,400 tokens in Arabic: a free-tier chat takes it, a phone pastes it without trouble, and the
+     model still follows the rules at the top instead of drowning in text. A prompt that is longer (a whole level with
+     a long mistakes section, or a whole own level plus a whole target level) is not refused: the page warns the
+     student. */
+  const MAX_LENGTH = 18300;
 
   /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
   const MAX_CUSTOM = 5;
@@ -92,6 +93,14 @@
   function hasLogRule(modes) {
     return modes.some(function (m) { return m !== 'plan'; });
   }
+  /* The teaching methods (retrieval, spacing, interleaving ...): a section of the base prompt, in every prompt except a
+     plan alone. With old mistakes in the prompt, "افهم" and "تدرّب" start with a quick warm-up question on one of them. */
+  const TEACHING_SECTION = 'طريقة التعليم';
+  function hasTeachingMethods(modes) {
+    return modes.some(function (m) { return m !== 'plan'; });
+  }
+  const WARMUP_MODES = { explain: true, practice: true };
+  const WARMUP_START = 'ابدأ بسؤال إحماء سريع واحد على غلطة من "غلطات من جلسات قبل" فوق، وانتظر جوابه. بعدها ';
   const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
   /* the order in the prompt, whatever the order of the ticks: the plan first, then understand, practice, mock exam */
   const PROMPT_ORDER = ['plan', 'explain', 'practice', 'mock'];
@@ -353,6 +362,7 @@
     /* the rest of the base prompt, with the chosen mode and its first move */
     const out = [title, ''];
     sections.forEach(function (s) {
+      if (s.name === TEACHING_SECTION && !hasTeachingMethods(modes)) return;  // a plan alone has no section of teaching methods
       if (out[out.length - 1] !== '') out.push('');
       out.push('== ' + s.name + ' ==');
       if (s.name === 'الطالب') out.push.apply(out, student);
@@ -369,7 +379,10 @@
           if (note) extra.push('== ملاحظة من الطالب ==', note, NOTE_RULE, '');
           for (let i = body.length - 1; i >= 0; i--) {
             if (/^ابدأ/.test(body[i])) {
-              body.splice(i, 1, ...extra, teacherFile && MODES[mode].fileStart ? MODES[mode].fileStart(first) : MODES[mode].start(first, everyName));
+              let startLine = teacherFile && MODES[mode].fileStart ? MODES[mode].fileStart(first) : MODES[mode].start(first, everyName);
+              /* old mistakes in the prompt: the warm-up question of the teaching methods comes before the first move */
+              if (mistakes.length && !teacherFile && WARMUP_MODES[mode] && /^ابدأ (مباشرة|بسؤال جديد)/.test(startLine)) startLine = WARMUP_START + startLine;
+              body.splice(i, 1, ...extra, startLine);
               break;
             }
           }

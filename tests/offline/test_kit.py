@@ -614,6 +614,29 @@ class KitFilesTests(unittest.TestCase):
         self.assertEqual(len(without_hebrew), 24)
         self.assertIn('24 of the 101 topics', readme)
 
+    def test_the_base_prompt_has_the_teaching_methods_after_the_hint_ladder_and_the_spaced_review_line(self):
+        base = read(ROOT / 'kit' / 'base_prompt.txt').replace('\r\n', '\n')
+        self.assertEqual(base.count('== طريقة التعليم =='), 1)
+        self.assertLess(base.index('== سلّم التلميحات'), base.index('== طريقة التعليم =='))
+        self.assertLess(base.index('== طريقة التعليم =='), base.index('== صور الحلول =='))
+        section = base[base.index('== طريقة التعليم =='):base.index('== صور الحلول ==')].strip().split('\n')
+        self.assertEqual(len(section), 12)  # the heading and 11 lines
+        for start in ('- شرح قصير، وبعدين شغل:', '- من وين جاي القانون:', '- من راسك أول:', '- بأول الجلسة:', '- اخلط:', '- اسأل "ليش؟":',
+                      '- الغلط جزء من التعلّم:', '- سهل للكل، وتحدّي بالآخر:', '- طرق تانية:', '- حل طالب تاني:', '- لما يحكي "صعب":'):
+            self.assertEqual(len([line for line in section if line.startswith(start)]), 1, start)
+        self.assertIn('   - المراجعة الموزّعة: كل موضوع بيرجع بالجدول لمراجعة قصيرة بعد يوم، و3 أيام، وأسبوع.', base)
+        self.assertLess(base.index('5) خطة:'), base.index('المراجعة الموزّعة'))
+        self.assertLess(base.index('المراجعة الموزّعة'), base.index('== سلّم التلميحات'))
+        self.assertEqual(json.loads(read(build_kit.OUTPUT))['base_prompt'], base.strip())
+        # the code leaves the section out only for a plan alone
+        prompt = read(ROOT / 'kit' / 'prompt.js')
+        self.assertIn("if (s.name === TEACHING_SECTION && !hasTeachingMethods(modes)) return;", prompt)
+        self.assertIn("const TEACHING_SECTION = 'طريقة التعليم';", prompt)
+        # the README does not claim to teach like the universities
+        readme = read(ROOT / 'README.md')
+        self.assertIn('teaching methods inspired by research at Oxford (tutorials), MIT (active learning), Stanford (Jo Boaler) and Harvard (Peer Instruction)', readme)
+        self.assertNotRegex(readme, r'(?i)teaches? like (oxford|mit|stanford|harvard)')
+
     def test_the_deploy_guide_names_the_exact_buttons(self):
         guide = read(ROOT / 'docs' / 'KIT.md')
         for part in ('**Settings**', '**Pages**', '**GitHub Actions**', '**Run workflow**', 'https://m0502223641-coder.github.io/NMI/'):
