@@ -1459,7 +1459,7 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await page.locator('#teacher-file').check();
         await page.locator('#prepare').click();
         await expect(page.locator('#too-long')).toBeVisible();
-        await expect(page.locator('#too-long')).toContainText(t('tooLong', { n: '', max: 18300 }).split('(')[0].trim());
+        await expect(page.locator('#too-long')).toContainText(t('tooLong', { n: '', max: 18800 }).split('(')[0].trim());
         await expect(page.locator('#attach')).toHaveText(t('attach'));
         await expect(page.locator('#summary')).toContainText(t('customCount', { n: 1 }));
         await expect(page.locator('#summary')).toContainText(t('fromTarget'));

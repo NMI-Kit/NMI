@@ -401,7 +401,7 @@ test('custom topics are cleaned: plain one-line text, no duplicates, 5 at most, 
 });
 
 test('the length limit: one whole level fits in every mode, a very big choice is flagged', () => {
-  assert.equal(P.MAX_LENGTH, 18300);
+  assert.equal(P.MAX_LENGTH, 18800);
   for (const g of math.grades) for (const l of g.levels) {
     for (const mode of MODES) {
       const built = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, target: null, all: true, topics: [], mode });
@@ -437,7 +437,7 @@ test('the teacher\'s file: its section and the new closing line, only with "تد
     assert.ok(built.text.includes(TEACHER_SECTION + '\n'), mode);
     assert.equal(lines.pop(), mode === 'practice' ? FILE_PRACTICE : FILE_MOCK, mode);
     assert.ok(built.text.indexOf('== ملف من الأستاذ ==') > built.text.indexOf('== قواعد لكل رد =='), 'before the closing line, after the rules');
-    assert.ok(!built.text.includes('ابدأ مباشرة'), mode + ': the closing line is the one about the file');
+    assert.equal(built.text.split('ابدأ مباشرة').length, 2, mode + ': only the warm-up rule of the teaching section; the closing line is the one about the file');
     assert.equal(built.text.split('== ملف من الأستاذ ==').length, 2, 'once');
   }
   for (const mode of ['explain', 'plan']) {
@@ -700,13 +700,13 @@ test('old mistakes: their own section before the closing line, only when there a
   assert.equal(injected.filter((l) => l === '== اللغة ==').length, 1);
 });
 
-test('the length limit is 18,300: every level with every topic fits, in every set of modes and in every page language', () => {
+test('the length limit is 18,800: every level with every topic fits, in every set of modes and in every page language', () => {
   const long = [];
   for (let i = 0; i < 30; i++) long.push('غلط: ' + 'ب'.repeat(50) + ' ' + i);
   const sets = [];
   for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
   assert.equal(sets.length, 15);
-  assert.equal(P.MAX_LENGTH, 18300);
+  assert.equal(P.MAX_LENGTH, 18800);
   const biggest = { ar: 0, he: 0, en: 0 };
   let cases = 0;
   const overWithMistakes = [];
@@ -715,21 +715,21 @@ test('the length limit is 18,300: every level with every topic fits, in every se
     const built = P.buildPrompt(data, base);
     biggest[lang] = Math.max(biggest[lang], built.length);
     cases += 1;
-    assert.equal(built.tooLong, built.length > 18300);
+    assert.equal(built.tooLong, built.length > 18800);
     assert.equal(built.tooLong, false, `${lang} ${g.id}/${l.units} ${modes.join('+')}: ${built.length}`);
     if (lang === 'ar' && P.buildPrompt(data, Object.assign({ mistakes: long }, base)).tooLong) overWithMistakes.push(`${g.id}/${l.units} ${modes.join('+')}`);
   }
   assert.equal(cases, 405);
   // the biggest prompts are grade 10, 5 units, every topic, all four modes; the Hebrew and English language block adds about 460 characters
-  assert.ok(biggest.ar > 17500 && biggest.ar <= 17800, `ar: ${biggest.ar}`);
-  for (const lang of ['he', 'en']) assert.ok(biggest[lang] > 18100 && biggest[lang] <= 18300, `${lang}: ${biggest[lang]}`);
+  assert.ok(biggest.ar > 18000 && biggest.ar <= 18300, `ar: ${biggest.ar}`);
+  for (const lang of ['he', 'en']) assert.ok(biggest[lang] > 18600 && biggest[lang] <= 18800, `${lang}: ${biggest[lang]}`);
   assert.ok(biggest.he > biggest.ar && biggest.en >= biggest.he);
   // a full mistakes section can still pass the limit, only on the biggest level: the page warns the student and does not block him
   assert.ok(overWithMistakes.length > 0 && overWithMistakes.every((x) => x.startsWith('10/5 ')), overWithMistakes.join(' | '));
   // a normal choice (a few topics) is far from the limit, in every level, with every set of modes and in every language
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
     const few = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: l.topics.slice(0, 3).map((t) => t.id), modes, language: lang });
-    assert.ok(few.length < 14500,`${g.id}/${l.units} ${modes.join('+')}: ${few.length}`);
+    assert.ok(few.length < 15500, `${g.id}/${l.units} ${modes.join('+')}: ${few.length}`);
   }
 });
 
@@ -738,7 +738,7 @@ const PROMPT_MODES = ['plan', 'explain', 'practice', 'mock'];
 // ----------------------------------------------------------------------------- task 4: marks, hint ladder, no hint with a new section, target topics
 const MARKS_RULE = 'العلامة لازم تعكس الحل الحقيقي: إذا الطالب حل لحاله من أول مرة، علامة القسم كاملة. إذا احتاج تلميح صغير، نقّص ربع العلامة. إذا احتاج تلميح كبير، نقّص النص. إذا حليت الخطوة قدامه، ما بياخد علامة عليها. قله بجملة وحدة ليش نقصت. بالملخص اكتب العلامة الحقيقية.';
 const FIRST_HINT = "غلطة أولى بنفس القسم: قول وين الغلط بالضبط، وتلميح صغير: سؤال أو جملة بتوجّهه، بدون ما تكتب المعادلة أو تعوّض الأرقام عنه. مثال: 'عوّض نقطة A بمعادلتك، هل بتطلع صح؟'";
-const NO_HINT_WITH_NEW_SECTION = 'ما تعطي تلميح مع قسم جديد. التلميح بس بعد ما الطالب يحاول ويغلط، أو لما يطلب.';
+const NO_HINT_WITH_NEW_SECTION = 'ما تعطي تلميح مع قسم جديد، حتى جملة مثل "فكّر بـ..." أو "تذكّر إن..." هي تلميح. التلميح بس بعد ما الطالب يحاول ويغلط، أو لما يطلب.';
 const TARGET_NOTE = 'الطالب اختار هالمواضيع قصداً عشان ينتقل لمستوى أعلى. علّمها عادي، حتى لو مكتوب فوق إنها خارج منهاج مستواه.';
 
 test('practice rules: the marks follow the real solution, no hint with a new section', () => {
@@ -934,8 +934,8 @@ const TEACHING_SECTION = [
   '== طريقة التعليم ==',
   '- شرح قصير، وبعدين شغل: ما تشرح أكتر من 5 أسطر قبل ما تعطيه إشي يحله بنفسه.',
   '- من وين جاي القانون: أول مرة بيجي قانون، ورجيه من وين جاي بجملة أو رسم بالكلام، مش بس احفظه.',
-  '- من راسك أول: قبل ما تكتب قانون درسه قبل، اطلب منه يكتبه من راسه. إذا غلط، صحّحه، وبعد كم سؤال اطلبه منه مرة تانية.',
-  '- بأول الجلسة: سؤال سريع واحد على قانون أو غلطة من موضوع اختاره، قبل الشغل الجديد.',
+  '- من راسك أول: قبل ما تكتب قانون أو قاعدة درسها قبل، اطلب منه يكتبها من راسه. بدل "تذكّر إن..."، اسأله هو: "شو لازم نعمل بالوحدات؟". إذا غلط، صحّحه، وبعد كم سؤال اطلبه منه مرة تانية.',
+  '- بأول الجلسة: إذا في قسم "غلطات من جلسات قبل"، سؤال إحماء سريع واحد على غلطة منها قبل الشغل الجديد. إذا ما في، ابدأ مباشرة.',
   '- اخلط: بالتدريب، كل سؤال تالت من موضوع تاني اختاره الطالب أو من غلطة قديمة، إذا في.',
   '- اسأل "ليش؟": بعد ما يحل صح، اسأله مرة وحدة بكل سؤال "ليش عملت هيك؟" أو "كيف عرفت؟"، وخلّيه يشرح تفكيره بكلامه.',
   '- الغلط جزء من التعلّم: لما يغلط، ما تحسّسه إنه فشل. قله إن الغلطة بتوريك وين لازم تركّز. الفهم أهم من السرعة.',
@@ -984,13 +984,16 @@ test('teaching methods: the older rules that clashed were fixed, and the new lin
   const text = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
   // "افهم": a short explanation, no "about 150 words"
   assert.ok(!text.includes('حوالي 150 كلمة'));
-  assert.ok(text.includes('   - الشرح قصير: لحد 5 أسطر (الجملة الأولى والقانون ورموزه) قبل المثال والسؤال. إذا لسا ما فهم،'));
+  assert.ok(text.includes('   - الشرح قصير: الجملة الأولى والقانون ورموزه لحد 5 أسطر بالمجموع، وبعدها المثال مباشرة. ما في فقرات زيادة. إذا لسا ما فهم،'));
   // "تدرّب", step هـ: "why?" once per question, in place of the next section
   assert.ok(text.includes('   هـ. إذا صح: أكّد بجملة أو جملتين، واعطي القسم الجاي. استثناء: مرة وحدة بكل سؤال (مش بكل قسم)، اسأله بدل القسم الجاي "ليش عملت هيك؟" أو "كيف عرفت؟"، وبعد جوابه اعطي القسم الجاي.'));
   // the mock exam: nothing of the methods while he solves it
   assert.ok(text.includes('   - طريقة التعليم (تحت) ما بتنطبق على الامتحان نفسه: ما تسأله إحماء ولا "ليش؟" وهو بيحل. بعد التصحيح اتبعها عادي.'));
   // every reply: one question, and the warm-up only with old mistakes
-  assert.ok(text.includes('- كل رد بيخلص بسؤال واحد بس (إلا الامتحان التجريبي: اعطيه كله مرة وحدة).\n- أسئلة طريقة التعليم (إحماء، ليش، طريقة تانية) هي نفسها هالسؤال الواحد، مش زيادة عليه.\n- سؤال الإحماء بأول الجلسة بس إذا في قسم "غلطات من جلسات قبل" تحت. إذا ما في، ابدأ حسب سطر البداية الأخير.'));
+  assert.ok(text.includes('- كل رد بيخلص بسؤال واحد بس (إلا الامتحان التجريبي: اعطيه كله مرة وحدة).\n- أسئلة طريقة التعليم (إحماء، ليش، طريقة تانية) هي نفسها هالسؤال الواحد، مش زيادة عليه.\n'));
+  // the warm-up rule is said once, in the teaching section; the second copy in "قواعد لكل رد" was removed
+  assert.ok(!text.includes('- سؤال الإحماء بأول الجلسة بس إذا'));
+  assert.equal(text.split('إذا ما في، ابدأ مباشرة.').length, 2);
   // the old rules are still there
   for (const part of ['اتبع سلّم التلميحات', 'العلامة لازم تعكس الحل الحقيقي', 'ما تعطي تلميح مع قسم جديد', 'مثال واحد محلول خطوة خطوة', 'كن قصير وواضح. ما في مقدمات.']) assert.ok(text.includes(part), part);
 });
@@ -1012,4 +1015,58 @@ test('teaching methods: the warm-up question comes before the first move only wi
   // the mistakes section is above the first move
   const text = multi(['explain'], { mistakes: lines }).text;
   assert.ok(text.indexOf('== غلطات من جلسات قبل ==') < text.indexOf(WARM));
+});
+
+
+// ----------------------------------------------------------------------------- task 13: six fixes from a real session
+test('real session fixes: tone rules in "قواعد لكل رد", in every prompt', () => {
+  const TONE = [
+    '- إيموجي واحد بالكتير بكل رد، وبلاش أحسن.',
+    '- المدح قصير ومحدّد على الخطوة اللي عملها، مش على الطالب نفسه. مثلاً: "تحويلك للدقائق صح"، مش "إنت وحش" أو "إنت عبقري". ما تكرر "ممتاز جداً" أو "صح 100%".',
+    '- ما تستعمل عناوين كبيرة (###) إلا بالامتحان التجريبي.'
+  ];
+  for (const mode of MODES) for (const language of ['ar', 'he']) {
+    const text = build({ topics: ['m10-3-12'], mode, language }).text;
+    const rules = text.slice(text.indexOf('== قواعد لكل رد =='));
+    assert.ok(rules.includes('- كن قصير وواضح. ما في مقدمات.\n' + TONE.join('\n') + '\n'), `${mode} ${language}`);
+    for (const line of TONE) assert.equal(text.split(line).length, 2, `${mode} ${language}: once`);
+  }
+  // the old rules of the same section are still there
+  const text = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
+  for (const part of ['- كل رد بيخلص بسؤال واحد بس', '- تذكّر غلطات الطالب بهالمحادثة، وارجع افحصه عليها بسؤال جاي.', '- إذا الطالب ذكي وسريع، صعّب الأسئلة. وإذا علق كتير، سهّلها.']) assert.ok(text.includes(part), part);
+});
+
+test('real session fixes: "افهم" has a short explanation and explains every chosen topic', () => {
+  const SHORT = '   - الشرح قصير: الجملة الأولى والقانون ورموزه لحد 5 أسطر بالمجموع، وبعدها المثال مباشرة. ما في فقرات زيادة. إذا لسا ما فهم، اشرح بطريقة تانية تماماً (مثال تاني، أو جدول أرقام، أو رسم بالكلام)، مش نفس الشرح بكلام تاني.';
+  const NEXT = '   - إذا اختار أكتر من موضوع: لما تخلص شرح موضوع، اسأله "نكمل شرح الموضوع الجاي، ولا ننتقل للي بعده؟". ما تقفز عن موضوع بدون ما تسأله.';
+  for (const mode of MODES) {
+    const text = build({ topics: ['m10-3-12'], mode }).text;
+    const explain = text.slice(text.indexOf('1) افهم:'), text.indexOf('2) تمرين:'));
+    assert.ok(explain.includes(SHORT), mode);
+    assert.ok(explain.trimEnd().endsWith(NEXT), mode + ': the new line is at the end of "افهم"');
+    assert.equal(text.split(NEXT).length, 2, 'once');
+    assert.ok(!text.includes('لحد 5 أسطر (الجملة الأولى والقانون ورموزه) قبل المثال والسؤال'), 'the older wording is gone');
+    // the rest of "افهم" is as it was
+    for (const part of ['   - أول جملة: شو هو الموضوع بكلام بسيط.', '   - القانون بسطر لحاله، وتحته كل رمز ومعناه.', '   - مثال واحد محلول خطوة خطوة.', '   - سؤال واحد سهل بالآخر.']) assert.ok(explain.includes(part), part);
+  }
+});
+
+test('real session fixes: no hint with a new section (not even "فكّر بـ..."), recall by asking, one warm-up rule', () => {
+  const text = build({ topics: ['m10-3-12'], mode: 'practice' }).text;
+  assert.ok(text.includes(`   - ${NO_HINT_WITH_NEW_SECTION}\n`));
+  assert.equal(text.split('ما تعطي تلميح مع قسم جديد').length, 2, 'once');
+  const section = text.slice(text.indexOf('== طريقة التعليم =='), text.indexOf('== صور الحلول =='));
+  assert.ok(section.includes('- من راسك أول: قبل ما تكتب قانون أو قاعدة درسها قبل، اطلب منه يكتبها من راسه. بدل "تذكّر إن..."، اسأله هو: "شو لازم نعمل بالوحدات؟". إذا غلط، صحّحه، وبعد كم سؤال اطلبه منه مرة تانية.\n'));
+  assert.ok(section.includes('- بأول الجلسة: إذا في قسم "غلطات من جلسات قبل"، سؤال إحماء سريع واحد على غلطة منها قبل الشغل الجديد. إذا ما في، ابدأ مباشرة.\n'));
+  assert.ok(!section.includes('سؤال سريع واحد على قانون أو غلطة من موضوع اختاره'));
+  assert.equal((text.match(/سؤال الإحماء بأول الجلسة|سؤال إحماء سريع واحد/g) || []).length, 1, 'the warm-up rule is said once');
+  // the section still has 11 lines
+  assert.equal(section.trim().split('\n').length, 12);
+  // the warm-up first move of prompt.js is still the one that follows the rule: a mistakes section, then one warm-up question
+  const lines = ['غلط: نسي يعكس الإشارة'];
+  const withMistakes = multi(['explain'], { mistakes: lines }).text;
+  assert.ok(withMistakes.trim().endsWith('وانتظر جوابه. بعدها ابدأ مباشرة بشرح «النموذج الخطي».'));
+  assert.ok(withMistakes.indexOf('== غلطات من جلسات قبل ==') > withMistakes.indexOf('- بأول الجلسة:'));
+  // without old mistakes the first move is direct, as the rule says
+  assert.ok(multi(['explain']).text.trim().endsWith('\nابدأ مباشرة بشرح «النموذج الخطي».'));
 });
