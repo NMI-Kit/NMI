@@ -401,7 +401,7 @@ test('custom topics are cleaned: plain one-line text, no duplicates, 5 at most, 
 });
 
 test('the length limit: one whole level fits in every mode, a very big choice is flagged', () => {
-  assert.equal(P.MAX_LENGTH, 16200);
+  assert.equal(P.MAX_LENGTH, 16600);
   for (const g of math.grades) for (const l of g.levels) {
     for (const mode of MODES) {
       const built = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, target: null, all: true, topics: [], mode });
@@ -700,15 +700,14 @@ test('old mistakes: their own section before the closing line, only when there a
   assert.equal(injected.filter((l) => l === '== اللغة ==').length, 1);
 });
 
-test('the length limit is 16,200: in Arabic every level with every topic fits; in Hebrew and English only grade 10 with 5 units goes over', () => {
+test('the length limit is 16,600: every level with every topic fits, in every set of modes and in every page language', () => {
   const long = [];
   for (let i = 0; i < 30; i++) long.push('غلط: ' + 'ب'.repeat(50) + ' ' + i);
   const sets = [];
   for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
   assert.equal(sets.length, 15);
-  assert.equal(P.MAX_LENGTH, 16200);
+  assert.equal(P.MAX_LENGTH, 16600);
   const biggest = { ar: 0, he: 0, en: 0 };
-  const over = { ar: [], he: [], en: [] };
   let cases = 0;
   const overWithMistakes = [];
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
@@ -716,23 +715,16 @@ test('the length limit is 16,200: in Arabic every level with every topic fits; i
     const built = P.buildPrompt(data, base);
     biggest[lang] = Math.max(biggest[lang], built.length);
     cases += 1;
-    assert.equal(built.tooLong, built.length > 16200);
-    if (built.tooLong) over[lang].push(`${g.id}/${l.units} ${modes.join('+')}`);
+    assert.equal(built.tooLong, built.length > 16600);
+    assert.equal(built.tooLong, false, `${lang} ${g.id}/${l.units} ${modes.join('+')}: ${built.length}`);
     if (lang === 'ar' && P.buildPrompt(data, Object.assign({ mistakes: long }, base)).tooLong) overWithMistakes.push(`${g.id}/${l.units} ${modes.join('+')}`);
   }
   assert.equal(cases, 405);
-  // Arabic: nothing over the limit
-  assert.deepEqual(over.ar, []);
-  assert.ok(biggest.ar > 15900 && biggest.ar <= 16200, `ar: ${biggest.ar}`);
-  // Hebrew and English: the language block adds about 460 characters, so the biggest level (grade 10, 5 units, every topic)
-  // is over the limit when practice or the mock exam is ticked (10 sets of modes each); the page warns the student and does not block him
-  for (const lang of ['he', 'en']) {
-    assert.equal(over[lang].length, 10, `${lang}: ${over[lang].join(' | ')}`);
-    assert.ok(over[lang].every((x) => x.startsWith('10/5 ')), `${lang}: ${over[lang].join(' | ')}`);
-    assert.ok(biggest[lang] > 16500 && biggest[lang] <= 16600, `${lang}: ${biggest[lang]}`);
-  }
-  assert.deepEqual(over.he, over.en);
-  // a full mistakes section can still pass the limit in Arabic, only on the biggest level
+  // the biggest prompts are grade 10, 5 units, every topic, all four modes; the Hebrew and English language block adds about 460 characters
+  assert.ok(biggest.ar > 15900 && biggest.ar <= 16100, `ar: ${biggest.ar}`);
+  for (const lang of ['he', 'en']) assert.ok(biggest[lang] > 16500 && biggest[lang] <= 16600, `${lang}: ${biggest[lang]}`);
+  assert.ok(biggest.he > biggest.ar && biggest.en >= biggest.he);
+  // a full mistakes section can still pass the limit, only on the biggest level: the page warns the student and does not block him
   assert.ok(overWithMistakes.length > 0 && overWithMistakes.every((x) => x.startsWith('10/5 ')), overWithMistakes.join(' | '));
   // a normal choice (a few topics) is far from the limit, in every level, with every set of modes and in every language
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
