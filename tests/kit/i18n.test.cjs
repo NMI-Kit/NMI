@@ -109,28 +109,38 @@ test('the choice is remembered in localStorage, and a storage that throws does n
   assert.doesNotThrow(() => I.saveLang(null, 'en'));
 });
 
-test('topic names: Arabic in Arabic; the Hebrew term in Hebrew and English, else the Arabic title', () => {
+test('topic names: Arabic in Arabic; the Hebrew name in Hebrew; "English name (Hebrew name)" in English; every topic has all three', () => {
   const topics = [];
   for (const g of data.subjects[0].grades) for (const l of g.levels) for (const t of l.topics) topics.push(t);
   assert.equal(topics.length, 101);
   const probability = topics.find((t) => t.id === 'm10-3-04');
   assert.equal(I.topicName(probability, 'ar'), 'الاحتمال');
   assert.equal(I.topicName(probability, 'he'), 'הסתברות');
-  assert.equal(I.topicName(probability, 'en'), 'הסתברות');
-  const noHebrew = topics.filter((t) => !I.hebrewTerm(t.title_full));
-  // these topics have no Hebrew term in the curriculum files: they show the Arabic title in Hebrew and English
-  assert.deepEqual(noHebrew.map((t) => t.id), ['m10-3-05', 'm10-3-10', 'm10-3-11', 'm10-3-14', 'm10-4-11', 'm10-5-03', 'm10-5-08', 'm11-3-04', 'm11-3-06',
-    'm11-3-07', 'm11-3-09', 'm11-3-10', 'm11-3-11', 'm11-4-05', 'm11-4-08', 'm11-4-14', 'm11-5-06', 'm12-4-06', 'm12-4-07', 'm12-4-08', 'm12-4-11',
-    'm12-4-12', 'm12-5-02', 'm12-5-04']);
-  assert.equal(noHebrew.length, 24);
-  for (const t of noHebrew) for (const lang of ['he', 'en']) assert.equal(I.topicName(t, lang), t.title, t.id);
-  for (const t of topics.filter((x) => I.hebrewTerm(x.title_full))) {
-    assert.ok(HEBREW.test(I.topicName(t, 'he')) && !ARABIC.test(I.topicName(t, 'he')), t.id);
-    assert.equal(I.topicName(t, 'en'), I.topicName(t, 'he'), t.id);
+  assert.equal(I.topicName(probability, 'en'), 'Probability (הסתברות)');
+  // one of the 24 topics that had no Hebrew name before
+  const combine = topics.find((t) => t.id === 'm10-3-05');
+  assert.equal(combine.title, 'دمج إحصاء واحتمال');
+  assert.equal(I.topicName(combine, 'ar'), 'دمج إحصاء واحتمال');
+  assert.equal(I.topicName(combine, 'he'), 'שילוב סטטיסטיקה והסתברות');
+  assert.equal(I.topicName(combine, 'en'), 'Combining statistics and probability (שילוב סטטיסטיקה והסתברות)');
+  // every one of the 101 topics has a Hebrew name and an English name, and the names are in their own script
+  assert.deepEqual(topics.filter((t) => !I.hebrewTerm(t.title_full)).map((t) => t.id), [], 'every topic has a Hebrew name');
+  assert.deepEqual(topics.filter((t) => !t.title_en).map((t) => t.id), [], 'every topic has an English name');
+  for (const t of topics) {
+    assert.ok(HEBREW.test(I.topicName(t, 'he')) && !ARABIC.test(I.topicName(t, 'he')) && !/[A-Za-z]{3}/.test(I.topicName(t, 'he').replace(/\be\b/g, '')), t.id);
+    assert.ok(/^[A-Za-z]/.test(t.title_en) && !ARABIC.test(t.title_en) && !HEBREW.test(t.title_en), `${t.id}: ${t.title_en}`);
+    assert.equal(I.topicName(t, 'en'), `${t.title_en} (${I.hebrewTerm(t.title_full)})`, t.id);
     assert.equal(I.topicName(t, 'ar'), t.title, t.id);
-    assert.ok(!ARABIC.test(t.title_full.match(/\(([^()]*[֐-׿][^()]*)\)/)[1]), t.id);
+    assert.ok(!ARABIC.test(I.hebrewTerm(t.title_full)), t.id);
+    assert.ok(!t.title_full.includes('['), 'the English name is not in the Arabic title of the prompt: ' + t.id);
   }
+  // a topic without an English name (or without a Hebrew one) falls back, so that the page never shows a hole
+  assert.equal(I.topicName({ title: 'ع', title_full: 'ع (עב)' }, 'en'), 'עב');
+  assert.equal(I.topicName({ title: 'ع', title_full: 'ع' }, 'en'), 'ع');
+  assert.equal(I.topicName({ title: 'ع', title_full: 'ع', title_en: 'Ab' }, 'en'), 'Ab');
+  assert.equal(I.topicName({ title: 'ع', title_full: 'ع', title_en: 'Ab' }, 'he'), 'ع');
   assert.equal(I.hebrewTerm('مراجعة (بالطريقتين)'), null, 'a bracket without Hebrew is not a term');
+  assert.equal(I.hebrewTerm('مسائل مختلطة (بالطريقتين) (שאלות משולבות)'), 'שאלות משולבות');
   // the cluster headings of the 3-unit levels
   const clusters = new Set();
   for (const t of topics.filter((x) => x.group)) clusters.add(t.group);
@@ -138,8 +148,12 @@ test('topic names: Arabic in Arabic; the Hebrew term in Hebrew and English, else
   for (const t of topics.filter((x) => x.group)) {
     assert.equal(I.groupName(t, 'ar'), t.group);
     assert.ok(HEBREW.test(I.groupName(t, 'he')) && !ARABIC.test(I.groupName(t, 'he')), t.group);
+    assert.ok(t.group_en && /^[A-Za-z]/.test(t.group_en), t.group);
+    assert.equal(I.groupName(t, 'en'), `${t.group_en} (${I.hebrewTerm(t.group_full)})`, t.group);
   }
+  assert.equal(I.groupName(topics.find((t) => t.id === 'm10-3-01'), 'en'), 'Science and Society cluster (אשכול מדע וחברה)');
   assert.equal(I.groupName({ group: null }, 'he'), null);
+  assert.equal(I.groupName({ group: null }, 'en'), null);
 });
 
 test('count of topics, the grade and the level label in the three languages', () => {

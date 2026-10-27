@@ -604,16 +604,24 @@
     return match ? match[1].trim() : null;
   }
 
-  /* The name of a topic: Arabic in Arabic; in Hebrew and English the Hebrew term when there is one (the curriculum is
-     Arabic, and the terms of the exams are Hebrew), otherwise the Arabic title. */
+  /* "English name (Hebrew name)": the English reader can read the first, and the exams use the second. */
+  function withEnglish(english, hebrew, arabic) {
+    if (english && hebrew) return english + ' (' + hebrew + ')';
+    return english || hebrew || arabic;
+  }
+
+  /* The name of a topic: Arabic in Arabic; in Hebrew the Hebrew term when there is one (the curriculum is Arabic, and the
+     terms of the exams are Hebrew), otherwise the Arabic title; in English "English name (Hebrew name)". */
   function topicName(topic, lang) {
     if (lang === 'ar') return topic.title;
+    if (lang === 'en') return withEnglish(topic.title_en, hebrewTerm(topic.title_full), topic.title);
     return hebrewTerm(topic.title_full) || topic.title;
   }
 
   function groupName(topic, lang) {
     if (!topic.group) return topic.group;
     if (lang === 'ar') return topic.group;
+    if (lang === 'en') return withEnglish(topic.group_en, hebrewTerm(topic.group_full), topic.group);
     return hebrewTerm(topic.group_full) || topic.group;
   }
 

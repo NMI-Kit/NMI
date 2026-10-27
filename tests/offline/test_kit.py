@@ -602,7 +602,6 @@ class KitFilesTests(unittest.TestCase):
                      "The page is in Arabic, Hebrew and English. The prompt tells the AI to answer in the student's language, with the Hebrew math terms.",
                      'Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.',
                      '- The Hebrew and English page texts were written with AI and checked by me, not by a professional translator.',
-                     '- 24 of the 101 topics have no Hebrew name in the curriculum files yet, so they show in Arabic on the Hebrew and English page.',
                      '- The lab demo was built for computers; on a phone it shows zoomed out.',
                      'kit/applinks.html    a test page for opening the apps on Android (not linked)',
                      'preview/             the lab demo, published under /lab/',
@@ -615,8 +614,9 @@ class KitFilesTests(unittest.TestCase):
         topics = [topic for subject in data['subjects'] for grade in subject['grades'] for level in grade['levels'] for topic in level['topics']]
         self.assertEqual(len(topics), 101)
         without_hebrew = [topic for topic in topics if not re.search(r'\([^)]*[\u0590-\u05ff][^)]*\)', topic.get('title_full') or '')]
-        self.assertEqual(len(without_hebrew), 24)
-        self.assertIn('24 of the 101 topics', readme)
+        self.assertEqual(without_hebrew, [])  # every topic has a Hebrew name now, and an English one
+        self.assertEqual([topic['id'] for topic in topics if not topic.get('title_en')], [])
+        self.assertNotIn('have no Hebrew name', readme)  # the honest-limit line of the 24 topics is gone
 
     def test_the_base_prompt_has_the_teaching_methods_after_the_hint_ladder_and_the_spaced_review_line(self):
         base = read(ROOT / 'kit' / 'base_prompt.txt').replace('\r\n', '\n')

@@ -87,7 +87,6 @@ You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/
 - Some 4- and 3-unit patterns (35372, 35471) were built from the matching graduates' exams.
 - Opening the installed app directly works on Android; on iPhone the student pastes the prompt.
 - The Hebrew and English page texts were written with AI and checked by me, not by a professional translator.
-- 24 of the 101 topics have no Hebrew name in the curriculum files yet, so they show in Arabic on the Hebrew and English page.
 - The lab demo was built for computers; on a phone it shows zoomed out.
 
 ## Next

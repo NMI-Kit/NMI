@@ -1312,12 +1312,20 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await expect(page.locator('#custom-input')).toHaveAttribute('placeholder', t('customPlaceholder'));
         await expect(page.locator('#custom-add')).toHaveText(t('customAdd'));
         const names = await page.$$eval('label.topic span', (n) => n.map((x) => x.textContent));
-        expect(names).toContain('הסתברות');  // m10-3-04: the Hebrew term
-        expect(names).toContain(TOPICS['m10-3-05'].title);  // no Hebrew term: the Arabic title
+        // Hebrew page: the Hebrew name only. English page: "English name (Hebrew name)". Every topic has both now.
+        expect(names).toContain(lang === 'he' ? 'הסתברות' : 'Probability (הסתברות)');  // m10-3-04
+        expect(names).toContain(lang === 'he' ? 'שילוב סטטיסטיקה והסתברות' : 'Combining statistics and probability (שילוב סטטיסטיקה והסתברות)');  // m10-3-05: had no Hebrew name before
         expect(names).not.toContain('الاحتمال');
+        expect(names).not.toContain(TOPICS['m10-3-05'].title);
+        for (const name of names) expect(ARABIC_LETTER.test(name), name).toBe(false);
         const clusters = await page.$$eval('.group h2', (n) => n.map((x) => x.textContent));
         expect(clusters.length).toBeGreaterThan(0);
-        for (const cluster of clusters) expect(HEBREW_LETTER.test(cluster) && !ARABIC_LETTER.test(cluster), cluster).toBe(true);
+        for (const cluster of clusters) {
+          expect(HEBREW_LETTER.test(cluster) && !ARABIC_LETTER.test(cluster), cluster).toBe(true);
+          if (lang === 'en') expect(/^[A-Za-z]/.test(cluster), cluster).toBe(true);
+          else expect(/[A-Za-z]/.test(cluster), cluster).toBe(false);
+        }
+        if (lang === 'en') expect(clusters).toContain('Science and Society cluster (אשכול מדע וחברה)');
         await noSideScroll(page, `${lang} ${sizeName} step 2`);
         await bigTargets(page, 'button, label.topic', `${lang} ${sizeName} step 2`);
         await page.locator('input[data-topic="m10-3-04"]').check();

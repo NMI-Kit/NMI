@@ -23,6 +23,8 @@ BASE_PROMPT = KIT / 'base_prompt.txt'
 
 TOPIC_HEADING = re.compile(r'^(#{3,4}) (m\d+-\d+-\d+) (.+?)\s*$')
 HEBREW = re.compile(r'\s*\([^()]*[֐-׿][^()]*\)')
+# the English name is the last thing of a title line, between square brackets: `#### m10-3-07 مسارات (מסלולים) [Paths]`
+ENGLISH = re.compile(r'\s*\[([^\[\]]+)\]\s*$')
 LEVEL_FILE = re.compile(r'^(\d+)units\.md$')
 GRADE_FOLDER = re.compile(r'^grade(\d+)$')
 GRADE_TITLE = re.compile(r'الصف ([^،\n]+)')
@@ -46,10 +48,16 @@ def sections(text):
     return out
 
 
+def split_english(title):
+    """(the title without its English name, the English name or None)"""
+    found = ENGLISH.search(title)
+    return (ENGLISH.sub('', title).strip(), found.group(1).strip()) if found else (title, None)
+
+
 def parse_topics(text):
     """Topics of a level file: id, title, the group (cluster) heading above it, and the body text."""
     lines = text.split('\n')
-    topics, group, group_full, current = [], None, None, None
+    topics, group, group_full, group_en, current = [], None, None, None, None
     for line in lines:
         heading = re.match(r'^(#{2,4}) (.+?)\s*$', line)
         if heading:
@@ -58,13 +66,15 @@ def parse_topics(text):
                 current = None
             match = TOPIC_HEADING.match(line)
             if match:
-                full = match.group(3)
-                current = {'id': match.group(2), 'title': HEBREW.sub('', full).strip(), 'title_full': full, 'group': group, 'group_full': group_full, 'body': []}
+                full, english = split_english(match.group(3))  # `full` has no English name: the prompt is Arabic (with the Hebrew term)
+                current = {'id': match.group(2), 'title': HEBREW.sub('', full).strip(), 'title_full': full, 'title_en': english, 'group': group,
+                           'group_full': group_full, 'group_en': group_en, 'body': []}
             elif heading.group(1) == '###':
-                group = HEBREW.sub('', heading.group(2)).strip()
-                group_full = heading.group(2)  # with the Hebrew term, for the pages in Hebrew and English
+                text, group_en = split_english(heading.group(2))
+                group = HEBREW.sub('', text).strip()
+                group_full = text  # with the Hebrew term, for the pages in Hebrew and English
             elif heading.group(1) == '##' and heading.group(2) in SKIPPED_SECTIONS + SECTION_NOTES:
-                group = group_full = None
+                group = group_full = group_en = None
             continue
         if current is not None:
             current['body'].append(line)
