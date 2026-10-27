@@ -194,6 +194,20 @@ test('summaries in Hebrew or English: the mistake lines "טעויות:", "טעו
   assert.ok(lines.join('\n').length <= 600 && lines.join('\n').length >= 560, String(lines.join('\n').length));
 });
 
+test('the summary asked by the Hebrew and the English prompt (the rule of data.json) is accepted, and its mistake lines come back', () => {
+  const data = require(path.join(__dirname, '..', '..', 'kit', 'data.json'));
+  for (const [lang, keys, mistakes] of [['he', ['נושאים:', 'הצלחות:', 'טעויות:'], ['טעויות: שכחתי להפוך סימן', 'טעויות: בלבלתי בין דקות לשעות']],
+    ['en', ['Topics:', 'Correct:', 'Mistakes:'], ['Mistakes: forgot to flip the sign', 'Mistakes: mixed up minutes and hours']]]) {
+    const rule = data.langs[lang].texts.logRule;
+    assert.equal(rule[1], 'NMI-LOG');  // the first line of the summary stays NMI-LOG in every language
+    assert.deepEqual(rule.slice(2, 5).map((line) => line.split(':')[0] + ':'), keys);
+    const store = memory();
+    const summary = ['NMI-LOG', `${keys[0]} x`, `${keys[1]} y`, ...mistakes].join('\n');
+    assert.equal(L.add(store, summary, LEVEL, at(1)).ok, true, lang);
+    assert.deepEqual(L.mistakesFor(L.load(store).entries, LEVEL), mistakes, lang);
+  }
+});
+
 test('the level of the last prompt is remembered, so the log knows it after a reload', () => {
   const store = memory();
   assert.equal(L.lastLevel(store), null);

@@ -700,37 +700,41 @@ test('old mistakes: their own section before the closing line, only when there a
   assert.equal(injected.filter((l) => l === '== اللغة ==').length, 1);
 });
 
-test('the length limit is 19,050: every level with every topic fits, in every set of modes and in every page language', () => {
+test('the length limit: 19,050 for Arabic and Hebrew, 26,400 for English: every level with every topic fits, in every set of modes', () => {
   const long = [];
   for (let i = 0; i < 30; i++) long.push('غلط: ' + 'ب'.repeat(50) + ' ' + i);
   const sets = [];
   for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
   assert.equal(sets.length, 15);
   assert.equal(P.MAX_LENGTH, 19050);
+  assert.deepEqual(P.MAX_LENGTH_BY_LANGUAGE, { ar: 19050, he: 19050, en: 26400 });
   const biggest = { ar: 0, he: 0, en: 0 };
   let cases = 0;
   const overWithMistakes = { ar: [], he: [], en: [] };
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
     const base = { subject: 'math', grade: g.id, units: l.units, all: true, topics: [], modes, language: lang };
     const built = P.buildPrompt(data, base);
+    const max = P.MAX_LENGTH_BY_LANGUAGE[lang];
     biggest[lang] = Math.max(biggest[lang], built.length);
     cases += 1;
-    assert.equal(built.tooLong, built.length > 19050);
+    assert.equal(built.max, max);
+    assert.equal(built.tooLong, built.length > max);
     assert.equal(built.tooLong, false, `${lang} ${g.id}/${l.units} ${modes.join('+')}: ${built.length}`);
     if (P.buildPrompt(data, Object.assign({ mistakes: long }, base)).tooLong) overWithMistakes[lang].push(`${g.id}/${l.units} ${modes.join('+')}`);
   }
   assert.equal(cases, 405);
-  // the biggest prompts are grade 10, 5 units, every topic, all four modes; the Hebrew and English language block adds about 460 characters
-  assert.ok(biggest.ar > 18000 && biggest.ar <= 18300, `ar: ${biggest.ar}`);
-  for (const lang of ['he', 'en']) assert.ok(biggest[lang] > 18800 && biggest[lang] <= 19050, `${lang}: ${biggest[lang]}`);
-  assert.ok(biggest.he > biggest.ar && biggest.en >= biggest.he);
-  // a full mistakes section can still pass the limit, only on the biggest level (and in Hebrew and English): the page warns the student and does not block him
-  for (const lang of ['he', 'en']) assert.ok(overWithMistakes[lang].length > 0 && overWithMistakes[lang].every((x) => x.startsWith('10/5 ')), `${lang}: ${overWithMistakes[lang].join(' | ')}`);
-  assert.ok(overWithMistakes.ar.every((x) => x.startsWith('10/5 ')), overWithMistakes.ar.join(' | '));
+  // the biggest prompts are grade 10, 5 units, every topic, all four modes; English has about 40% more letters than Hebrew for the same content
+  assert.ok(biggest.ar > 18000 && biggest.ar <= 19050, `ar: ${biggest.ar}`);
+  assert.ok(biggest.he > 18000 && biggest.he <= 19050, `he: ${biggest.he}`);
+  assert.ok(biggest.en > 26000 && biggest.en <= 26400, `en: ${biggest.en}`);
+  // a full mistakes section can still pass the limit, only on the biggest level: the page warns the student and does not block him
+  for (const lang of ['ar', 'he', 'en']) assert.ok(overWithMistakes[lang].every((x) => x.startsWith('10/5 ')), `${lang}: ${overWithMistakes[lang].join(' | ')}`);
+  assert.ok(overWithMistakes.en.length > 0);
   // a normal choice (a few topics) is far from the limit, in every level, with every set of modes and in every language
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
     const few = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: l.topics.slice(0, 3).map((t) => t.id), modes, language: lang });
-    assert.ok(few.length < 15500, `${g.id}/${l.units} ${modes.join('+')}: ${few.length}`);
+    assert.ok(few.length < (lang === 'en' ? 21500 : 15500), `${lang} ${g.id}/${l.units} ${modes.join('+')}: ${few.length}`);
+    assert.equal(few.tooLong, false);
   }
 });
 
@@ -858,83 +862,50 @@ test('practice: the question has other numbers and another result than the expla
   for (const part of ['العلامة لازم تعكس الحل الحقيقي', 'ما تعطي تلميح مع قسم جديد', NEW_NUMBERS_RULE]) assert.ok(practice.includes(part), part);
 });
 
-test('the language of the page: Hebrew and English add the language block at the end of the student part, Arabic adds nothing', () => {
-  const BLOCK = (language, withLog = true) => [
-    `لغة الطالب: ${language}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`,
-    '- كل ردودك بهاللغة من أول رد: الشرح، والقصص، والأسئلة، والملخص.',
-    '- المصطلحات بالعبري. (للإنجليزي: المصطلح بالإنجليزي وجنبه العبري بين قوسين.) ما تكتب مصطلحات بالعربي.',
-    "- الجمل الجاهزة تحت (مثل 'هاد مش بمنهاجك...') قولها بمعناها بلغة الطالب.",
-    "- كلام الطالب بلغته إله نفس المعنى: 'לא הבנתי' / 'I don't understand' = 'مش فاهم'، 'סיימתי' / 'I'm done' = 'خلصت'."
-  ].concat(withLog ? ["- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط 'المواضيع:' و'ضبط:' و'غلط:' بالعربي، والباقي بلغة الطالب."] : []);
-  assert.equal(P.STUDENT_LANGUAGE_LINE, 'لغة الطالب: [language]. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:');
-  assert.deepEqual(P.STUDENT_LANGUAGE_RULES, BLOCK('x', false).slice(1));
-  assert.equal(P.STUDENT_LANGUAGE_LOG_RULE, BLOCK('x').pop());
+test('the language of the page: Hebrew and English build the whole prompt in their language; Arabic adds nothing', () => {
   const he = build({ topics: ['m10-3-12'], language: 'he' }).text;
   const en = build({ topics: ['m10-3-12'], language: 'en' }).text;
-  assert.ok(he.includes(BLOCK('עברית').join('\n')));
-  assert.ok(en.includes(BLOCK('English').join('\n')));
-  assert.equal(he.split('لغة الطالب: ').length, 2, 'once');
-  // the old line is gone
-  for (const text of [he, en]) assert.ok(!text.includes('كل ردودك لازم تكون بهاللغة من أول رد، والمصطلحات بالعبري.'));
-  // the block is the last lines of "== الطالب ==", right before "== المصادر =="
-  for (const [text, language] of [[he, 'עברית'], [en, 'English']]) {
-    const student = text.slice(text.indexOf('== الطالب =='), text.indexOf('== المصادر =='));
-    const lines = student.trim().split('\n');
-    assert.deepEqual(lines.slice(-6), BLOCK(language));
-  }
+  // the language lines at the end of the student part (short: the language and the terms)
+  const studentPart = (text, from, to) => text.slice(text.indexOf(from), text.indexOf(to));
+  assert.ok(studentPart(he, '== תלמיד ==', '== מקורות ==').trimEnd().endsWith('שפת התלמיד: עברית. כל התשובות שלך בעברית, מההודעה הראשונה.\n- המונחים המתמטיים בעברית, כמו במבחנים.'));
+  assert.ok(studentPart(en, '== Student ==', '== Sources ==').trimEnd().endsWith('Student language: English. All your replies are in English, from the first message.\n- Math terms: in English, with the Hebrew term in parentheses at first mention (the exams use the Hebrew terms).'));
+  assert.equal(he.split('שפת התלמיד: ').length, 2, 'once');
+  assert.equal(en.split('Student language: ').length, 2, 'once');
+  // the old Arabic block is gone: the whole prompt is translated
+  for (const text of [he, en]) assert.ok(!/[؀-ۿ]/.test(text), 'no Arabic letter in a Hebrew or English prompt');
+  assert.ok(!/[֐-׿]/.test(he.replace(/[֐-׿]+/g, '')), 'sanity');
   // after the order line of several modes
   const several = multi(['plan', 'explain'], { language: 'he' }).text;
-  assert.ok(several.indexOf('الطالب اختار:') < several.indexOf('لغة الطالب: עברית'));
+  assert.ok(several.indexOf('התלמיד בחר:') < several.indexOf('שפת התלמיד: עברית'));
+  assert.ok(several.includes('התלמיד בחר: תוכנית + להבין. התחל במצב הראשון בלבד.'));
   // no block for Arabic, an unknown language, or no language
   for (const language of ['ar', 'fr', '', undefined, null]) {
     const text = build({ topics: ['m10-3-12'], language }).text;
-    assert.ok(!text.includes('لغة الطالب: '), String(language));
+    assert.ok(!text.includes('שפת התלמיד') && !text.includes('Student language') && !text.includes('لغة الطالب:'), String(language));
     assert.equal(text, build({ topics: ['m10-3-12'] }).text, String(language));
   }
-  // the prompt itself stays Arabic: only the block, the first line, the last line and the sentence of "== اللغة ==" are added
-  const withoutBlock = he.replace(`${BLOCK('עברית').join('\n')}\n`, '')
-    .replace(`${P.LANGUAGE_FIRST_LINE.he}\n\n`, '').replace(`\n\n${P.LANGUAGE_LAST_LINE.he}\n`, '\n')
-    .replace(P.LANGUAGE_SENTENCE_OTHER, 'جاوب بنفس لغة الطالب، وبأسلوبك الطبيعي.');
-  assert.equal(withoutBlock, build({ topics: ['m10-3-12'] }).text);
+  // every mode has the line, in both languages
   for (const mode of MODES) {
-    for (const language of ['he', 'en']) assert.ok(build({ topics: ['m10-3-12'], mode, language }).text.includes('لغة الطالب: '), `${mode} ${language}`);
+    assert.ok(build({ topics: ['m10-3-12'], mode, language: 'he' }).text.includes('שפת התלמיד: '), `${mode} he`);
+    assert.ok(build({ topics: ['m10-3-12'], mode, language: 'en' }).text.includes('Student language: '), `${mode} en`);
   }
-  // the log rule still asks for the Arabic words, and the block repeats them for the other languages
-  assert.ok(he.includes("'المواضيع:' و'ضبط:' و'غلط:' بالعربي"));
 });
 
-test('the language block: its last rule (NMI-LOG) is only there when the NMI-LOG rule is in the prompt, so not with a plan alone', () => {
-  const RULE = P.STUDENT_LANGUAGE_LOG_RULE;
-  assert.ok(RULE.startsWith('- بملخص NMI-LOG'));
-  const studentPart = (text) => text.slice(text.indexOf('== الطالب =='), text.indexOf('== المصادر =='));
-  for (const language of ['he', 'en']) {
-    const name = language === 'he' ? 'עברית' : 'English';
-    // a plan alone: no NMI-LOG anywhere, and the block ends with the rule about the words of the student
-    const plan = multi(['plan'], { language }).text;
-    assert.ok(!plan.includes('NMI-LOG'), language);
-    assert.ok(!plan.includes('== ملخص الجلسة للعدّة =='), language);
-    const planLines = studentPart(plan).trim().split('\n');
-    assert.ok(planLines[planLines.length - 1].startsWith('- كلام الطالب بلغته إله نفس المعنى'), language);
-    assert.ok(planLines.some((line) => line === `لغة الطالب: ${name}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`), language);
-    assert.equal(planLines.filter((line) => line.startsWith('- ')).length, 4, language);
-    // every other set of modes: the NMI-LOG rule is in the prompt and the last rule of the block is there too, once, in the student part
-    for (const modes of [['explain'], ['practice'], ['mock'], ['plan', 'explain'], ['plan', 'mock'], ['plan', 'explain', 'practice', 'mock']]) {
-      const text = multi(modes, { language }).text;
-      assert.ok(text.includes('== ملخص الجلسة للعدّة =='), `${language} ${modes}`);
-      assert.equal(text.split(RULE).length, 2, `${language} ${modes}`);
-      const lines = studentPart(text).trim().split('\n');
-      assert.equal(lines[lines.length - 1], RULE, `${language} ${modes}`);
-      assert.equal(lines.filter((line) => line.startsWith('- ')).length, 5, `${language} ${modes}`);
-    }
-  }
-  // the page in Arabic has no block at all, and a plan alone in Hebrew differs from Arabic only by the four rules
-  // (without the first line, the last line and the sentence of "== اللغة ==", which every Hebrew page has)
-  const heText = multi(['plan'], { language: 'he' }).text
-    .replace(`${P.LANGUAGE_FIRST_LINE.he}\n\n`, '').replace(`\n\n${P.LANGUAGE_LAST_LINE.he}\n`, '\n')
-    .replace(P.LANGUAGE_SENTENCE_OTHER, 'جاوب بنفس لغة الطالب، وبأسلوبك الطبيعي.');
-  assert.equal(heText.replace(/لغة الطالب: [^\n]*\n(- [^\n]*\n){4}/, ''), multi(['plan'], {}).text);
+test('the NMI-LOG rule in Hebrew and English: the first line NMI-LOG, the keys of the line in the language of the page', () => {
+  const he = build({ topics: ['m10-3-12'], language: 'he', mode: 'explain' }).text;
+  const en = build({ topics: ['m10-3-12'], language: 'en', mode: 'explain' }).text;
+  assert.ok(he.includes('\nNMI-LOG\nנושאים: ...\nהצלחות: ...\nטעויות: ... (כל טעות במשפט קצר: מהי הטעות ובאיזה נושא)\n'));
+  assert.ok(en.includes('\nNMI-LOG\nTopics: ...\nCorrect: ...\nMistakes: ... (each mistake in a short sentence: what the mistake is and in which topic)\n'));
+  assert.ok(he.includes('== סיכום המפגש לערכה =='));
+  assert.ok(en.includes('== Summary of the session for the kit =='));
+  // not with a plan alone
+  assert.ok(!multi(['plan'], { language: 'he' }).text.includes('NMI-LOG'));
+  assert.ok(!multi(['plan'], { language: 'en' }).text.includes('NMI-LOG'));
+  // the old Arabic keys are not asked for in Hebrew and English
+  assert.ok(!he.includes('غلط:') && !en.includes('غلط:'));
+  // the Arabic rule is the one it was
+  assert.deepEqual(P.LOG_RULE.slice(0, 2), ['لما الطالب يحكي \'خلصت\'، أو بعد ملخص آخر سؤال، اكتب ملخص للعدّة جوّا code block، بهالشكل بالضبط:', 'NMI-LOG']);
 });
-
 
 // ----------------------------------------------------------------------------- task 12: teaching methods from research
 const TEACHING_SECTION = [
@@ -958,20 +929,34 @@ test('teaching methods: the section is in every mode except a plan alone, once, 
   const sets = [];
   for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
   let withSection = 0;
+  const HEADINGS = {
+    ar: ['== طريقة التعليم ==', '== صور الحلول =='],
+    he: ['== שיטת ההוראה ==', '== תמונות של פתרונות =='],
+    en: ['== Teaching method ==', '== Photos of solutions ==']
+  };
   for (const language of ['ar', 'he', 'en']) for (const modes of sets) {
     const text = multi(modes, { language }).text;
+    const [heading, after] = HEADINGS[language];
     if (modes.length === 1 && modes[0] === 'plan') {
-      assert.ok(!text.includes('== طريقة التعليم =='), `${language} plan alone`);
-      for (const line of TEACHING_SECTION.split('\n')) assert.ok(!text.includes(line), `${language} plan alone: ${line}`);
+      assert.ok(!text.includes(heading), `${language} plan alone`);
+      if (language === 'ar') for (const line of TEACHING_SECTION.split('\n')) assert.ok(!text.includes(line), `${language} plan alone: ${line}`);
       continue;
     }
     withSection += 1;
-    assert.equal(text.split('== طريقة التعليم ==').length, 2, `${language} ${modes}: once`);
-    assert.ok(text.includes(`${LADDER_LAST}\n\n${TEACHING_SECTION}\n\n== صور الحلول ==`), `${language} ${modes}: right after the ladder`);
+    assert.equal(text.split(heading).length, 2, `${language} ${modes}: once`);
+    if (language === 'ar') assert.ok(text.includes(`${LADDER_LAST}\n\n${TEACHING_SECTION}\n\n${after}`), `${language} ${modes}: right after the ladder`);
+    else {
+      // the translated section is right after the hint ladder and right before the photos, with the same 11 lines
+      const section = text.slice(text.indexOf(heading), text.indexOf(after)).trim().split('\n');
+      assert.equal(section.length, 12, `${language} ${modes}`);
+      assert.ok(text.lastIndexOf('== ', text.indexOf(heading) - 3) < text.indexOf(heading));
+      assert.ok(text.slice(0, text.indexOf(heading)).trimEnd().split('\n').pop().startsWith('- '), `${language}: a line of the ladder is right before it`);
+    }
   }
   assert.equal(withSection, 14 * 3);
   // every single mode
   for (const mode of ['explain', 'practice', 'mock']) assert.ok(build({ topics: ['m10-3-12'], mode }).text.includes(TEACHING_SECTION), mode);
+  for (const language of ['he', 'en']) assert.ok(data.langs[language].base_prompt.includes('== ' + data.langs[language].texts.names.teaching + ' =='));
   assert.ok(!build({ topics: ['m10-3-12'], mode: 'plan' }).text.includes('== طريقة التعليم =='));
   // the section is the base prompt's own: it is in the data and nowhere else in the code
   assert.ok(data.base_prompt.includes(TEACHING_SECTION));
@@ -1032,7 +1017,7 @@ test('real session fixes: tone rules in "قواعد لكل رد", in every promp
     '- المدح قصير ومحدّد على الخطوة اللي عملها، مش على الطالب نفسه. مثلاً: "تحويلك للدقائق صح"، مش "إنت وحش" أو "إنت عبقري". ما تكرر "ممتاز جداً" أو "صح 100%".',
     '- ما تستعمل عناوين كبيرة (###) إلا بالامتحان التجريبي.'
   ];
-  for (const mode of MODES) for (const language of ['ar', 'he']) {
+  for (const mode of MODES) for (const language of ['ar']) {
     const text = build({ topics: ['m10-3-12'], mode, language }).text;
     const rules = text.slice(text.indexOf('== قواعد لكل رد =='));
     assert.ok(rules.includes('- كن قصير وواضح. ما في مقدمات.\n' + TONE.join('\n') + '\n'), `${mode} ${language}`);
@@ -1080,48 +1065,51 @@ test('real session fixes: no hint with a new section (not even "فكّر بـ...
 
 
 // ----------------------------------------------------------------------------- task 14: the Hebrew and English pages must get answers in their language
-const FIRST_HE = 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.';
-const FIRST_EN = 'Important: every reply to the student must be in English only, from the first message. The instructions below are in Arabic only because the curriculum is written in Arabic.';
+const FIRST_HE = 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה.';
+const FIRST_EN = 'Important: every reply to the student must be in English only, from the first message.';
 const LAST_HE = 'התחל עכשיו, בעברית בלבד.';
 const LAST_EN = 'Start now, in English only.';
 const SENTENCE_OLD = 'جاوب بنفس لغة الطالب، وبأسلوبك الطبيعي.';
-const SENTENCE_NEW = 'جاوب بلغة الطالب المكتوبة فوق (عبري / إنجليزي)، حتى لو التعليمات بالعربي، وبأسلوبك الطبيعي.';
 
 test('language pages: a first line and a last line in the language of the student, in every mode', () => {
   assert.equal(P.LANGUAGE_FIRST_LINE.he, FIRST_HE);
   assert.equal(P.LANGUAGE_FIRST_LINE.en, FIRST_EN);
   assert.equal(P.LANGUAGE_LAST_LINE.he, LAST_HE);
   assert.equal(P.LANGUAGE_LAST_LINE.en, LAST_EN);
+  // the sentence "the instructions are in Arabic only because the curriculum is Arabic" is not true any more
+  for (const line of [FIRST_HE, FIRST_EN]) assert.ok(!/Arabic|ערבית/.test(line.replace('בעברית', '')) , line);
   const sets = [];
   for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
-  for (const [language, first, last, name] of [['he', FIRST_HE, LAST_HE, 'עברית'], ['en', FIRST_EN, LAST_EN, 'English']]) {
-    for (const modes of sets) for (const extra of [{}, { mistakes: ['غلط: x'] }, { note: 'س' }, { teacherFile: true }]) {
+  const TITLE = { he: 'אתה "NMI", מורה פרטי למתמטיקה לתלמיד בתוכנית הלימודים הישראלית, ומכין אותו למבחנים בבית הספר.',
+    en: 'You are "NMI", a math tutor for a student in the Israeli curriculum, preparing them for school exams.' };
+  const START = { he: /^התחל/, en: /^Start/ };
+  for (const [language, first, last, name] of [['he', FIRST_HE, LAST_HE, 'שפת התלמיד: עברית.'], ['en', FIRST_EN, LAST_EN, 'Student language: English.']]) {
+    for (const modes of sets) for (const extra of [{}, { mistakes: ['טעויות: x'] }, { note: 'x' }, { teacherFile: true }]) {
       const text = multi(modes, Object.assign({ language }, extra)).text;
       const lines = text.trim().split('\n');
       assert.equal(lines[0], first, `${language} ${modes} first line`);
-      assert.equal(lines[1], '', 'a blank line, then the Arabic title');
-      assert.equal(lines[2], 'إنت "NMI"، مدرّب رياضيات لطالب بالمنهاج الإسرائيلي، بتجهّزه لامتحانات المدرسة.');
+      assert.equal(lines[1], '', 'a blank line, then the title of the prompt');
+      assert.equal(lines[2], TITLE[language]);
       assert.equal(lines[lines.length - 1], last, `${language} ${modes} last line`);
       assert.equal(lines[lines.length - 2], '');
-      assert.ok(/[\u0600-\u06ff]/.test(lines[lines.length - 3]), `${language} ${modes}: the Arabic closing line is right before the last line: ${lines[lines.length - 3]}`);
-      if (!extra.teacherFile || !modes.some((m) => m === 'practice' || m === 'mock')) assert.ok(lines[lines.length - 3].startsWith('ابدأ'), `${language} ${modes}: ${lines[lines.length - 3]}`);
+      assert.ok(lines[lines.length - 3].length > 20 && !/[؀-ۿ]/.test(lines[lines.length - 3]), `${language} ${modes}: the closing line is right before the last line: ${lines[lines.length - 3]}`);
+      if (!extra.teacherFile || !modes.some((m) => m === 'practice' || m === 'mock')) assert.ok(START[language].test(lines[lines.length - 3]), `${language} ${modes}: ${lines[lines.length - 3]}`);
       assert.equal(text.split(first).length, 2, 'once');
       assert.equal(text.split(last).length, 2, 'once');
-      assert.ok(text.includes(`لغة الطالب: ${name}.`), 'the language block is still there');
+      assert.ok(text.includes(name), 'the language lines are there');
     }
   }
   // the first line is in the language of the student only: nothing of the other languages
   assert.ok(!/[֐-׿]/.test(FIRST_EN + LAST_EN) && !/[؀-ۿ]/.test(FIRST_EN + LAST_EN + FIRST_HE + LAST_HE));
 });
 
-test('language pages: "== اللغة ==" says to answer in the language written above, even if the instructions are Arabic', () => {
-  for (const language of ['he', 'en']) {
-    const text = build({ topics: ['m10-3-12'], language }).text;
-    const section = text.slice(text.indexOf('== اللغة =='), text.indexOf('== الأوضاع =='));
-    assert.equal(section, `== اللغة ==\n${SENTENCE_NEW} المعادلات بسطر لحالها وبرموز رياضية واضحة.\n\n`);
-    assert.ok(!text.includes(SENTENCE_OLD), language);
-    assert.ok(text.indexOf('لغة الطالب: ') < text.indexOf('== اللغة =='), 'the language of the student is written above');
-  }
+test('language pages: "== שפה ==" and "== Language ==" are the translation of "== اللغة ==": answer in the language of the student', () => {
+  const he = build({ topics: ['m10-3-12'], language: 'he' }).text;
+  const en = build({ topics: ['m10-3-12'], language: 'en' }).text;
+  assert.ok(he.includes('== שפה ==\nענה בשפת התלמיד, בסגנון הטבעי שלך. משוואות בשורה נפרדת ובסימנים מתמטיים ברורים.\n'));
+  assert.ok(en.includes('== Language ==\nReply in the student\'s language, in your own natural style. Put equations on their own line, with clear math notation.\n'));
+  // the sentence that said "even if the instructions are Arabic" is gone: they are not
+  for (const text of [he, en]) assert.ok(!text.includes(SENTENCE_OLD) && !text.includes('حتى لو التعليمات'));
 });
 
 test('language pages: nothing changes for Arabic, an unknown language or no language', () => {
@@ -1130,7 +1118,7 @@ test('language pages: nothing changes for Arabic, an unknown language or no lang
     const text = build({ topics: ['m10-3-12'], language }).text;
     assert.equal(text, plain, String(language));
     assert.ok(text.startsWith('إنت "NMI"'), String(language));
-    assert.ok(text.includes(SENTENCE_OLD) && !text.includes(SENTENCE_NEW), String(language));
+    assert.ok(text.includes(SENTENCE_OLD), String(language));
     assert.ok(!text.includes(LAST_HE) && !text.includes(LAST_EN) && !text.includes(FIRST_HE) && !text.includes(FIRST_EN), String(language));
     assert.equal(text.trim().split('\n').pop(), plain.trim().split('\n').pop(), String(language));
   }
@@ -1138,4 +1126,159 @@ test('language pages: nothing changes for Arabic, an unknown language or no lang
   for (const modes of [['plan'], ['practice', 'mock'], ['plan', 'explain', 'practice', 'mock']]) {
     assert.equal(multi(modes, { language: 'ar' }).text, multi(modes).text, modes.join('+'));
   }
+});
+
+
+// ----------------------------------------------------------------------------- task 17: the whole prompt in Hebrew and in English
+const crypto = require('node:crypto');
+
+test('the Arabic prompt is the same, character for character, as before the translations: 1,545 prompts', () => {
+  const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'golden_ar.json'), 'utf8'));
+  const sha = (text) => crypto.createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 20);
+  const sets = [];
+  for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
+  const MISTAKES = ['غلط: نسي يعكس الإشارة', 'غلط: بدّل بين x و y', 'غلط: ' + 'ب'.repeat(300)];
+  const got = {};
+  for (const g of math.grades) for (const l of g.levels) {
+    const higher = g.levels.filter((x) => x.units > l.units);
+    for (const modes of sets) {
+      const base = { subject: 'math', grade: g.id, units: l.units, modes };
+      const label = `${g.id}/${l.units}/${modes.join('+')}`;
+      const variants = {
+        all: { all: true, topics: [] },
+        two: { all: false, topics: l.topics.slice(0, 2).map((t) => t.id), custom: ['معادلات تربيعية', 'x'] },
+        many: { all: false, topics: l.topics.slice(0, 5).map((t) => t.id) },
+        full: { all: false, topics: l.topics.slice(1, 3).map((t) => t.id), teacherFile: true, note: 'أحب الفيزياء، اشرح ببطء', mistakes: MISTAKES },
+        mist: { all: false, topics: l.topics.slice(0, 1).map((t) => t.id), mistakes: MISTAKES.slice(0, 2) }
+      };
+      if (higher.length) variants.target = { all: false, target: higher[0].units, topics: [l.topics[0].id, higher[0].topics[0].id, higher[0].topics[1].id], custom: ['س'] };
+      for (const [name, extra] of Object.entries(variants)) for (const language of [undefined, 'ar']) {
+        const built = P.buildPrompt(data, Object.assign({}, base, extra, language ? { language } : {}));
+        got[`${label}/${name}/${language || 'none'}`] = built ? `${built.length}:${sha(built.text)}` : null;
+      }
+    }
+  }
+  for (const modes of sets) { const b = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, modes, topics: [] }); got[`empty/${modes.join('+')}`] = `${b.length}:${sha(b.text)}`; }
+  assert.equal(golden.count, 1545);
+  assert.equal(Object.keys(got).length, 1545);
+  const different = Object.keys(golden.hashes).filter((key) => got[key] !== golden.hashes[key]);
+  assert.deepEqual(different, []);
+});
+
+test('the three languages have the same levels, topics, examples and sections; the texts have the same keys', () => {
+  assert.deepEqual(Object.keys(data.langs), ['he', 'en']);
+  const ar = math;
+  for (const lang of ['he', 'en']) {
+    const tr = data.langs[lang].subjects.find((s) => s.id === 'math');
+    assert.equal(tr.grades.length, ar.grades.length);
+    for (const [gi, g] of ar.grades.entries()) {
+      assert.equal(tr.grades[gi].id, g.id);
+      assert.equal(tr.grades[gi].levels.length, g.levels.length);
+      for (const [li, l] of g.levels.entries()) {
+        const t = tr.grades[gi].levels[li];
+        const where = `${lang} ${g.id}/${l.units}`;
+        assert.equal(t.units, l.units, where);
+        assert.deepEqual(t.topics.map((x) => x.id), l.topics.map((x) => x.id), where);
+        // the examples: the same topics have one, and every number is the same, in the same order
+        assert.deepEqual(t.topics.map((x) => !!x.example), l.topics.map((x) => !!x.example), where);
+        for (const [ti, topic] of l.topics.entries()) {
+          const tt = t.topics[ti];
+          assert.ok(tt.title && tt.title_full && tt.title.length > 0, `${where} ${topic.id}`);
+          if (topic.example) {
+            const numbers = (text) => (text.replace(/\b[Gg]rade\s+\d+/g, 'grade').match(/\d+(?:[.,]\d+)?/g) || []);
+            assert.deepEqual(numbers(tt.example), numbers(topic.example), `${where} ${topic.id}: the numbers of the example`);
+            assert.equal((tt.example.match(/^\*\*/gm) || []).length, (topic.example.match(/^\*\*/gm) || []).length, `${where} ${topic.id}: the parts of the example`);
+          }
+          // the body: the same bullets
+          assert.equal((tt.text.match(/^\s*- /gm) || []).length, (topic.text.match(/^\s*- /gm) || []).length, `${where} ${topic.id}: the lines of the topic`);
+        }
+        // the notes: the same sections
+        assert.equal((t.notes.match(/^## /gm) || []).length, (l.notes.match(/^## /gm) || []).length, where);
+        assert.equal((t.notes.match(/^- /gm) || []).length, (l.notes.match(/^- /gm) || []).length, where);
+      }
+    }
+    // the guide of the patterns: the same sections, the same numbers
+    assert.equal(!!tr.patterns.general, !!ar.patterns.general);
+    assert.equal(!!tr.patterns.howto, !!ar.patterns.howto);
+    assert.deepEqual(Object.keys(tr.patterns.levels), Object.keys(ar.patterns.levels));
+    for (const units of Object.keys(ar.patterns.levels)) assert.equal(tr.patterns.levels[units].length, ar.patterns.levels[units].length);
+    const numbers = (text) => text.match(/\d+(?:[.,]\d+)?/g);
+    const arText = [ar.patterns.general, ...Object.values(ar.patterns.levels).flatMap((v) => v.map((x) => x.text)), ar.patterns.howto].join('\n');
+    const trText = [tr.patterns.general, ...Object.values(tr.patterns.levels).flatMap((v) => v.map((x) => x.text)), tr.patterns.howto].join('\n');
+    assert.deepEqual(numbers(trText.replace(/\b[Gg]rade\s+\d+/g, 'grade')), numbers(arText.replace(/بجروت/g, '')), lang + ': the numbers of the patterns');
+    // the base prompt: every section heading exists in the three languages, in the same order, with the same lines
+    const sections = (text) => text.split('\n').filter((l) => /^== .+ ==$/.test(l));
+    assert.equal(sections(data.langs[lang].base_prompt).length, sections(data.base_prompt).length);
+    assert.equal(data.langs[lang].base_prompt.split('\n').length, data.base_prompt.split('\n').length);
+    const kind = (l) => (l.trim() === '' ? 'blank' : l.startsWith('== ') ? 'heading' : /^\s+-/.test(l) ? 'sub' : l.startsWith('- ') ? 'dash' : 'text');
+    assert.deepEqual(data.langs[lang].base_prompt.split('\n').map(kind), data.base_prompt.split('\n').map(kind));
+    // the texts the code adds: the keys of the Arabic ones, no more and no less
+    assert.deepEqual(Object.keys(data.langs[lang].texts).sort(), Object.keys(P.ARABIC_TEXTS).sort(), lang);
+    for (const key of Object.keys(P.ARABIC_TEXTS)) {
+      const a = P.ARABIC_TEXTS[key];
+      const t = data.langs[lang].texts[key];
+      assert.equal(typeof t, typeof a, `${lang} ${key}`);
+      if (Array.isArray(a)) assert.ok(Array.isArray(t), `${lang} ${key}`);
+      if (typeof a === 'string') {
+        // the same placeholders
+        const holes = (text) => (text.match(/\{\w+\}/g) || []).sort().join(',');
+        assert.equal(holes(t), holes(a), `${lang} ${key}`);
+      }
+    }
+    assert.equal(data.langs[lang].texts.logRule.length, P.LOG_RULE.length);
+    assert.equal(data.langs[lang].texts.logRule[1], 'NMI-LOG');
+  }
+  assert.deepEqual(Object.keys(data.langs.he.texts), Object.keys(data.langs.en.texts));
+});
+
+test('every heading of the prompt exists in the three languages: sections of the base prompt and of the prompt itself', () => {
+  const sets = [['explain'], ['practice'], ['plan', 'explain', 'practice', 'mock']];
+  for (const modes of sets) {
+    const headings = (language) => multi(modes, { language, mistakes: ['x'], teacherFile: true, note: 'x' }).text.split('\n').filter((l) => /^== .+ ==$/.test(l));
+    const ar = headings('ar');
+    assert.equal(headings('he').length, ar.length, modes.join('+'));
+    assert.equal(headings('en').length, ar.length, modes.join('+'));
+    assert.ok(ar.length >= 9);
+  }
+});
+
+test('Hebrew and English prompts: the names of the topics and the grade are in the language, the examples have their own numbers', () => {
+  const he = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['practice'], language: 'he' });
+  const en = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['practice'], language: 'en' });
+  assert.ok(he.text.includes('מקצוע: מתמטיקה\nכיתה: י׳\nיחידות: 3\nיעד: אין יעד מיוחד\nנושאים לחזרה: מסלולים\nהמצב שבחר: לתרגל\n'));
+  assert.ok(en.text.includes('Subject: Math\nGrade: 10\nUnits: 3\nGoal: no special goal\nTopics to review: Paths\nMode chosen: Practice\n'));
+  assert.ok(he.text.includes('### מסלולים\n'));
+  assert.ok(en.text.includes('### Paths (מסלולים)\n'));
+  assert.ok(he.text.includes('-- דוגמה למבנה, אל תחזור עליה (נושא: «מסלולים») --'));
+  assert.ok(en.text.includes('-- An example of the shape, do not repeat it (topic: «Paths») --'));
+  assert.ok(he.text.includes('**סעיף א (4 נקודות):** כמה דקות לוקח לסמי הלוך?'));
+  assert.ok(en.text.includes('**Part a (4 marks):** how many minutes does Sami take going there?'));
+  assert.ok(he.text.endsWith('התחל ישר בשאלה חדשה בסגנון המבחן על «מסלולים»: הסיפור וסעיף א בלבד, והמתן.\n\nהתחל עכשיו, בעברית בלבד.\n'));
+  assert.ok(en.text.endsWith('Start right away with a new exam-style question on «Paths»: the story and part a only, and wait.\n\nStart now, in English only.\n'));
+  // no topic id and no Arabic letter reaches the student
+  for (const text of [he.text, en.text]) assert.ok(!/m\d+-\d+-\d+/.test(text) && !/[؀-ۿ]/.test(text));
+  // the exam patterns: the grade-10 form of 3 units only for grade 10, the grade-12 form only for grade 12
+  assert.ok(he.text.includes('## 3 יח"ל, כיתה י׳: שאלון 35172') && !he.text.includes('שאלון 35372'));
+  assert.ok(en.text.includes('## 3 units, Grade 10: form (שאלון) 35172') && !en.text.includes('form (שאלון) 35372'));
+  const he12 = P.buildPrompt(data, { subject: 'math', grade: 12, units: 3, topics: ['m12-3-01'], modes: ['practice'], language: 'he' }).text;
+  assert.ok(he12.includes('## 3 יח"ל, כיתה י״ב: שאלון 35372') && !he12.includes('שאלון 35172'));
+  // the plan: the section of the exam of the level (form numbers) comes with the note not to say "Bagrut"
+  const plan = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['plan'], language: 'he' }).text;
+  assert.ok(plan.includes('## המבחן') && plan.includes('אל תזכיר לתלמיד את המילה בגרות'));
+  const noPlan = he.text;
+  assert.ok(!noPlan.includes('## המבחן'));
+  // a topic the student wrote, the target level, old mistakes, the teacher's file and a note: each in its language
+  const full = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, target: 4, topics: ['m10-3-07', 'm10-4-06'], custom: ['שברים'], modes: ['explain', 'practice'], mistakes: ['טעויות: שכח להפוך סימן'], teacherFile: true, note: 'הסבר לאט', language: 'he' }).text;
+  for (const part of ['יעד: מעבר מ-3 ל-4 יח"ל', '-- נושאי רמת היעד (4 יח"ל) --', '-- נושאים שהתלמיד כתב בעצמו --', '== טעויות ממפגשים קודמים ==', '== קובץ מהמורה ==', '== הערה מהתלמיד ==', 'התלמיד בחר: להבין + לתרגל.']) assert.ok(full.includes(part), part);
+  // with old mistakes (and without the teacher's file) the first move starts with one warm-up question, in the language of the page
+  const warm = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['explain'], mistakes: ['טעויות: שכח להפוך סימן'], language: 'he' }).text;
+  assert.ok(warm.trim().split('\n').slice(-3)[0].startsWith('התחל בשאלת חימום קצרה אחת על טעות מתוך "טעויות ממפגשים קודמים" למעלה, והמתן לתשובתו. אחר כך התחל ישר בהסבר של «מסלולים».'));
+  const warmEn = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['practice'], mistakes: ['Mistakes: forgot to flip the sign'], language: 'en' }).text;
+  assert.ok(warmEn.trim().split('\n').slice(-3)[0].startsWith('Start with one quick warm-up question on a mistake from "Mistakes from earlier sessions" above, and wait for the answer. Then Start right away with a new exam-style question'));
+});
+
+test('a data file without the translations gives the Arabic prompt (an old data.json)', () => {
+  const old = { version: 1, base_prompt: data.base_prompt, subjects: data.subjects };
+  const text = P.buildPrompt(old, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['explain'], language: 'he' }).text;
+  assert.equal(text, P.buildPrompt(old, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['explain'] }).text);
 });

@@ -1,5 +1,8 @@
 /* Builds the prompt the student pastes into ChatGPT, Claude or Gemini.
-   Pure functions: no DOM, no network. Used by app.js in the page and by the node tests. */
+   Pure functions: no DOM, no network. Used by app.js in the page and by the node tests.
+   The prompt is built in the language of the page: Arabic (the original, texts below), Hebrew or English (the translated
+   files of kit/ and curriculum/, put in data.json as data.langs.he / data.langs.en by tools/build_kit.py, with their own
+   `texts`). The code does not change from one language to the other: only the texts do. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();
   else root.NMIPrompt = factory();
@@ -7,13 +10,14 @@
   'use strict';
 
   /* Longest prompt we are happy to send, in characters. The biggest whole level (grade 10, 5 units, every topic) with
-     any set of modes and any page language is about 18,980 (Hebrew and English add a language block of about 460
-     characters and a first and last line of about 260; the section of teaching methods and the tone rules add about
-     2,200), so one level with every topic fits. 19,050 characters is about 6,700 tokens in Arabic: a free-tier chat
+     any set of modes is about 18,200 in Arabic and 18,350 in Hebrew (the section of teaching methods and the tone rules
+     add about 2,200), so one level with every topic fits. 19,050 characters is about 6,700 tokens: a free-tier chat
      takes it, a phone pastes it without trouble, and the model still follows the rules at the top instead of drowning
-     in text. A prompt that is longer (a whole level with a long mistakes section, or a whole own level plus a whole
-     target level) is not refused: the page warns the student. */
+     in text. English has more letters for the same content (about 40% more characters, about the same tokens): the
+     biggest English prompt is about 26,340, and its limit is 26,400. A prompt that is longer (a whole level with a long
+     mistakes section, or a whole own level plus a whole target level) is not refused: the page warns the student. */
   const MAX_LENGTH = 19050;
+  const MAX_LENGTH_BY_LANGUAGE = { ar: MAX_LENGTH, he: MAX_LENGTH, en: 26400 };
 
   /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
   const MAX_CUSTOM = 5;
@@ -27,48 +31,9 @@
   const TEACHER_FILE_TEXT = 'الطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه. أول إشي: حلّل شكل الأسئلة باختصار (المواضيع، وعدد الأقسام، ونوع الطلبات، ومستوى الصعوبة)، واسأله إذا التحليل صح. بعدها اكتب أسئلة جديدة على نفس الشكل بالضبط، بأرقام وقصص جديدة. شكل أستاذه أهم من دليل الأنماط. ما تعيد أسئلة الورقة نفسها.';
   const NOTE_RULE = 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز. إلا إذا بتطلب تعطيه الحل بوضع التدريب أو الامتحان قبل ما يحاول، أو بتطلب إشي برا منهاجه: ساعتها قله بلطف ليش لأ، وكمّل حسب القواعد.';
 
-  /* The name of a topic between « » in the sentences of the prompt. */
-  function quoted(name) { return '«' + name + '»'; }
-
-  /* start(first): the closing line. `first` is the name of the first chosen topic, or '' when the student chose
-     nothing (then the tutor asks). fileStart(first): the same, when the student has an old exam or a worksheet from
-     his teacher: the tutor first asks for it, analyses its shape, and only then starts. */
+  /* The first move of every mode is the closing line of the prompt. With the teacher's file the tutor first asks for it,
+     analyses its shape, and only then starts. */
   const ASK_FOR_THE_FILE = 'إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها ';
-  const MODES = {
-    explain: {
-      label: 'افهم', chosen: 'افهم',
-      start: function (first, all) {
-        if (all && all.length > MAX_DIRECT_START) {
-          return 'ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ (المواضيع: ' + all.map(quoted).join('، ') + ')';
-        }
-        return first ? 'ابدأ مباشرة بشرح ' + quoted(first) + '.' : 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"';
-      }
-    },
-    practice: {
-      label: 'تدرّب', chosen: 'تدرّب',
-      start: function (first) {
-        return first ? 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على ' + quoted(first) + ': القصة والقسم أ بس، واستنى.'
-          : 'ابدأ بسؤال الطالب: "أي موضوع بدك تتدرّب عليه؟"';
-      },
-      fileStart: function (first) {
-        return ASK_FOR_THE_FILE + 'ابدأ بسؤال جديد بنفس الشكل على ' + (first ? quoted(first) : 'الموضوع اللي بيختاره الطالب') + ': القصة والقسم أ بس، واستنى.';
-      }
-    },
-    mock: {
-      label: 'امتحان تجريبي', chosen: 'امتحان تجريبي',
-      start: function (first) {
-        return first ? 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.'
-          : 'ابدأ بسؤال الطالب: "على أي مواضيع بدك الامتحان؟"';
-      },
-      fileStart: function () {
-        return ASK_FOR_THE_FILE + 'اعطيه امتحان تجريبي كامل بنفس الشكل على المواضيع المختارة.';
-      }
-    },
-    plan: {
-      label: 'خطة', chosen: 'خطة',
-      start: function () { return 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟'; }
-    }
-  };
   /* The tables of the guide describe exams that cover more than one grade: only their shape is for the student. */
   const PATTERNS_NOTE = 'الجداول بتوصف امتحانات بتغطي أكتر من صف. استعمل بس شكل الأسئلة (القصة، والأقسام، ونوع الطلبات)، وخلّي المحتوى والصعوبة من مواضيع الطالب المختارة ومن صفه بس.';
   /* The student chose the target topics on purpose, to move up a level: the notes of his own level may say that some of
@@ -78,49 +43,6 @@
   const EXAM_SECTION_NOTE = 'هاي المعلومات إلك عشان تبني الخطة. ما تذكر كلمة بجروت أو أرقام الاستمارات للطالب، إلا إذا سأل عنها أو حكى إن امتحانه بجروت.';
   /* "افهم" with more topics than this: the tutor asks which one to start with, instead of picking the first. */
   const MAX_DIRECT_START = 3;
-  /* Only for a student whose page is in Hebrew or English; nothing is added for Arabic. */
-  const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };
-  const STUDENT_LANGUAGE_LINE = 'لغة الطالب: [language]. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:';
-  const STUDENT_LANGUAGE_RULES = [
-    '- كل ردودك بهاللغة من أول رد: الشرح، والقصص، والأسئلة، والملخص.',
-    '- المصطلحات بالعبري. (للإنجليزي: المصطلح بالإنجليزي وجنبه العبري بين قوسين.) ما تكتب مصطلحات بالعربي.',
-    '- الجمل الجاهزة تحت (مثل \'هاد مش بمنهاجك...\') قولها بمعناها بلغة الطالب.',
-    '- كلام الطالب بلغته إله نفس المعنى: \'לא הבנתי\' / \'I don\'t understand\' = \'مش فاهم\'، \'סיימתי\' / \'I\'m done\' = \'خلصت\'.'
-  ];
-  /* The prompt is Arabic, so on a page in Hebrew or English the tutor could answer in Arabic. For those pages only: a first
-     line and a last line in the student's language, and a stronger sentence in "== اللغة ==". Arabic is not changed. */
-  const LANGUAGE_FIRST_LINE = {
-    he: 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.',
-    en: 'Important: every reply to the student must be in English only, from the first message. The instructions below are in Arabic only because the curriculum is written in Arabic.'
-  };
-  const LANGUAGE_LAST_LINE = { he: 'התחל עכשיו, בעברית בלבד.', en: 'Start now, in English only.' };
-  const LANGUAGE_SENTENCE = 'جاوب بنفس لغة الطالب، وبأسلوبك الطبيعي.';
-  const LANGUAGE_SENTENCE_OTHER = 'جاوب بلغة الطالب المكتوبة فوق (عبري / إنجليزي)، حتى لو التعليمات بالعربي، وبأسلوبك الطبيعي.';
-  /* the last rule of the block: only when the prompt has the NMI-LOG rule (every mode except a plan alone) */
-  const STUDENT_LANGUAGE_LOG_RULE = '- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط \'المواضيع:\' و\'ضبط:\' و\'غلط:\' بالعربي، والباقي بلغة الطالب.';
-  /* the NMI-LOG rule is in the prompt with any mode except a plan alone */
-  function hasLogRule(modes) {
-    return modes.some(function (m) { return m !== 'plan'; });
-  }
-  /* The teaching methods (retrieval, spacing, interleaving ...): a section of the base prompt, in every prompt except a
-     plan alone. With old mistakes in the prompt, "افهم" and "تدرّب" start with a quick warm-up question on one of them. */
-  const TEACHING_SECTION = 'طريقة التعليم';
-  function hasTeachingMethods(modes) {
-    return modes.some(function (m) { return m !== 'plan'; });
-  }
-  const WARMUP_MODES = { explain: true, practice: true };
-  const WARMUP_START = 'ابدأ بسؤال إحماء سريع واحد على غلطة من "غلطات من جلسات قبل" فوق، وانتظر جوابه. بعدها ';
-  const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
-  /* the order in the prompt, whatever the order of the ticks: the plan first, then understand, practice, mock exam */
-  const PROMPT_ORDER = ['plan', 'explain', 'practice', 'mock'];
-
-  /* The modes the student ticked, in the order of the prompt. One mode in `sel.mode` still works; nothing ticked
-     is treated as "افهم" (the page does not allow it). */
-  function chosenModes(sel) {
-    const raw = Array.isArray(sel.modes) ? sel.modes : (sel.mode ? [sel.mode] : []);
-    const ticked = PROMPT_ORDER.filter(function (m) { return MODES[m] && raw.indexOf(m) !== -1; });
-    return ticked.length ? ticked : ['explain'];
-  }
 
   /* The mistakes log: the tutor ends a session with a summary that the student pastes into "سجلّي" of the kit. */
   const LOG_RULE = [
@@ -132,7 +54,136 @@
     'وقله: \'إذا بدك، انسخ هاد والصقه بالعدّة بصفحة سجلّي. مش إجباري، بس بيخلّيني أفحصك على غلطاتك بالمرة الجاية.\''
   ];
   const MISTAKES_RULE = 'خلال الجلسة، افحصه على هالغلطات بسؤال واحد على الأقل. ما تذكرها إلا إذا إلها علاقة بالسؤال.';
+  const WARMUP_START = 'ابدأ بسؤال إحماء سريع واحد على غلطة من "غلطات من جلسات قبل" فوق، وانتظر جوابه. بعدها ';
+  const CUSTOM_NOTE = 'هاي مواضيع كتبها الطالب بنفسه. ممكن تكون من منهاجه بكلام تاني، أو من الإعدادية، أو من مستوى أعلى. إذا من منهاجه، اربطها بالموضوع المناسب. إذا من مستوى أعلى أو مذكورة تحت \'خارج المنهاج\'، قله بصراحة قبل ما تشرح. إذا مش رياضيات، قله.';
   const MAX_MISTAKES = 600;
+
+  /* Every text the code adds to the prompt, in Arabic. {name} is filled by the code. The Hebrew and English tables are in
+     kit/prompt_texts.he.json and kit/prompt_texts.en.json (the same keys, tested) and arrive in data.langs[lang].texts.
+     Arabic is the original: its prompt is the same, character for character, as before the translations. */
+  const ARABIC_TEXTS = {
+    names: { student: 'الطالب', sources: 'المصادر', teaching: 'طريقة التعليم' },
+    startPrefix: '^ابدأ',
+    warmupStartPattern: '^ابدأ (مباشرة|بسؤال جديد)',
+    modeLabels: { explain: 'افهم', practice: 'تدرّب', mock: 'امتحان تجريبي', plan: 'خطة' },
+    topicsJoin: '، ',
+    startExplainChoose: 'ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ (المواضيع: {topics})',
+    startExplain: 'ابدأ مباشرة بشرح {topic}.',
+    startExplainNone: 'ابدأ بسؤال الطالب: "أي موضوع بدك أشرحلك؟"',
+    startPractice: 'ابدأ مباشرة بسؤال جديد بنمط الامتحان على {topic}: القصة والقسم أ بس، واستنى.',
+    startPracticeNone: 'ابدأ بسؤال الطالب: "أي موضوع بدك تتدرّب عليه؟"',
+    startPracticeFile: 'ابدأ بسؤال جديد بنفس الشكل على {topic}: القصة والقسم أ بس، واستنى.',
+    practiceFileNoTopic: 'الموضوع اللي بيختاره الطالب',
+    startMock: 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.',
+    startMockNone: 'ابدأ بسؤال الطالب: "على أي مواضيع بدك الامتحان؟"',
+    startMockFile: 'اعطيه امتحان تجريبي كامل بنفس الشكل على المواضيع المختارة.',
+    startPlan: 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟',
+    askForFile: ASK_FOR_THE_FILE,
+    patternsNote: PATTERNS_NOTE,
+    targetNote: TARGET_NOTE,
+    examSectionNote: EXAM_SECTION_NOTE,
+    teacherFileText: TEACHER_FILE_TEXT,
+    noteRule: NOTE_RULE,
+    logRule: LOG_RULE,
+    mistakesRule: MISTAKES_RULE,
+    warmupStart: WARMUP_START,
+    customNote: CUSTOM_NOTE,
+    subjectLine: 'المادة: {value}',
+    gradeLine: 'الصف: {value}',
+    unitsLine: 'الوحدات: {value}',
+    goalLine: 'الهدف: الانتقال من {from} لـ {to} وحدات',
+    goalNone: 'الهدف: ما في هدف خاص',
+    topicsLine: 'المواضيع اللي بدو يراجعها: {value}',
+    allTopics: 'كل المواضيع',
+    noTopics: 'ما حدّد، اسأله',
+    modeLine: 'الوضع اللي اختاره: {value}',
+    modesSeveral: 'الطالب اختار: {labels}. ابدأ بأول وحدة بس. كل رد بوضع واحد بس. لما تخلص الوضع، اسأله إذا جاهز للي بعده، وما تنتقل قبل ما يجاوب.',
+    studentLanguage: [],
+    secLog: '== ملخص الجلسة للعدّة ==',
+    secMistakes: '== غلطات من جلسات قبل ==',
+    secFile: '== ملف من الأستاذ ==',
+    secNote: '== ملاحظة من الطالب ==',
+    srcCurriculum: '-- منهاج الطالب: {title} --',
+    srcPicked: '-- المواضيع المختارة --',
+    srcTarget: '-- مواضيع مستوى الهدف ({units} وحدات) --',
+    srcCustom: '-- مواضيع كتبها الطالب بنفسه --',
+    srcPatterns: '-- دليل أنماط الامتحانات لمستواك --',
+    srcExample: '-- مثال على الشكل، ما تعيده (موضوع: {topic}) --',
+    srcAttached: '- مرفق:',
+    srcBelow: '- تحت:',
+    srcGuide: '، ودليل أنماط أسئلة الامتحانات',
+    srcFileWord: 'ملف',
+    srcFileLine: '- ما تقول للطالب "المرفق" ولا اسم أي مصدر. قول "منهاجك".',
+    srcIdLine: '- ما تكتب أرقام المواضيع للطالب.',
+    mathWord: 'رياضيات',
+    anotherTopic: 'موضوع تاني',
+    examHeading: '## الامتحان'
+  };
+
+  /* The page in Hebrew or English: a first line before everything and a last line after the closing line, in the language
+     of the student, because the models answer in the language of the last lines they read. */
+  const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };
+  const LANGUAGE_FIRST_LINE = {
+    he: 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה.',
+    en: 'Important: every reply to the student must be in English only, from the first message.'
+  };
+  const LANGUAGE_LAST_LINE = { he: 'התחל עכשיו, בעברית בלבד.', en: 'Start now, in English only.' };
+
+  /* The name of a topic between « » in the sentences of the prompt. */
+  function quoted(name) { return '«' + name + '»'; }
+
+  /* "text {a} {b}" with the values: the code never builds a sentence by hand. */
+  function fill(template, values) {
+    return String(template).replace(/\{(\w+)\}/g, function (all, key) { return key in values ? values[key] : all; });
+  }
+
+  /* The modes: the label of the Arabic prompt is the one the tests and the page know. */
+  const MODES = {
+    explain: { label: 'افهم', chosen: 'افهم' },
+    practice: { label: 'تدرّب', chosen: 'تدرّب' },
+    mock: { label: 'امتحان تجريبي', chosen: 'امتحان تجريبي' },
+    plan: { label: 'خطة', chosen: 'خطة' }
+  };
+  const MODE_ORDER = ['explain', 'practice', 'mock', 'plan'];  // the order of the buttons on the page
+  /* the order in the prompt, whatever the order of the ticks: the plan first, then understand, practice, mock exam */
+  const PROMPT_ORDER = ['plan', 'explain', 'practice', 'mock'];
+
+  /* The closing line of the prompt: the first move of the first mode. `first` is the name of the first chosen topic, or
+     '' when the student chose nothing (then the tutor asks). `all` the names of every chosen topic. */
+  function startLine(T, mode, first, all, teacherFile) {
+    if (mode === 'explain') {
+      if (all && all.length > MAX_DIRECT_START) return fill(T.startExplainChoose, { topics: all.map(quoted).join(T.topicsJoin) });
+      return first ? fill(T.startExplain, { topic: quoted(first) }) : T.startExplainNone;
+    }
+    if (mode === 'practice') {
+      if (teacherFile) return T.askForFile + fill(T.startPracticeFile, { topic: first ? quoted(first) : T.practiceFileNoTopic });
+      return first ? fill(T.startPractice, { topic: quoted(first) }) : T.startPracticeNone;
+    }
+    if (mode === 'mock') {
+      if (teacherFile) return T.askForFile + T.startMockFile;
+      return first ? T.startMock : T.startMockNone;
+    }
+    return T.startPlan;
+  }
+
+  /* the NMI-LOG rule is in the prompt with any mode except a plan alone */
+  function hasLogRule(modes) {
+    return modes.some(function (m) { return m !== 'plan'; });
+  }
+  /* The teaching methods (retrieval, spacing, interleaving ...): a section of the base prompt, in every prompt except a
+     plan alone. With old mistakes in the prompt, "افهم" and "تدرّب" start with a quick warm-up question on one of them. */
+  function hasTeachingMethods(modes) {
+    return modes.some(function (m) { return m !== 'plan'; });
+  }
+  const WARMUP_MODES = { explain: true, practice: true };
+
+  /* The modes the student ticked, in the order of the prompt. One mode in `sel.mode` still works; nothing ticked
+     is treated as "افهم" (the page does not allow it). */
+  function chosenModes(sel) {
+    const raw = Array.isArray(sel.modes) ? sel.modes : (sel.mode ? [sel.mode] : []);
+    const ticked = PROMPT_ORDER.filter(function (m) { return MODES[m] && raw.indexOf(m) !== -1; });
+    return ticked.length ? ticked : ['explain'];
+  }
 
   /* The exam patterns guide (and its example) only helps when the tutor writes questions. */
   const WRITES_QUESTIONS = { practice: true, mock: true };
@@ -153,8 +204,8 @@
   }
 
   /* No topic id ever reaches the student's prompt: the tutor names topics, it never numbers them. */
-  function withoutIds(text) {
-    return text.replace(ID_IN_PARENS, '').replace(BARE_ID, 'موضوع تاني');
+  function withoutIds(text, T) {
+    return text.replace(ID_IN_PARENS, '').replace(BARE_ID, (T || ARABIC_TEXTS).anotherTopic);
   }
 
   /* control characters and invisible direction marks (U+2028 and U+2029 are caught by the whitespace step) */
@@ -202,28 +253,29 @@
     return oneLine(text).replace(/^[=\s]+/, '').slice(0, MAX_NOTE).trim();
   }
 
-  /* The guide is still called "Bagrut patterns" in the curriculum folder; the prompt says "exam" (school exams). */
+  /* The guide is still called "Bagrut patterns" in the curriculum folder; the Arabic prompt says "exam" (school exams).
+     The Hebrew and English guides already say "exam". */
   function asExam(text) {
     return text.replace(/البجروت/g, 'الامتحان').replace(/بجروت/g, 'امتحان');
   }
 
-  /* The notes of a level are "## heading" sections. "## الامتحان" (form numbers, "Bagrut at the end of grade 11")
+  /* The notes of a level are "## heading" sections. The exam section (form numbers, "Bagrut at the end of grade 11")
      is only for the plan mode. */
-  function notesText(notes, mode) {
+  function notesText(notes, mode, T) {
     const parts = [];
     notes.split(/\n\n(?=## )/).forEach(function (part) {
-      if (part.split('\n')[0].trim() !== '## الامتحان') { parts.push(part); return; }
+      if (part.split('\n')[0].trim() !== T.examHeading) { parts.push(part); return; }
       if (mode !== 'plan') return;
       /* the exam section talks about the Bagrut (form numbers): it is there to build the plan, and the tutor is told
          right after it not to say the word to the student */
-      parts.push(part, EXAM_SECTION_NOTE);
+      parts.push(part, T.examSectionNote);
     });
     return parts.join('\n\n').trim();
   }
 
   /* The exam patterns of the student's own level: the general rules, the form sections of the level (a form written
      for one grade, like the 12th-grade form, only for that grade) and "how the tutor writes a question". */
-  function patternsText(subject, gradeName, units) {
+  function patternsText(subject, gradeName, units, arabic) {
     const p = subject.patterns;
     if (!p) return '';
     const parts = [];
@@ -232,11 +284,12 @@
       if (!section.grade || section.grade === gradeName) parts.push(section.text);
     });
     if (p.howto) parts.push(p.howto);
-    return asExam(parts.filter(Boolean).join('\n\n'));
+    const text = parts.filter(Boolean).join('\n\n');
+    return arabic ? asExam(text) : text;
   }
 
-  function topicBlock(topic) {
-    const body = withoutIds(topic.text);
+  function topicBlock(topic, T) {
+    const body = withoutIds(topic.text, T);
     return body ? '### ' + topic.title_full + '\n' + body : '### ' + topic.title_full;
   }
 
@@ -260,16 +313,28 @@
     return topics.map(function (t) { return t.title; });
   }
 
+  /* The data and the texts of the language of the page: Hebrew and English come with their own data (data.langs); a data
+     file without them (an old one) gives the Arabic prompt. */
+  function languageData(data, language) {
+    if ((language === 'he' || language === 'en') && data.langs && data.langs[language] && data.langs[language].texts) {
+      return { lang: language, data: data.langs[language], T: data.langs[language].texts };
+    }
+    return { lang: 'ar', data: data, T: ARABIC_TEXTS };
+  }
+
   /* sel: { subject, grade, units, target (units or null), topics (ids of the level or of the target level),
             all (every topic of the student's own level), custom (topics the student wrote), modes (the ticked modes;
             `mode` with one mode still works), mistakes (the "غلط:" lines of the old sessions),
             teacherFile (true: he has an old exam or worksheet from his teacher), note (a note to the tutor),
-            language (the language of the page: 'he' or 'en' adds the student's language line; 'ar' adds nothing) }
+            language (the language of the page: 'ar', 'he' or 'en'; the prompt is built in that language) }
      Returns { text, length, tooLong, max, missingExample, topics, custom } or null when the level does not exist. */
-  function buildPrompt(data, sel) {
+  function buildPrompt(arabicData, sel) {
+    const chosen = languageData(arabicData, sel.language);
+    const data = chosen.data;
+    const T = chosen.T;
     const modes = chosenModes(sel);
     const mode = modes[0];  // the first one starts the session
-    const labels = modes.map(function (m) { return MODES[m].chosen; });
+    const labels = modes.map(function (m) { return T.modeLabels[m]; });
     const found = findLevel(data, sel.subject, sel.grade, sel.units);
     if (!found) return null;
     const subject = found.subject;
@@ -291,70 +356,68 @@
     const { head, sections } = splitSections(data.base_prompt);
     const section = function (name) { return sections.find(function (s) { return s.name === name; }); };
     let title = head.join('\n').trim();
-    if (subject.name && subject.id !== 'math') title = title.replace('رياضيات', subject.name);
+    if (subject.name && subject.id !== 'math') title = title.replace(T.mathWord, subject.name);
 
     /* == الطالب == : every chosen topic by name, the ones from the list and the ones the student wrote */
     const student = [];
-    student.push('المادة: ' + subject.name);
-    student.push('الصف: ' + found.grade.name);
-    student.push('الوحدات: ' + sel.units);
-    student.push(target ? 'الهدف: الانتقال من ' + sel.units + ' لـ ' + sel.target + ' وحدات' : 'الهدف: ما في هدف خاص');
-    const named = (sel.all ? ['كل المواضيع'] : names(pickedOwn)).concat(names(pickedTarget), custom);
-    student.push('المواضيع اللي بدو يراجعها: ' + (named.length ? named.join('، ') : 'ما حدّد، اسأله'));
-    student.push('الوضع اللي اختاره: ' + labels.join(' + '));
-    if (modes.length > 1) student.push('الطالب اختار: ' + labels.join(' + ') + '. ابدأ بأول وحدة بس. كل رد بوضع واحد بس. لما تخلص الوضع، اسأله إذا جاهز للي بعده، وما تنتقل قبل ما يجاوب.');
+    student.push(fill(T.subjectLine, { value: subject.name }));
+    student.push(fill(T.gradeLine, { value: found.grade.name }));
+    student.push(fill(T.unitsLine, { value: sel.units }));
+    student.push(target ? fill(T.goalLine, { from: sel.units, to: sel.target }) : T.goalNone);
+    const named = (sel.all ? [T.allTopics] : names(pickedOwn)).concat(names(pickedTarget), custom);
+    student.push(fill(T.topicsLine, { value: named.length ? named.join(T.topicsJoin) : T.noTopics }));
+    student.push(fill(T.modeLine, { value: labels.join(' + ') }));
+    if (modes.length > 1) student.push(fill(T.modesSeveral, { labels: labels.join(' + ') }));
 
-    /* the prompt is Arabic (the curriculum is Arabic): a student whose page is in Hebrew or English is told so, once */
-    if (STUDENT_LANGUAGE[sel.language]) {
-      student.push(STUDENT_LANGUAGE_LINE.replace('[language]', STUDENT_LANGUAGE[sel.language]));
-      STUDENT_LANGUAGE_RULES.forEach(function (rule) { student.push(rule); });
-      if (hasLogRule(modes)) student.push(STUDENT_LANGUAGE_LOG_RULE);
-    }
+    /* a page in Hebrew or English: the language of the student, once (nothing for Arabic) */
+    const otherLanguage = chosen.lang !== 'ar';
+    T.studentLanguage.forEach(function (line) { student.push(line); });
 
     /* what the tutor starts with: the first topic of the student, in the order of the list, then the ones he wrote */
     const everyName = names(pickedOwn.concat(pickedTarget)).concat(custom);
     const first = everyName[0] || '';
 
-    const patterns = guide ? patternsText(subject, found.grade.name, sel.units) : '';
+    const patterns = guide ? patternsText(subject, found.grade.name, sel.units, chosen.lang === 'ar') : '';
 
     /* == المصادر == : a section that would be empty is not written at all, not even its heading */
-    const sourceLines = (section('المصادر') ? section('المصادر').lines : []).filter(function (line, i, all) {
+    const sourceSection = section(T.names.sources);
+    const sourceLines = (sourceSection ? sourceSection.lines : []).filter(function (line, i, all) {
       return !(line === '' && i === all.length - 1);
     }).map(function (line) {
-      let out = line.replace(/^- مرفق:/, '- تحت:');
-      if (!patterns) out = out.replace('، ودليل أنماط أسئلة الامتحانات', '');  // the guide is not in this prompt
-      if (out.indexOf('ملف') !== -1) out = '- ما تقول للطالب "المرفق" ولا اسم أي مصدر. قول "منهاجك".';
-      if (ID.test(out)) out = '- ما تكتب أرقام المواضيع للطالب.';
+      let out = line.indexOf(T.srcAttached) === 0 ? T.srcBelow + line.slice(T.srcAttached.length) : line;
+      if (!patterns) out = out.replace(T.srcGuide, '');  // the guide is not in this prompt
+      if (out.indexOf(T.srcFileWord) !== -1) out = T.srcFileLine;
+      if (ID.test(out)) out = T.srcIdLine;
       return out;
     });
     const sources = sourceLines.slice();
-    const notes = notesText(own.notes, withPlan ? 'plan' : mode);
+    const notes = notesText(own.notes, withPlan ? 'plan' : mode, T);
     if (notes) {
       sources.push('');
-      sources.push('-- منهاج الطالب: ' + withoutIds(own.title) + ' --');
-      sources.push(withoutIds(notes));
+      sources.push(fill(T.srcCurriculum, { title: withoutIds(own.title, T) }));
+      sources.push(withoutIds(notes, T));
     }
     if (pickedOwn.length) {
       sources.push('');
-      sources.push('-- المواضيع المختارة --');
-      pickedOwn.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
+      sources.push(T.srcPicked);
+      pickedOwn.forEach(function (topic) { sources.push('\n' + topicBlock(topic, T)); });
     }
     if (pickedTarget.length) {
       sources.push('');
-      sources.push('-- مواضيع مستوى الهدف (' + sel.target + ' وحدات) --');
-      sources.push(TARGET_NOTE);
-      pickedTarget.forEach(function (topic) { sources.push('\n' + topicBlock(topic)); });
+      sources.push(fill(T.srcTarget, { units: sel.target }));
+      sources.push(T.targetNote);
+      pickedTarget.forEach(function (topic) { sources.push('\n' + topicBlock(topic, T)); });
     }
     if (custom.length) {
       sources.push('');
-      sources.push('-- مواضيع كتبها الطالب بنفسه --');
+      sources.push(T.srcCustom);
       custom.forEach(function (text) { sources.push('- ' + text); });
-      sources.push('هاي مواضيع كتبها الطالب بنفسه. ممكن تكون من منهاجه بكلام تاني، أو من الإعدادية، أو من مستوى أعلى. إذا من منهاجه، اربطها بالموضوع المناسب. إذا من مستوى أعلى أو مذكورة تحت \'خارج المنهاج\'، قله بصراحة قبل ما تشرح. إذا مش رياضيات، قله.');
+      sources.push(T.customNote);
     }
     if (patterns) {
       sources.push('');
-      sources.push('-- دليل أنماط الامتحانات لمستواك --');
-      sources.push(PATTERNS_NOTE);
+      sources.push(T.srcPatterns);
+      sources.push(T.patternsNote);
       sources.push('');
       sources.push(patterns);
     }
@@ -363,39 +426,37 @@
       const withExample = pickedOwn.concat(pickedTarget).find(function (topic) { return topic.example; });
       if (withExample) {
         sources.push('');
-        sources.push('-- مثال على الشكل، ما تعيده (موضوع: ' + quoted(withExample.title) + ') --');
+        sources.push(fill(T.srcExample, { topic: quoted(withExample.title) }));
         sources.push(withExample.example);
       } else if (pickedOwn.length + pickedTarget.length) missing = true;
     }
 
     /* the rest of the base prompt, with the chosen mode and its first move */
-    const otherLanguage = !!STUDENT_LANGUAGE[sel.language];  // a page in Hebrew or English
-    const out = otherLanguage ? [LANGUAGE_FIRST_LINE[sel.language], '', title, ''] : [title, ''];
+    const out = otherLanguage ? [LANGUAGE_FIRST_LINE[chosen.lang], '', title, ''] : [title, ''];
+    const startPrefix = new RegExp(T.startPrefix);
+    const warmupPattern = new RegExp(T.warmupStartPattern);
     sections.forEach(function (s) {
-      if (s.name === TEACHING_SECTION && !hasTeachingMethods(modes)) return;  // a plan alone has no section of teaching methods
+      if (s.name === T.names.teaching && !hasTeachingMethods(modes)) return;  // a plan alone has no section of teaching methods
       if (out[out.length - 1] !== '') out.push('');
       out.push('== ' + s.name + ' ==');
-      if (s.name === 'الطالب') out.push.apply(out, student);
-      else if (s.name === 'المصادر') out.push.apply(out, sources);
+      if (s.name === T.names.student) out.push.apply(out, student);
+      else if (s.name === T.names.sources) out.push.apply(out, sources);
       else {
         const body = s.lines.slice();
-        if (otherLanguage && s.name === 'اللغة') {
-          for (let i = 0; i < body.length; i++) body[i] = body[i].replace(LANGUAGE_SENTENCE, LANGUAGE_SENTENCE_OTHER);
-        }
         if (s === sections[sections.length - 1]) {
           /* the last section holds the closing line "ابدأ بسؤال الطالب ...". Before it: the sections of the teacher's
              file and of the student's note, when there are any. With the teacher's file the tutor first asks for it. */
           const extra = [];
-          if (hasLogRule(modes)) extra.push('== ملخص الجلسة للعدّة ==', ...LOG_RULE, '');
-          if (mistakes.length) extra.push('== غلطات من جلسات قبل ==', ...mistakes, MISTAKES_RULE, '');
-          if (teacherFile) extra.push('== ملف من الأستاذ ==', TEACHER_FILE_TEXT, '');
-          if (note) extra.push('== ملاحظة من الطالب ==', note, NOTE_RULE, '');
+          if (hasLogRule(modes)) extra.push(T.secLog, ...T.logRule, '');
+          if (mistakes.length) extra.push(T.secMistakes, ...mistakes, T.mistakesRule, '');
+          if (teacherFile) extra.push(T.secFile, T.teacherFileText, '');
+          if (note) extra.push(T.secNote, note, T.noteRule, '');
           for (let i = body.length - 1; i >= 0; i--) {
-            if (/^ابدأ/.test(body[i])) {
-              let startLine = teacherFile && MODES[mode].fileStart ? MODES[mode].fileStart(first) : MODES[mode].start(first, everyName);
+            if (startPrefix.test(body[i])) {
+              let line = startLine(T, mode, first, everyName, teacherFile && (mode === 'practice' || mode === 'mock'));
               /* old mistakes in the prompt: the warm-up question of the teaching methods comes before the first move */
-              if (mistakes.length && !teacherFile && WARMUP_MODES[mode] && /^ابدأ (مباشرة|بسؤال جديد)/.test(startLine)) startLine = WARMUP_START + startLine;
-              body.splice(i, 1, ...extra, startLine);
+              if (mistakes.length && !teacherFile && WARMUP_MODES[mode] && warmupPattern.test(line)) line = T.warmupStart + line;
+              body.splice(i, 1, ...extra, line);
               break;
             }
           }
@@ -403,10 +464,10 @@
         out.push.apply(out, body);
       }
     });
-    if (otherLanguage) out.push('', LANGUAGE_LAST_LINE[sel.language]);  // after the Arabic closing line
-    const text = withoutIds(out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n');
+    if (otherLanguage) out.push('', LANGUAGE_LAST_LINE[chosen.lang]);  // after the closing line
+    const text = withoutIds(out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n', T);
     return {
-      text: text, length: text.length, max: MAX_LENGTH, tooLong: text.length > MAX_LENGTH, missingExample: missing,
+      text: text, length: text.length, max: MAX_LENGTH_BY_LANGUAGE[chosen.lang], tooLong: text.length > MAX_LENGTH_BY_LANGUAGE[chosen.lang], missingExample: missing,
       topics: pickedOwn.length + pickedTarget.length, custom: custom.length, teacherFile: teacherFile, note: note.length > 0,
       modes: modes, mistakes: mistakes.length > 0
     };
@@ -414,6 +475,9 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, STUDENT_LANGUAGE_RULES: STUDENT_LANGUAGE_RULES, STUDENT_LANGUAGE_LOG_RULE: STUDENT_LANGUAGE_LOG_RULE, LANGUAGE_FIRST_LINE: LANGUAGE_FIRST_LINE, LANGUAGE_LAST_LINE: LANGUAGE_LAST_LINE, LANGUAGE_SENTENCE_OTHER: LANGUAGE_SENTENCE_OTHER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES,
+    MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_LENGTH_BY_LANGUAGE: MAX_LENGTH_BY_LANGUAGE,
+    MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH, ARABIC_TEXTS: ARABIC_TEXTS, LANGUAGE_FIRST_LINE: LANGUAGE_FIRST_LINE, LANGUAGE_LAST_LINE: LANGUAGE_LAST_LINE,
+    STUDENT_LANGUAGE: STUDENT_LANGUAGE, fill: fill
   };
 });

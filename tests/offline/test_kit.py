@@ -198,6 +198,11 @@ class BuildKitTests(unittest.TestCase):
             text = read(examples)
             examples.write_text(text.replace('## m11-3-11 مراجعة وتدريب، مع إكمال مواضيع العاشر حسب الحاجة', '## m11-3-99 مش من المنهاج'), encoding='utf-8')
             (root / 'math' / 'grade12' / 'examples' / '4units.md').unlink()
+            # the Hebrew and the English files follow the Arabic ones (the build stops when they do not have the same examples)
+            for language in ('he', 'en'):
+                translated = root / 'math' / 'grade11' / 'examples' / f'3units.{language}.md'
+                translated.write_text(re.sub(r'^## m11-3-11 .*$', '## m11-3-99 x', read(translated), flags=re.M), encoding='utf-8')
+                (root / 'math' / 'grade12' / 'examples' / f'4units.{language}.md').unlink()
             data = build_kit.build(root, ROOT / 'kit' / 'base_prompt.txt')
         flags = {(g['id'], l['units']): l['experimental'] for g in data['subjects'][0]['grades'] for l in g['levels']}
         self.assertTrue(flags[(11, 3)])
@@ -383,7 +388,7 @@ class KitFilesTests(unittest.TestCase):
         self.assertIn('## كيف المدرّس يكتب سؤال تدريب بنمط البجروت', patterns)
         js = read(ROOT / 'kit' / 'prompt.js')
         for part in ('function asExam', "replace(/البجروت/g, 'الامتحان')", "WRITES_QUESTIONS = { practice: true, mock: true }",
-                     "part.split('\\n')[0].trim() !== '## الامتحان'"):
+                     "part.split('\\n')[0].trim() !== T.examHeading", "examHeading: '## الامتحان'"):
             self.assertIn(part, js)
 
     def test_part_b_to_e_texts_are_in_the_page_and_the_prompt(self):
@@ -477,12 +482,11 @@ class KitFilesTests(unittest.TestCase):
         for line in app.splitlines():
             code = re.sub(r"//.*$", '', line) if not line.strip().startswith('/*') else ''
             self.assertNotRegex(re.sub(r"/\*.*?\*/", '', code), r"'[^']*[\u0600-\u06ff][^']*'", line)
-        # the prompt line for the student's language is in prompt.js and nothing else of the prompt is translated
+        # the Hebrew and the English prompts come from their own files (data.langs); the only Hebrew in the prompt code is the name of
+        # the language and the first and the last line of a Hebrew prompt (the English ones are English)
         self.assertIn("const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };", prompt)
-        # the only Hebrew words in the prompt code: the name of the language, and the two phrases of the student in the language block
-        hebrew_free = prompt.replace("{ he: 'עברית', en: 'English' }", '').replace('לא הבנתי', '').replace('סיימתי', '')
-        # ... and the first and last lines of the prompt of a page in Hebrew (the English ones are English)
-        for line in ('חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.', 'התחל עכשיו, בעברית בלבד.'):
+        hebrew_free = prompt.replace("{ he: 'עברית', en: 'English' }", '')
+        for line in ('חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה.', 'התחל עכשיו, בעברית בלבד.'):
             self.assertIn(line, prompt)
             hebrew_free = hebrew_free.replace(line, '')
         self.assertEqual(len(re.findall(r'[\u0590-\u05ff]+', hebrew_free)), 0)
@@ -599,7 +603,8 @@ class KitFilesTests(unittest.TestCase):
     def test_the_readme_says_what_the_product_really_is(self):
         readme = read(ROOT / 'README.md')
         for part in ('The real version is not online, because it needs a server and a paid API key. A demo with made-up replies is online, and these screenshots are from it.',
-                     "The page is in Arabic, Hebrew and English. The prompt tells the AI to answer in the student's language, with the Hebrew math terms.",
+                     "The page is in Arabic, Hebrew and English. The whole prompt is in the page language (Arabic, Hebrew or English), with the Hebrew math terms.",
+                     '- The Hebrew and English prompts were translated with AI and checked by me, not by a professional translator.',
                      'Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.',
                      '- The Hebrew and English page texts were written with AI and checked by me, not by a professional translator.',
                      '- The lab demo was built for computers; on a phone it shows zoomed out.',
@@ -634,8 +639,8 @@ class KitFilesTests(unittest.TestCase):
         self.assertEqual(json.loads(read(build_kit.OUTPUT))['base_prompt'], base.strip())
         # the code leaves the section out only for a plan alone
         prompt = read(ROOT / 'kit' / 'prompt.js')
-        self.assertIn("if (s.name === TEACHING_SECTION && !hasTeachingMethods(modes)) return;", prompt)
-        self.assertIn("const TEACHING_SECTION = 'طريقة التعليم';", prompt)
+        self.assertIn("if (s.name === T.names.teaching && !hasTeachingMethods(modes)) return;", prompt)
+        self.assertIn("names: { student: 'الطالب', sources: 'المصادر', teaching: 'طريقة التعليم' }", prompt)
         # the README does not claim to teach like the universities
         readme = read(ROOT / 'README.md')
         self.assertIn('teaching methods inspired by research at Oxford (tutorials), MIT (active learning), Stanford (Jo Boaler) and Harvard (Peer Instruction)', readme)

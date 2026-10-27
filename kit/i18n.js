@@ -324,11 +324,6 @@
       "he": "הכי טוב: הפרומפט נכנס ישר לתוך האפליקציה.",
       "en": "Best: it puts the prompt straight into the app."
     },
-    "promptLanguageNote": {
-      "ar": "البرومبت مكتوب بالعربية لأن المنهاج بالعربية. سيجيبك المدرّس بالعربية.",
-      "he": "הפרומפט כתוב בערבית, כי תוכנית הלימודים כתובה בערבית. המורה יענה לכם בעברית.",
-      "en": "The prompt is written in Arabic because the curriculum is in Arabic. The tutor will answer you in English."
-    },
     "copy": {
       "ar": "انسخ",
       "he": "העתקה",

@@ -503,7 +503,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       expect(hint.y).toBeGreaterThanOrEqual(open.y + open.height - 1);
       expect(copy.y).toBeGreaterThanOrEqual(hint.y + hint.height - 1);
       await expect(page.locator('#open-hint')).toHaveText('الأفضل: يضع البرومبت داخل التطبيق مباشرة.');
-      await expect(page.locator('#prompt-language-note')).toHaveCount(0);  // only on the Hebrew and the English page
+      await expect(page.locator('#prompt-language-note')).toHaveCount(0);  // the prompt is in the language of the page: no line about Arabic
       const apps = await page.locator('.apps').boundingBox();
       expect(apps.y).toBeGreaterThan(open.y);  // the small buttons are under the big one
       await expect(page.locator('#chat-tip')).not.toHaveAttribute('open', '');
@@ -1361,16 +1361,8 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await expect(page.locator('#open-app')).toHaveText(t('openApp'));
         await expect(page.locator('#open-hint')).toHaveText(t('openHint'));
         await expect(page.locator('#copy')).toHaveText(t('copy'));
-        // the prompt is Arabic: a line right under the copy button says so, and that the tutor will answer in the language of the page
-        await expect(page.locator('#prompt-language-note')).toBeVisible();
-        await expect(page.locator('#prompt-language-note')).toHaveText(t('promptLanguageNote'));
-        expect(await page.locator('#prompt-language-note').textContent()).toBe(lang === 'he'
-          ? 'הפרומפט כתוב בערבית, כי תוכנית הלימודים כתובה בערבית. המורה יענה לכם בעברית.'
-          : 'The prompt is written in Arabic because the curriculum is in Arabic. The tutor will answer you in English.');
-        const copyBox = await page.locator('#copy').boundingBox();
-        const noteBox = await page.locator('#prompt-language-note').boundingBox();
-        expect(noteBox.y).toBeGreaterThan(copyBox.y + copyBox.height - 1);
-        expect(noteBox.y - (copyBox.y + copyBox.height)).toBeLessThan(80);  // near the copy button
+        // the whole prompt is in the language of the page now: there is no line saying that it is in Arabic
+        await expect(page.locator('#prompt-language-note')).toHaveCount(0);
         await expect(page.locator('#exams-link')).toHaveText(t('examsLink'));
         await expect(page.locator('#chat-tip summary')).toHaveText(t('chatTipTitle'));
         await page.locator('#chat-tip summary').click();
@@ -1385,33 +1377,32 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         });
         await page.locator('#copy').click();
         await expect(page.locator('#status')).toHaveText(t('copied'));
-        expect((await page.evaluate(() => window.__copied))[0]).toContain('== الطالب ==');
+        // the whole prompt is in the language of the page: the heading of the student part is in it too
+        expect((await page.evaluate(() => window.__copied))[0]).toContain(lang === 'he' ? '== תלמיד ==' : '== Student ==');
       });
 
-      test('the prompt: Arabic, with one line for the language of the student', async ({ page }) => {
+      test('the prompt: the whole prompt is in the language of the page, with the first and the last line of the language', async ({ page }) => {
         await page.goto('/index.html');
         await page.locator('#app h1').first().waitFor();
         await chooseLanguage(page, lang);
         await walkByIds(page, { modes: ['practice'] });
         await page.locator('#app details').last().locator('summary').click();
         const text = await page.locator('#preview').innerText();
-        const language = lang === 'he' ? 'עברית' : 'English';
-        expect(text).toContain(`لغة الطالب: ${language}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`);
-        expect(text).toContain('== الطالب ==');  // the rest of the prompt is Arabic
+        const he = lang === 'he';
+        expect(text).toContain(he ? 'שפת התלמיד: עברית. כל התשובות שלך בעברית, מההודעה הראשונה.' : 'Student language: English. All your replies are in English, from the first message.');
+        expect(text).toContain(he ? '== תלמיד ==' : '== Student ==');
         // a first line and a last line in the language of the page, so that the tutor answers in it
         const lines = text.trim().split(/\r?\n/);
-        expect(lines[0]).toBe(lang === 'he'
-          ? 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.'
-          : 'Important: every reply to the student must be in English only, from the first message. The instructions below are in Arabic only because the curriculum is written in Arabic.');
-        expect(lines[lines.length - 1]).toBe(lang === 'he' ? 'התחל עכשיו, בעברית בלבד.' : 'Start now, in English only.');
-        expect(text).toContain('جاوب بلغة الطالب المكتوبة فوق (عبري / إنجليزي)، حتى لو التعليمات بالعربي، وبأسلوبك الطبيعي.');
-        expect(text).toContain('الوضع اللي اختاره: تدرّب');
-        expect(text).toContain('المواضيع اللي بدو يراجعها: الاحتمال');  // the topic name in the prompt is the Arabic one
-        const student = text.slice(text.indexOf('== الطالب =='), text.indexOf('== المصادر =='));
-        expect(student.trim().split(/\r?\n/).slice(-6)[0]).toContain('لغة الطالب: ' + language);
-        expect(student.trim().split(/\r?\n/).pop()).toContain('NMI-LOG');
-        // the preview of the prompt is right to left whatever the page is
-        expect(await page.locator('#preview').evaluate((el) => getComputedStyle(el).direction)).toBe('rtl');
+        expect(lines[0]).toBe(he ? 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה.' : 'Important: every reply to the student must be in English only, from the first message.');
+        expect(lines[lines.length - 1]).toBe(he ? 'התחל עכשיו, בעברית בלבד.' : 'Start now, in English only.');
+        expect(text).toContain(he ? 'המצב שבחר: לתרגל' : 'Mode chosen: Practice');
+        expect(text).toContain(he ? 'נושאים לחזרה: הסתברות' : 'Topics to review: Probability');  // the topic name in the prompt is in the language of the page
+        expect(text).toContain(he ? '### הסתברות' : '### Probability (הסתברות)');
+        // no Arabic letter in the prompt, and no topic number
+        expect(/[؀-ۿ]/.test(text)).toBe(false);
+        expect(/m\d+-\d+-\d+/.test(text)).toBe(false);
+        // the preview of the prompt follows the direction of the page (Hebrew right to left, English left to right)
+        expect(await page.locator('#preview').evaluate((el) => getComputedStyle(el).direction)).toBe(he ? 'rtl' : 'ltr');
       });
 
       test('the log page, its messages and the switch in the middle of the page', async ({ page }) => {

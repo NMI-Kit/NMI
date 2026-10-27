@@ -198,10 +198,10 @@ test('the page code has no Arabic text of its own: no literal outside the dictio
 });
 
 
-test('the page texts of task 14: the line about the Arabic prompt, the Hebrew wording of the app button and of the note examples', () => {
-  assert.equal(I.t('he', 'promptLanguageNote'), 'הפרומפט כתוב בערבית, כי תוכנית הלימודים כתובה בערבית. המורה יענה לכם בעברית.');
-  assert.equal(I.t('en', 'promptLanguageNote'), 'The prompt is written in Arabic because the curriculum is in Arabic. The tutor will answer you in English.');
-  assert.ok(ARABIC.test(I.t('ar', 'promptLanguageNote')), 'it exists in Arabic for the dictionary, but the Arabic page does not show it');
+test('the page texts of task 14: the Hebrew wording of the app button and of the note examples; no line says that the prompt is in Arabic', () => {
+  // the whole prompt is in the language of the page now: the line "the prompt is written in Arabic ..." is gone
+  assert.equal(I.STRINGS.promptLanguageNote, undefined);
+  for (const entry of Object.values(I.STRINGS)) for (const lang of ['he', 'en']) assert.ok(!/written in Arabic|כתוב בערבית/.test(entry[lang]), entry[lang]);
   assert.equal(I.t('he', 'openHint'), 'הכי טוב: הפרומפט נכנס ישר לתוך האפליקציה.');
   assert.equal(I.t('he', 'noteExamples'), 'לדוגמה: אוהב/ת פיזיקה, דוגמאות משם · להתמקד בטעויות סימן · להסביר לאט · המבחן שלי ביום ראשון');
   for (const old of ['מכניס את הפרומפט', 'אני אוהב פיזיקה', 'תן דוגמאות', '· התמקד בטעויות', '· הסבר לאט']) {

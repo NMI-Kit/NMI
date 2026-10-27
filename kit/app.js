@@ -533,8 +533,6 @@
       h('button', { type: 'button', id: 'copy', onclick: function () {
         copyText(built.text).then(function (ok) { setStatus(ok ? T('copied') : T('copyFailed')); });
       } }, T('copy'))));
-    /* the prompt is Arabic: a student on the Hebrew or English page is told so, and that the tutor will answer in his language */
-    if (state.lang !== 'ar') section.appendChild(h('p', { class: 'hint', id: 'prompt-language-note', text: T('promptLanguageNote') }));
     section.appendChild(h('p', { class: 'status', id: 'status', role: 'status', 'aria-live': 'polite', text: status }));
 
     section.appendChild(h('h2', { text: T('appsTitle') }));
@@ -553,7 +551,7 @@
     section.appendChild(h('details', { id: 'chat-tip' }, h('summary', { text: T('chatTipTitle') }),
       h('div', { class: 'tip' }, h('p', { text: T('chatTip1') }), h('p', { text: T('chatTip2') }), h('p', { text: T('chatTip3') }))));
 
-    var preview = h('pre', { id: 'preview', text: built.text });
+    var preview = h('pre', { id: 'preview', text: built.text, style: 'direction:' + I.DIR[state.lang] });  // the prompt is in the language of the page
     section.appendChild(h('details', null, h('summary', { text: T('showPrompt') }), preview));
     return section;
   }
