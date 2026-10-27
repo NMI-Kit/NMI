@@ -503,6 +503,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       expect(hint.y).toBeGreaterThanOrEqual(open.y + open.height - 1);
       expect(copy.y).toBeGreaterThanOrEqual(hint.y + hint.height - 1);
       await expect(page.locator('#open-hint')).toHaveText('الأفضل: يضع البرومبت داخل التطبيق مباشرة.');
+      await expect(page.locator('#prompt-language-note')).toHaveCount(0);  // only on the Hebrew and the English page
       const apps = await page.locator('.apps').boundingBox();
       expect(apps.y).toBeGreaterThan(open.y);  // the small buttons are under the big one
       await expect(page.locator('#chat-tip')).not.toHaveAttribute('open', '');
@@ -1345,6 +1346,16 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await expect(page.locator('#open-app')).toHaveText(t('openApp'));
         await expect(page.locator('#open-hint')).toHaveText(t('openHint'));
         await expect(page.locator('#copy')).toHaveText(t('copy'));
+        // the prompt is Arabic: a line right under the copy button says so, and that the tutor will answer in the language of the page
+        await expect(page.locator('#prompt-language-note')).toBeVisible();
+        await expect(page.locator('#prompt-language-note')).toHaveText(t('promptLanguageNote'));
+        expect(await page.locator('#prompt-language-note').textContent()).toBe(lang === 'he'
+          ? 'הפרומפט כתוב בערבית, כי תוכנית הלימודים כתובה בערבית. המורה יענה לכם בעברית.'
+          : 'The prompt is written in Arabic because the curriculum is in Arabic. The tutor will answer you in English.');
+        const copyBox = await page.locator('#copy').boundingBox();
+        const noteBox = await page.locator('#prompt-language-note').boundingBox();
+        expect(noteBox.y).toBeGreaterThan(copyBox.y + copyBox.height - 1);
+        expect(noteBox.y - (copyBox.y + copyBox.height)).toBeLessThan(80);  // near the copy button
         await expect(page.locator('#exams-link')).toHaveText(t('examsLink'));
         await expect(page.locator('#chat-tip summary')).toHaveText(t('chatTipTitle'));
         await page.locator('#chat-tip summary').click();
@@ -1372,6 +1383,13 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         const language = lang === 'he' ? 'עברית' : 'English';
         expect(text).toContain(`لغة الطالب: ${language}. قواعد اللغة هاي أقوى من أي قاعدة لغة تحت:`);
         expect(text).toContain('== الطالب ==');  // the rest of the prompt is Arabic
+        // a first line and a last line in the language of the page, so that the tutor answers in it
+        const lines = text.trim().split(/\r?\n/);
+        expect(lines[0]).toBe(lang === 'he'
+          ? 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.'
+          : 'Important: every reply to the student must be in English only, from the first message. The instructions below are in Arabic only because the curriculum is written in Arabic.');
+        expect(lines[lines.length - 1]).toBe(lang === 'he' ? 'התחל עכשיו, בעברית בלבד.' : 'Start now, in English only.');
+        expect(text).toContain('جاوب بلغة الطالب المكتوبة فوق (عبري / إنجليزي)، حتى لو التعليمات بالعربي، وبأسلوبك الطبيعي.');
         expect(text).toContain('الوضع اللي اختاره: تدرّب');
         expect(text).toContain('المواضيع اللي بدو يراجعها: الاحتمال');  // the topic name in the prompt is the Arabic one
         const student = text.slice(text.indexOf('== الطالب =='), text.indexOf('== المصادر =='));
@@ -1459,7 +1477,7 @@ for (const [sizeName, size] of Object.entries(SIZES)) {
         await page.locator('#teacher-file').check();
         await page.locator('#prepare').click();
         await expect(page.locator('#too-long')).toBeVisible();
-        await expect(page.locator('#too-long')).toContainText(t('tooLong', { n: '', max: 18800 }).split('(')[0].trim());
+        await expect(page.locator('#too-long')).toContainText(t('tooLong', { n: '', max: 19050 }).split('(')[0].trim());
         await expect(page.locator('#attach')).toHaveText(t('attach'));
         await expect(page.locator('#summary')).toContainText(t('customCount', { n: 1 }));
         await expect(page.locator('#summary')).toContainText(t('fromTarget'));

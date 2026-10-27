@@ -7,13 +7,13 @@
   'use strict';
 
   /* Longest prompt we are happy to send, in characters. The biggest whole level (grade 10, 5 units, every topic) with
-     any set of modes and any page language is about 18,720 (Hebrew and English add a language block of about 460
-     characters; the section of teaching methods and the tone rules add about 2,200), so one level with every topic
-     fits. 18,800 characters is about 6,600 tokens in Arabic: a free-tier chat takes it, a phone pastes it without
-     trouble, and the model still follows the rules at the top instead of drowning in text. A prompt that is longer
-     (a whole level with a long mistakes section, or a whole own level plus a whole target level) is not refused: the
-     page warns the student. */
-  const MAX_LENGTH = 18800;
+     any set of modes and any page language is about 18,980 (Hebrew and English add a language block of about 460
+     characters and a first and last line of about 260; the section of teaching methods and the tone rules add about
+     2,200), so one level with every topic fits. 19,050 characters is about 6,700 tokens in Arabic: a free-tier chat
+     takes it, a phone pastes it without trouble, and the model still follows the rules at the top instead of drowning
+     in text. A prompt that is longer (a whole level with a long mistakes section, or a whole own level plus a whole
+     target level) is not refused: the page warns the student. */
+  const MAX_LENGTH = 19050;
 
   /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
   const MAX_CUSTOM = 5;
@@ -87,6 +87,15 @@
     '- الجمل الجاهزة تحت (مثل \'هاد مش بمنهاجك...\') قولها بمعناها بلغة الطالب.',
     '- كلام الطالب بلغته إله نفس المعنى: \'לא הבנתי\' / \'I don\'t understand\' = \'مش فاهم\'، \'סיימתי\' / \'I\'m done\' = \'خلصت\'.'
   ];
+  /* The prompt is Arabic, so on a page in Hebrew or English the tutor could answer in Arabic. For those pages only: a first
+     line and a last line in the student's language, and a stronger sentence in "== اللغة ==". Arabic is not changed. */
+  const LANGUAGE_FIRST_LINE = {
+    he: 'חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.',
+    en: 'Important: every reply to the student must be in English only, from the first message. The instructions below are in Arabic only because the curriculum is written in Arabic.'
+  };
+  const LANGUAGE_LAST_LINE = { he: 'התחל עכשיו, בעברית בלבד.', en: 'Start now, in English only.' };
+  const LANGUAGE_SENTENCE = 'جاوب بنفس لغة الطالب، وبأسلوبك الطبيعي.';
+  const LANGUAGE_SENTENCE_OTHER = 'جاوب بلغة الطالب المكتوبة فوق (عبري / إنجليزي)، حتى لو التعليمات بالعربي، وبأسلوبك الطبيعي.';
   /* the last rule of the block: only when the prompt has the NMI-LOG rule (every mode except a plan alone) */
   const STUDENT_LANGUAGE_LOG_RULE = '- بملخص NMI-LOG خلّي السطر الأول NMI-LOG، وخلّي بداية الأسطر بالضبط \'المواضيع:\' و\'ضبط:\' و\'غلط:\' بالعربي، والباقي بلغة الطالب.';
   /* the NMI-LOG rule is in the prompt with any mode except a plan alone */
@@ -360,7 +369,8 @@
     }
 
     /* the rest of the base prompt, with the chosen mode and its first move */
-    const out = [title, ''];
+    const otherLanguage = !!STUDENT_LANGUAGE[sel.language];  // a page in Hebrew or English
+    const out = otherLanguage ? [LANGUAGE_FIRST_LINE[sel.language], '', title, ''] : [title, ''];
     sections.forEach(function (s) {
       if (s.name === TEACHING_SECTION && !hasTeachingMethods(modes)) return;  // a plan alone has no section of teaching methods
       if (out[out.length - 1] !== '') out.push('');
@@ -369,6 +379,9 @@
       else if (s.name === 'المصادر') out.push.apply(out, sources);
       else {
         const body = s.lines.slice();
+        if (otherLanguage && s.name === 'اللغة') {
+          for (let i = 0; i < body.length; i++) body[i] = body[i].replace(LANGUAGE_SENTENCE, LANGUAGE_SENTENCE_OTHER);
+        }
         if (s === sections[sections.length - 1]) {
           /* the last section holds the closing line "ابدأ بسؤال الطالب ...". Before it: the sections of the teacher's
              file and of the student's note, when there are any. With the teacher's file the tutor first asks for it. */
@@ -390,6 +403,7 @@
         out.push.apply(out, body);
       }
     });
+    if (otherLanguage) out.push('', LANGUAGE_LAST_LINE[sel.language]);  // after the Arabic closing line
     const text = withoutIds(out.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n');
     return {
       text: text, length: text.length, max: MAX_LENGTH, tooLong: text.length > MAX_LENGTH, missingExample: missing,
@@ -400,6 +414,6 @@
 
   return {
     buildPrompt: buildPrompt, findLevel: findLevel, cleanCustom: cleanCustom, cleanTopic: cleanTopic, cleanNote: cleanNote, MAX_NOTE: MAX_NOTE, WRITES_QUESTIONS: WRITES_QUESTIONS,
-    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, STUDENT_LANGUAGE_RULES: STUDENT_LANGUAGE_RULES, STUDENT_LANGUAGE_LOG_RULE: STUDENT_LANGUAGE_LOG_RULE, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
+    MODES: MODES, MODE_ORDER: MODE_ORDER, STUDENT_LANGUAGE_LINE: STUDENT_LANGUAGE_LINE, STUDENT_LANGUAGE_RULES: STUDENT_LANGUAGE_RULES, STUDENT_LANGUAGE_LOG_RULE: STUDENT_LANGUAGE_LOG_RULE, LANGUAGE_FIRST_LINE: LANGUAGE_FIRST_LINE, LANGUAGE_LAST_LINE: LANGUAGE_LAST_LINE, LANGUAGE_SENTENCE_OTHER: LANGUAGE_SENTENCE_OTHER, PROMPT_ORDER: PROMPT_ORDER, chosenModes: chosenModes, cleanMistakes: cleanMistakes, LOG_RULE: LOG_RULE, MAX_MISTAKES: MAX_MISTAKES, MAX_DIRECT_START: MAX_DIRECT_START, PATTERNS_NOTE: PATTERNS_NOTE, TARGET_NOTE: TARGET_NOTE, EXAM_SECTION_NOTE: EXAM_SECTION_NOTE, MAX_LENGTH: MAX_LENGTH, MAX_CUSTOM: MAX_CUSTOM, MAX_CUSTOM_LENGTH: MAX_CUSTOM_LENGTH
   };
 });

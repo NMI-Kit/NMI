@@ -80,7 +80,7 @@ test('t(): placeholders, a missing key and a missing language', () => {
   assert.equal(I.t('en', 'no-such-key'), 'no-such-key');
   assert.equal(I.t('fr', 'next'), I.STRINGS.next.ar, 'an unknown language falls back to Arabic');
   assert.equal(I.t('en', 'customLimit', { n: 5 }), 'You reached the limit: 5 topics.');
-  assert.equal(I.t('en', 'tooLong', { n: 17000, max: 18800 }).includes('17000'), true);
+  assert.equal(I.t('en', 'tooLong', { n: 17000, max: 19050 }).includes('17000'), true);
 });
 
 test('the default language: Hebrew or English from the browser, otherwise Arabic', () => {
@@ -180,5 +180,17 @@ test('the page code has no Arabic text of its own: no literal outside the dictio
     const lines = source.split('\n').filter((line) => ARABIC.test(line) && !/^\s*(\/\/|\/\*|\*)/.test(line) && !/\/\/.*[؀-ۿ]/.test(line.replace(/'[^']*'/g, '')) );
     const bad = lines.filter((line) => !line.includes("'غلط:'"));
     assert.deepEqual(bad, [], name);
+  }
+});
+
+
+test('the page texts of task 14: the line about the Arabic prompt, the Hebrew wording of the app button and of the note examples', () => {
+  assert.equal(I.t('he', 'promptLanguageNote'), 'הפרומפט כתוב בערבית, כי תוכנית הלימודים כתובה בערבית. המורה יענה לכם בעברית.');
+  assert.equal(I.t('en', 'promptLanguageNote'), 'The prompt is written in Arabic because the curriculum is in Arabic. The tutor will answer you in English.');
+  assert.ok(ARABIC.test(I.t('ar', 'promptLanguageNote')), 'it exists in Arabic for the dictionary, but the Arabic page does not show it');
+  assert.equal(I.t('he', 'openHint'), 'הכי טוב: הפרומפט נכנס ישר לתוך האפליקציה.');
+  assert.equal(I.t('he', 'noteExamples'), 'לדוגמה: אוהב/ת פיזיקה, דוגמאות משם · להתמקד בטעויות סימן · להסביר לאט · המבחן שלי ביום ראשון');
+  for (const old of ['מכניס את הפרומפט', 'אני אוהב פיזיקה', 'תן דוגמאות', '· התמקד בטעויות', '· הסבר לאט']) {
+    for (const entry of Object.values(I.STRINGS)) assert.ok(!entry.he.includes(old), old);
   }
 });

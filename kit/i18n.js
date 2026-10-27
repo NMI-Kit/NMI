@@ -246,7 +246,7 @@
     },
     "noteExamples": {
       "ar": "مثلًا: أحب الفيزياء، اجعل الأمثلة منها · ركّز على أخطاء الإشارات · اشرح ببطء · امتحاني يوم الأحد",
-      "he": "לדוגמה: אני אוהב פיזיקה, תן דוגמאות משם · התמקד בטעויות סימן · הסבר לאט · המבחן שלי ביום ראשון",
+      "he": "לדוגמה: אוהב/ת פיזיקה, דוגמאות משם · להתמקד בטעויות סימן · להסביר לאט · המבחן שלי ביום ראשון",
       "en": "For example: I like physics, use examples from it · focus on sign mistakes · explain slowly · my exam is on Sunday"
     },
     "topicOne": {
@@ -316,8 +316,13 @@
     },
     "openHint": {
       "ar": "الأفضل: يضع البرومبت داخل التطبيق مباشرة.",
-      "he": "הכי טוב: מכניס את הפרומפט ישר לתוך האפליקציה.",
+      "he": "הכי טוב: הפרומפט נכנס ישר לתוך האפליקציה.",
       "en": "Best: it puts the prompt straight into the app."
+    },
+    "promptLanguageNote": {
+      "ar": "البرومبت مكتوب بالعربية لأن المنهاج بالعربية. سيجيبك المدرّس بالعربية.",
+      "he": "הפרומפט כתוב בערבית, כי תוכנית הלימודים כתובה בערבית. המורה יענה לכם בעברית.",
+      "en": "The prompt is written in Arabic because the curriculum is in Arabic. The tutor will answer you in English."
     },
     "copy": {
       "ar": "انسخ",

@@ -481,6 +481,10 @@ class KitFilesTests(unittest.TestCase):
         self.assertIn("const STUDENT_LANGUAGE = { he: 'עברית', en: 'English' };", prompt)
         # the only Hebrew words in the prompt code: the name of the language, and the two phrases of the student in the language block
         hebrew_free = prompt.replace("{ he: 'עברית', en: 'English' }", '').replace('לא הבנתי', '').replace('סיימתי', '')
+        # ... and the first and last lines of the prompt of a page in Hebrew (the English ones are English)
+        for line in ('חשוב: כל התשובות שלך לתלמיד יהיו בעברית בלבד, מההודעה הראשונה. ההוראות למטה כתובות בערבית רק כי תוכנית הלימודים כתובה בערבית.', 'התחל עכשיו, בעברית בלבד.'):
+            self.assertIn(line, prompt)
+            hebrew_free = hebrew_free.replace(line, '')
         self.assertEqual(len(re.findall(r'[\u0590-\u05ff]+', hebrew_free)), 0)
         # the data keeps the Hebrew heading of the clusters, for the pages in Hebrew and English
         data = json.loads(read(build_kit.OUTPUT))
