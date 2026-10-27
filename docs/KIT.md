@@ -15,19 +15,19 @@
 ## النشر على GitHub Pages (مرة وحدة)
 GitHub Pages من فرع بيقبل بس الجذر أو `docs/`، فالنشر بيتم بـ GitHub Actions (الملف `.github/workflows/kit-pages.yml`)، وبينشر `kit/` على الجذر، وبينشر نسخة العرض الثابتة من النسخة الأولى (المختبر) تحت `/lab/` (انظر "نسخة العرض" تحت).
 
-1. افتح الريبو على GitHub: `https://github.com/m0502223641-coder/NMI`.
+1. افتح الريبو على GitHub: `https://github.com/NMI-Kit/NMI`.
 2. اضغط **Settings** (التبويب الأخير فوق، بصف Code / Issues / Pull requests).
 3. بالقائمة اليسار اضغط **Pages** (تحت قسم "Code and automation").
 4. تحت **Build and deployment**، عند **Source** اختار **GitHub Actions** (مش "Deploy from a branch").
 5. ارجع لتبويب **Actions**. لو ما اشتغل الـ workflow لحاله، اضغط على **Deploy the NMI kit to GitHub Pages** وبعدين **Run workflow** (الزر الرمادي عاليمين) وبعدين **Run workflow** الأخضر.
-6. استنى لحد ما تصير الدائرة خضرا (دقيقة تقريباً). الرابط بيظهر بصفحة Actions تحت "deploy" وبصفحة Settings > Pages: `https://m0502223641-coder.github.io/NMI/`.
+6. استنى لحد ما تصير الدائرة خضرا (دقيقة تقريباً). الرابط بيظهر بصفحة Actions تحت "deploy" وبصفحة Settings > Pages: `https://nmi-kit.github.io/NMI/`.
 
 ملاحظات:
 - إذا الريبو **خاص** (Private) وحسابك مجاني، خيار Pages مش رح يظهر أو مش رح يشتغل. لازم الريبو يكون **Public** (Settings > General > آخر الصفحة Danger Zone > Change visibility)، أو حساب GitHub مدفوع. قبل ما تخلّيه Public تأكد إنه ما فيه إشي ما بدك ياه علني (الكود والمنهاج و`tutor_rules.txt` كلها بتصير مرئية، حتى لو الصفحة بتنشر `kit/` بس).
 - بعد أول نشر، أي `git push` بيغيّر `kit/` أو `preview/` أو `curriculum/` بينشر لحاله.
 
 ### نسخة العرض (`/lab/`)
-- `https://m0502223641-coder.github.io/NMI/lab/` بتعرض `preview/` (النسخة الأولى بردود جاهزة، بدون أي اتصال بالشبكة). الـ workflow بيبني مجلد `_site`: `kit/` على الجذر زي ما هو، وتحت `lab/` تسع ملفات بس: `index.html`، `tokens.css`، `styles.css`، `preview.js`، وخمس صور `assets/nmi-mark*.svg` (نفس قائمة `ALLOWED` بـ `tools/serve_preview.py`).
+- `https://nmi-kit.github.io/NMI/lab/` بتعرض `preview/` (النسخة الأولى بردود جاهزة، بدون أي اتصال بالشبكة). الـ workflow بيبني مجلد `_site`: `kit/` على الجذر زي ما هو، وتحت `lab/` تسع ملفات بس: `index.html`، `tokens.css`، `styles.css`، `preview.js`، وخمس صور `assets/nmi-mark*.svg` (نفس قائمة `ALLOWED` بـ `tools/serve_preview.py`).
 - ما بيننشر أبداً: `live.js`، `live.css`، `local_web.py`، `.local-data`، ولا أي كود Python أو مفتاح. الـ workflow بيفشل لو بـ `lab/` ملف زيادة أو لو لقى `sk-ant` أو `ANTHROPIC_API_KEY` أو `fetch(`.
 - بأعلى الصفحة سطر صغير بالإنجليزي والعربي بيقول إنها نسخة عرض بردود جاهزة، وإنها "الأفضل على كمبيوتر".
 - التلفون: النسخة الأولى انبنت للكمبيوتر بس (1280 بكسل وأكتر). عشان هيك الـ workflow بيغيّر سطر الـ viewport بنسخة `lab/index.html` المنشورة بس، من `width=device-width, initial-scale=1` لـ `width=1280`، فالتلفون بيعرض الصفحة كلها مصغّرة بدون سكرول أفقي. الملف الأصلي `preview/index.html` ما بيتغيّر (فاختبارات المختبر المحلية بتضل زي ما هي). لو السطر ما انلقى، الـ workflow بيفشل ولا بيننشر شي.
@@ -75,7 +75,7 @@ GitHub Pages من فرع بيقبل بس الجذر أو `docs/`، فالنشر 
 21. **متصفح خاص:** افتح العدّة بتبويب خاص (Private) وجرّب تحفظ ملخص: إذا المتصفح ما بيقدر يحفظ لازم تطلع "هالمتصفح ما بيقدر يحفظ. السجل ما رح ينحفظ." وباقي العدّة تضل تشتغل.
 
 ## صفحة فحص فتح التطبيقات (للتجربة بس)
-`kit/applinks.html`: صفحة عادية مش مربوطة من العدّة، بتتنشر مع الموقع: https://m0502223641-coder.github.io/NMI/applinks.html . فيها 9 أزرار كبيرة (ChatGPT من A لـ D، وGemini من A لـ D، وClaude A للمقارنة) وتحت كل زر العنوان بالضبط. افتحها على تلفون أندرويد، اضغط كل زر: إذا انفتح التطبيق اكتب الحرف، وإذا انفتح الموقع ارجع وجرّب اللي بعده. نتيجة التجربة على تلفون أندرويد حقيقي: ChatGPT اشتغل بـ B بس، وGemini اشتغل بـ B وC وD، وClaude اشتغل بـ A. وعلى هاد الأساس صارت أزرار `kit/app.js` (ChatGPT B، Gemini C، Claude A). الصفحة بتضل للتجربة لو تغيّرت التطبيقات. الصفحة بدون سكربت وبدون تخزين، وكلها عناوين رسمية.
+`kit/applinks.html`: صفحة عادية مش مربوطة من العدّة، بتتنشر مع الموقع: https://nmi-kit.github.io/NMI/applinks.html . فيها 9 أزرار كبيرة (ChatGPT من A لـ D، وGemini من A لـ D، وClaude A للمقارنة) وتحت كل زر العنوان بالضبط. افتحها على تلفون أندرويد، اضغط كل زر: إذا انفتح التطبيق اكتب الحرف، وإذا انفتح الموقع ارجع وجرّب اللي بعده. نتيجة التجربة على تلفون أندرويد حقيقي: ChatGPT اشتغل بـ B بس، وGemini اشتغل بـ B وC وD، وClaude اشتغل بـ A. وعلى هاد الأساس صارت أزرار `kit/app.js` (ChatGPT B، Gemini C، Claude A). الصفحة بتضل للتجربة لو تغيّرت التطبيقات. الصفحة بدون سكربت وبدون تخزين، وكلها عناوين رسمية.
 
 ## اللغات (عربي · עברית · English)
 - بأعلى الصفحة زر اللغة. اللغة الافتراضية هي لغة المتصفح إذا عبري أو إنجليزي، وإلا عربي. اختيار الطالب بينحفظ بـ localStorage (`nmi-lang-v1`) وبيغلب لغة المتصفح. لو المتصفح ما بيقدر يحفظ، الاختيار بيضل لحد ما تسكّر الصفحة.

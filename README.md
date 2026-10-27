@@ -2,7 +2,7 @@
 
 **A free toolkit that turns ChatGPT, Claude or Gemini into a math tutor that knows the Israeli high-school curriculum and the shape of its exams.**
 
-🔗 **Try it:** https://m0502223641-coder.github.io/NMI/ (works best on a phone)
+🔗 **Try it:** https://nmi-kit.github.io/NMI/ (works best on a phone)
 
 ---
 
@@ -61,7 +61,7 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 
 The first version of NMI was a full tutoring website that ran on my computer and talked to the Claude API. The real version is not online, because it needs a server and a paid API key. A demo with made-up replies is online, and these screenshots are from it.
 
-You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/
+You can try the demo online: https://nmi-kit.github.io/NMI/lab/
 
 ![Lab version 1](docs/lab/lab-1.png)
 *The start screen: a calm chat window with a sidebar for progress, curriculum and saved conversations, and sample questions to begin with.*

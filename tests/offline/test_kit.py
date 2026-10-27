@@ -592,9 +592,9 @@ class KitFilesTests(unittest.TestCase):
         changing = [line for line in workflow.splitlines() if '_site/lab/index.html' in line and re.search(r'\bsed\b|\bcp\b|>\s*_site', line)]
         self.assertEqual(len(changing), 1, changing)
         readme = read(ROOT / 'README.md')
-        self.assertIn('You can try the demo online: https://m0502223641-coder.github.io/NMI/lab/', readme)
-        self.assertLess(readme.index('## The lab version'), readme.index('https://m0502223641-coder.github.io/NMI/lab/'))
-        self.assertLess(readme.index('https://m0502223641-coder.github.io/NMI/lab/'), readme.index('![Lab version 1]'))
+        self.assertIn('You can try the demo online: https://nmi-kit.github.io/NMI/lab/', readme)
+        self.assertLess(readme.index('## The lab version'), readme.index('https://nmi-kit.github.io/NMI/lab/'))
+        self.assertLess(readme.index('https://nmi-kit.github.io/NMI/lab/'), readme.index('![Lab version 1]'))
 
     def test_the_readme_says_what_the_product_really_is(self):
         readme = read(ROOT / 'README.md')
@@ -653,7 +653,7 @@ class KitFilesTests(unittest.TestCase):
         self.assertNotIn('\n', description[0])  # one line
         # the image is the existing icon (a PNG: the apps that show previews do not read an SVG), with its full address
         images = re.findall(r'<meta (?:property="og:image"|name="twitter:image") content="([^"]+)">', html)
-        self.assertEqual(images, ['https://m0502223641-coder.github.io/NMI/icon-512.png'] * 2)
+        self.assertEqual(images, ['https://nmi-kit.github.io/NMI/icon-512.png'] * 2)
         self.assertTrue((ROOT / 'kit' / 'icon-512.png').is_file())
         # the description of the page for the people who read the source is still the one of the page
         self.assertIn('<meta name="description" content="جهّز نصًّا فيه منهاجك', html)
@@ -678,7 +678,7 @@ class KitFilesTests(unittest.TestCase):
 
     def test_the_deploy_guide_names_the_exact_buttons(self):
         guide = read(ROOT / 'docs' / 'KIT.md')
-        for part in ('**Settings**', '**Pages**', '**GitHub Actions**', '**Run workflow**', 'https://m0502223641-coder.github.io/NMI/'):
+        for part in ('**Settings**', '**Pages**', '**GitHub Actions**', '**Run workflow**', 'https://nmi-kit.github.io/NMI/'):
             self.assertIn(part, guide)
 
     def test_claude_md_has_the_current_direction(self):
