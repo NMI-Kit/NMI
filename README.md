@@ -35,7 +35,7 @@ NMI brings the curriculum **into** the app the student already uses.
 
 The page is in Arabic, Hebrew and English. The prompt tells the AI to answer in the student's language, with the Hebrew math terms.
 
-The prompt contains only what that student needs: their topics from the official curriculum, the exam patterns for their level, one example question per topic, and the teaching rules (one question at a time, hints before answers, read photos of handwritten work).
+The prompt contains only what that student needs: their topics from the official curriculum, the exam patterns for their level, one example question in the shape of the exam, and the teaching rules (one question at a time, hints before answers, read photos of handwritten work).
 
 **The prompt contains no real exam.** It describes the shape of the exam, and the AI writes new questions in that shape.
 
@@ -54,7 +54,7 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 
 - **Lab version (first):** a local web app that called the Claude API directly, with 60+ evaluation cases scored by an AI judge and by code checks. It taught me which teaching rules work. It also taught me that students would not leave ChatGPT for it, so the product became the toolkit.
 - **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.
-- **Tests:** 192 offline tests, 77 local tests, 59 prompt tests, 9 log tests, 13 text tests, 139 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
+- **Tests:** 195 offline tests, 77 local tests, 59 prompt tests, 9 log tests, 13 text tests, 154 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
 - **Tools:** I designed the product, made the decisions and tested it with real study sessions. I wrote the code with AI coding assistants (Claude Code), and checked the content against official sources.
 
 ## The lab version

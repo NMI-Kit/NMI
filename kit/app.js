@@ -13,7 +13,7 @@
     { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', suffix: '', package: 'com.anthropic.claude' },
     { name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', suffix: '', package: null }
   ];
-  var MINISTRY = 'https://meyda.education.gov.il/';
+  var MINISTRY = 'https://meyda.education.gov.il/bagptr/';
   var TOTAL = 4;
 
   var data = null;
@@ -133,15 +133,43 @@
     state.step = 1;
     state.topics = {};
     state.modes = {};
+    replaceEntry();
   }
 
-  function go(step) {
-    state.step = step;
-    status = '';
-    render();
+  /* The back button of the phone: every step (and the log page) is an entry of the history, so "back" goes to the previous
+     step with the choices kept, and only from the first step it leaves the site. The entries only say where we are; the
+     choices stay in `state`. */
+  function entry() { return { nmi: 1, step: state.step, view: state.view }; }
+  function pushEntry() { try { history.pushState(entry(), ''); } catch (error) { /* no history: the buttons of the page still work */ } }
+  function replaceEntry() { try { history.replaceState(entry(), ''); } catch (error) { /* same */ } }
+  function ownEntry() { return !!(history.state && history.state.nmi === 1); }
+
+  function arrived() {
     if (!wide.matches) window.scrollTo(0, 0);
     app.focus({ preventScroll: true });
   }
+
+  function go(step) {
+    var forward = step > state.step;
+    state.step = step;
+    status = '';
+    if (forward) pushEntry(); else replaceEntry();
+    render();
+    arrived();
+  }
+
+  /* the page in front of the student after "back" or "forward" of the browser */
+  window.addEventListener('popstate', function (event) {
+    var saved = event.state;
+    if (!saved || saved.nmi !== 1 || !data) return;
+    var step = Math.max(1, Math.min(TOTAL, Number(saved.step) || 1));
+    if (step > 1 && !state.units) step = 1;  // an old entry (before a reload): there is no level to go on with
+    state.step = step;
+    state.view = saved.view === 'log' && step >= 1 ? 'log' : 'main';
+    status = '';
+    render();
+    arrived();
+  });
 
   /* ---------------------------------------------------------------- step 1 */
   function choiceButton(label, pressed, onClick, badge) {
@@ -150,7 +178,9 @@
   }
 
   function stepLevel() {
-    var section = h('section', { class: 'step', 'data-step': '1' }, h('h1', { text: T('s1Title') }));
+    var section = h('section', { class: 'step', 'data-step': '1' },
+      h('p', { class: 'note', id: 'intro', text: T('intro') }),  // what the page does, for a new visitor
+      h('h1', { text: T('s1Title') }));
 
     section.appendChild(h('h2', { text: T('subject') }));
     var subjects = h('div', { class: 'choices', role: 'group', 'aria-label': T('subject') });
@@ -193,10 +223,10 @@
       section.appendChild(h('h2', { text: T('targetTitle') }));
       section.appendChild(h('p', { class: 'small', text: T('targetHint') }));
       var targets = h('div', { class: 'choices', role: 'group', 'aria-label': T('targetTitle') });
-      targets.appendChild(choiceButton(T('noTarget'), !state.target, function () { state.target = null; state.step = 1; state.topics = {}; render(); }));
+      targets.appendChild(choiceButton(T('noTarget'), !state.target, function () { state.target = null; state.step = 1; state.topics = {}; replaceEntry(); render(); }));
       higher.forEach(function (l) {
         targets.appendChild(choiceButton(T('unitsN', { n: l.units }), state.target === l.units, function () {
-          state.target = l.units; state.step = 1; state.topics = {}; render();
+          state.target = l.units; state.step = 1; state.topics = {}; replaceEntry(); render();
         }, l.experimental ? T('experimental') : null));
       });
       section.appendChild(targets);
@@ -533,6 +563,51 @@
   var LOG_CODES = { not_a_summary: 'logNotSummary', no_storage: 'logNoStorage', need_level: 'logNeedLevel' };
   var logDraft = '';
 
+  /* A delete button of the log asks twice, with no dialog of the browser: the first tap turns it into "Sure? Tap again" for
+     5 seconds, only the second tap deletes. One button is armed at a time. */
+  var CONFIRM_MS = 5000;
+  var armed = null;
+  function disarm() {
+    if (!armed) return;
+    clearTimeout(armed.timer);
+    armed.reset();
+    armed = null;
+  }
+  function twoStepButton(label, attrs, action) {
+    var button = h('button', attrs, label);
+    var ariaLabel = attrs['aria-label'] || null;
+    button.addEventListener('click', function () {
+      if (armed && armed.button === button) {
+        clearTimeout(armed.timer);
+        armed = null;
+        action();
+        return;
+      }
+      disarm();
+      button.textContent = T('logConfirmDelete');
+      button.setAttribute('data-armed', 'true');
+      if (ariaLabel) button.setAttribute('aria-label', T('logConfirmDelete'));
+      var current = {
+        button: button, timer: null,
+        reset: function () {
+          button.textContent = label;
+          button.removeAttribute('data-armed');
+          if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+        }
+      };
+      current.timer = setTimeout(function () { if (armed === current) armed = null; current.reset(); }, CONFIRM_MS);
+      armed = current;
+    });
+    return button;
+  }
+
+  function closeLog() {
+    if (ownEntry() && history.state.view === 'log') { history.back(); return; }  // the popstate handler shows the page
+    state.view = 'main';
+    replaceEntry();
+    render();
+  }
+
   function logPage() {
     var loaded = L.load(storage());
     var level = currentLevel() || L.lastLevel(storage());
@@ -566,30 +641,31 @@
 
     if (loaded.entries.length) {
       var list = h('ul', { class: 'loglist', id: 'log-list' });
-      loaded.entries.forEach(function (entry) {
-        list.appendChild(h('li', { class: 'logitem', 'data-id': entry.id },
-          h('p', { class: 'logmeta', text: entry.date.slice(0, 10) + ' • ' + levelLabel(entry) }),
-          h('pre', { class: 'logtext', text: entry.text, dir: 'auto' }),
-          h('button', { type: 'button', class: 'del', 'aria-label': T('logDeleteLabel'), onclick: function () {
-            var result = L.remove(storage(), entry.id);
+      loaded.entries.forEach(function (item) {
+        list.appendChild(h('li', { class: 'logitem', 'data-id': item.id },
+          h('p', { class: 'logmeta', text: item.date.slice(0, 10) + ' • ' + levelLabel(item) }),
+          h('pre', { class: 'logtext', text: item.text, dir: 'auto' }),
+          twoStepButton(T('logDelete'), { type: 'button', class: 'del', 'aria-label': T('logDeleteLabel') }, function () {
+            var result = L.remove(storage(), item.id);
             logMessage = result.ok ? '' : (LOG_CODES[result.code] || 'logNoStorage');
             render();
-          } }, T('logDelete'))));
+          })));
       });
       section.appendChild(h('h2', { text: T('logSavedTitle') }));
       section.appendChild(list);
-      section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-clear', onclick: function () {
+      section.appendChild(h('div', { class: 'stack' }, twoStepButton(T('logClearAll'), { type: 'button', id: 'log-clear' }, function () {
         var result = L.clear(storage());
         logMessage = result.ok ? '' : (LOG_CODES[result.code] || 'logNoStorage');
         render();
-      } }, T('logClearAll'))));
+      })));
     }
-    section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-close', onclick: function () { state.view = 'main'; render(); } }, T('logClose'))));
+    section.appendChild(h('div', { class: 'stack' }, h('button', { type: 'button', id: 'log-close', onclick: closeLog }, T('logClose'))));
     return section;
   }
 
   /* ---------------------------------------------------------------- page */
   function render() {
+    if (armed) { clearTimeout(armed.timer); armed = null; }  // the page is drawn again: nothing is waiting for a second tap
     logLink.setAttribute('aria-pressed', state.view === 'log' ? 'true' : 'false');
     if (state.view === 'log') {
       app.textContent = '';
@@ -650,11 +726,18 @@
 
   logLink.addEventListener('click', function () {
     if (!data) return;
-    state.view = state.view === 'log' ? 'main' : 'log';
+    if (state.view === 'log') { closeLog(); return; }
+    state.view = 'log';
+    pushEntry();
     render();
     if (!wide.matches) window.scrollTo(0, 0);
   });
-  backButton.addEventListener('click', function () { if (state.step > 1) go(state.step - 1); });
+  /* the button of the page does what the button of the phone does: one step back in the history, with the choices kept */
+  backButton.addEventListener('click', function () {
+    if (state.step <= 1) return;
+    if (ownEntry() && history.state.view === 'main' && history.state.step === state.step) history.back();  // the popstate handler shows the page
+    else go(state.step - 1);
+  });
   if (wide.addEventListener) wide.addEventListener('change', render);
 
   fetch('data.json').then(function (response) {
@@ -663,6 +746,7 @@
   }).then(function (json) {
     data = json;
     if (data.subjects.length === 1) state.subject = data.subjects[0].id;
+    replaceEntry();  // the first entry of the history is the first step
     render();
   }).catch(function () {
     app.textContent = '';

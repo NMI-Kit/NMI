@@ -351,7 +351,7 @@ class KitFilesTests(unittest.TestCase):
             self.assertFalse(reference.startswith(('http:', 'https:', '//')), reference)  # no CDN, no web font
         app = read(ROOT / 'kit' / 'app.js')
         self.assertEqual(sorted(re.findall(r"https://[^'\"]+", app)),
-                         sorted(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app', 'https://meyda.education.gov.il/']))
+                         sorted(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app', 'https://meyda.education.gov.il/bagptr/']))
         # the Android buttons use Chrome intents of the three official apps, with the official site as the fallback
         # ChatGPT variant B, Claude variant A and Gemini variant C of kit/applinks.html: the ones that opened the app on a real phone
         self.assertEqual(sorted(re.findall(r"package: '([a-z.]+)'", app)), ['com.anthropic.claude', 'com.openai.chatgpt'])
@@ -640,6 +640,41 @@ class KitFilesTests(unittest.TestCase):
         readme = read(ROOT / 'README.md')
         self.assertIn('teaching methods inspired by research at Oxford (tutorials), MIT (active learning), Stanford (Jo Boaler) and Harvard (Peer Instruction)', readme)
         self.assertNotRegex(readme, r'(?i)teaches? like (oxford|mit|stanford|harvard)')
+
+    def test_a_shared_link_shows_what_the_site_does(self):
+        html = read(ROOT / 'kit' / 'index.html')
+        for tag in ('<meta property="og:type" content="website">', '<meta property="og:site_name" content="NMI">', '<meta property="og:title" content="NMI">',
+                    '<meta name="twitter:card" content="summary">', '<meta name="twitter:title" content="NMI">'):
+            self.assertIn(tag, html)
+        description = re.findall(r'<meta (?:property="og:description"|name="twitter:description") content="([^"]+)">', html)
+        self.assertEqual(len(description), 2)
+        self.assertEqual(description[0], description[1])
+        self.assertIn('ChatGPT', description[0])
+        self.assertNotIn('\n', description[0])  # one line
+        # the image is the existing icon (a PNG: the apps that show previews do not read an SVG), with its full address
+        images = re.findall(r'<meta (?:property="og:image"|name="twitter:image") content="([^"]+)">', html)
+        self.assertEqual(images, ['https://m0502223641-coder.github.io/NMI/icon-512.png'] * 2)
+        self.assertTrue((ROOT / 'kit' / 'icon-512.png').is_file())
+        # the description of the page for the people who read the source is still the one of the page
+        self.assertIn('<meta name="description" content="جهّز نصًّا فيه منهاجك', html)
+        # the page still has no other address of its own than the official ones
+        self.assertEqual(len(re.findall(r'https://', html)), 2)
+
+    def test_the_ministry_link_is_the_archive_of_past_exams_and_the_readme_describes_the_example_correctly(self):
+        app = read(ROOT / 'kit' / 'app.js')
+        self.assertIn("var MINISTRY = 'https://meyda.education.gov.il/bagptr/';", app)
+        readme = read(ROOT / 'README.md')
+        self.assertIn('one example question in the shape of the exam', readme)
+        self.assertNotIn('one example question per topic', readme)
+
+    def test_the_back_button_of_the_phone_and_the_two_taps_to_delete_are_in_the_page(self):
+        app, texts = read(ROOT / 'kit' / 'app.js'), read(ROOT / 'kit' / 'i18n.js')
+        for part in ('history.pushState(entry()', 'history.replaceState(entry()', "window.addEventListener('popstate'", 'history.back()', 'var CONFIRM_MS = 5000;', 'function twoStepButton('):
+            self.assertIn(part, app)
+        self.assertNotIn('confirm(', app)  # no dialog of the browser
+        self.assertNotIn('alert(', app)
+        for part in ('متأكد؟ اضغط مرة أخرى للمسح', 'בטוחים? לחצו שוב למחיקה', 'Sure? Tap again to delete'):
+            self.assertIn(part, texts)
 
     def test_the_deploy_guide_names_the_exact_buttons(self):
         guide = read(ROOT / 'docs' / 'KIT.md')

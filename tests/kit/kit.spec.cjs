@@ -163,10 +163,10 @@ for (const [name, profile] of Object.entries(profiles)) {
         ['Gemini', 'https://gemini.google.com/app', name === 'iphone' ? '' : '_blank', 'noopener noreferrer']]);
       await expect(page.getByText('صوّر حلّك على الورقة وأرسله في التطبيق.')).toBeVisible();
       await expect(page.getByText('هل تريد التدرّب على امتحان كامل؟ نزّله وارفعه إلى الأداة.')).toBeVisible();
-      await expect(page.locator('#exams-link')).toHaveAttribute('href', 'https://meyda.education.gov.il/');
+      await expect(page.locator('#exams-link')).toHaveAttribute('href', 'https://meyda.education.gov.il/bagptr/');
       await expect(page.locator('#exams-link')).toHaveText('امتحانات رسمية سابقة');
       // one link to the exams, the ministry site, and nothing else about exams
-      expect(await page.$$eval('a[href]', (a) => a.map((x) => x.href).filter((h) => /education\.gov\.il|exam|bagrut/i.test(h)))).toEqual(['https://meyda.education.gov.il/']);
+      expect(await page.$$eval('a[href]', (a) => a.map((x) => x.href).filter((h) => /education\.gov\.il|exam|bagrut/i.test(h)))).toEqual(['https://meyda.education.gov.il/bagptr/']);
     });
 
     test('the ready screen shows the real prompt: chosen topics, the example, no ids', async ({ page }) => {
@@ -807,12 +807,19 @@ for (const [name, profile] of Object.entries(profiles)) {
       await openLog(page);
       const items = page.locator('#log-list li');
       await expect(items).toHaveCount(3);
-      await items.nth(1).getByRole('button', { name: 'امسح' }).click();
+      const second = items.nth(1).locator('button.del');
+      await second.click();  // the first tap only asks
+      await expect(second).toHaveText('متأكد؟ اضغط مرة أخرى للمسح');
+      await expect(items).toHaveCount(3);
+      await second.click();  // the second tap deletes
       await expect(items).toHaveCount(2);
       await expect(page.locator('#log-list')).not.toContainText('تانية');
       expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem('nmi-log-v1')).length)).toBe(2);
       await expect(page.locator('#log-clear')).toHaveText('امسح الكل');
-      await page.locator('#log-clear').click();
+      await page.locator('#log-clear').click();  // the first tap only asks
+      await expect(page.locator('#log-clear')).toHaveText('متأكد؟ اضغط مرة أخرى للمسح');
+      await expect(page.locator('#log-list li')).toHaveCount(2);
+      await page.locator('#log-clear').click();  // the second tap deletes
       await expect(page.locator('#log-list')).toHaveCount(0);
       await expect(page.locator('#log-clear')).toHaveCount(0);
       expect(await page.evaluate(() => window.localStorage.getItem('nmi-log-v1'))).toBeNull();
@@ -1518,4 +1525,216 @@ test.describe('experimental and level texts in Hebrew and English', () => {
     await chooseLanguage(page, 'en');
     await expect(page.locator('.choices').nth(2).locator('.badge').first()).toHaveText('Experimental');
   });
+});
+
+
+// ----------------------------------------------------------------------------- task 16: two taps to delete, the back button, the intro line
+test.describe('the log asks twice before it deletes, without any dialog of the browser', () => {
+  test.use(profiles.android);
+
+  const seedThree = (page) => page.addInitScript(() => {
+    if (!window.localStorage.getItem('nmi-log-v1')) {
+      const at = (d) => new Date(Date.UTC(2026, 9, d, 10)).toISOString();
+      window.localStorage.setItem('nmi-log-v1', JSON.stringify([3, 2, 1].map((n) => ({ id: 'e' + n, date: at(n), subject: 'math', grade: 10, units: 3, text: 'NMI-LOG\nغلط: رقم ' + n }))));
+    }
+  });
+  const openLogPage = async (page) => {
+    await page.goto('/index.html');
+    await expect(page.locator('#next-1')).toBeVisible();
+    await page.locator('#log-link').click();
+    await expect(page.locator('#log-list li')).toHaveCount(3);
+  };
+
+  test('one tap only asks; the button goes back by itself after 5 seconds; the second tap deletes', async ({ page }) => {
+    await seedThree(page);
+    let dialogs = 0;
+    page.on('dialog', async (dialog) => { dialogs += 1; await dialog.dismiss(); });
+    await openLogPage(page);
+    const del = page.locator('#log-list li').nth(0).locator('button.del');
+    await expect(del).toHaveText('امسح');
+    await del.click();
+    await expect(del).toHaveText('متأكد؟ اضغط مرة أخرى للمسح');
+    await expect(del).toHaveAttribute('data-armed', 'true');
+    await expect(page.locator('#log-list li')).toHaveCount(3);
+    // after 5 seconds nothing is waiting for a second tap
+    await page.waitForTimeout(5400);
+    await expect(del).toHaveText('امسح');
+    await expect(del).not.toHaveAttribute('data-armed', /.*/);
+    await expect(page.locator('#log-list li')).toHaveCount(3);
+    expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem('nmi-log-v1')).length)).toBe(3);
+    // a tap, then the second tap inside the 5 seconds
+    await del.click();
+    await del.click();
+    await expect(page.locator('#log-list li')).toHaveCount(2);
+    expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem('nmi-log-v1')).length)).toBe(2);
+    expect(dialogs).toBe(0);
+  });
+
+  test('only one button waits at a time, and "delete all" asks twice too', async ({ page }) => {
+    await seedThree(page);
+    await openLogPage(page);
+    const first = page.locator('#log-list li').nth(0).locator('button.del');
+    const third = page.locator('#log-list li').nth(2).locator('button.del');
+    await first.click();
+    await expect(first).toHaveText('متأكد؟ اضغط مرة أخرى للمسح');
+    await third.click();  // another button: the first one is asked no more
+    await expect(first).toHaveText('امسح');
+    await expect(third).toHaveText('متأكد؟ اضغط مرة أخرى للمسح');
+    await expect(page.locator('#log-list li')).toHaveCount(3);
+    await page.locator('#log-clear').click();  // "delete all" arms and the single button goes back
+    await expect(third).toHaveText('امسح');
+    await expect(page.locator('#log-clear')).toHaveText('متأكد؟ اضغط مرة أخرى للمسح');
+    await expect(page.locator('#log-list li')).toHaveCount(3);
+    expect(await page.evaluate(() => window.localStorage.getItem('nmi-log-v1'))).not.toBeNull();
+    await page.locator('#log-clear').click();
+    await expect(page.locator('#log-list')).toHaveCount(0);
+    expect(await page.evaluate(() => window.localStorage.getItem('nmi-log-v1'))).toBeNull();
+  });
+
+  for (const lang of ['he', 'en']) {
+    test(`the question is in the language of the page: ${lang}`, async ({ page }) => {
+      await seedThree(page);
+      await page.addInitScript((l) => { window.localStorage.setItem('nmi-lang-v1', l); }, lang);
+      await page.goto('/index.html');
+      await expect(page.locator('#next-1')).toBeVisible();
+      await page.locator('#log-link').click();
+      const del = page.locator('#log-list li').nth(0).locator('button.del');
+      await del.click();
+      await expect(del).toHaveText(I18N.t(lang, 'logConfirmDelete'));
+      await page.locator('#log-clear').click();
+      await expect(page.locator('#log-clear')).toHaveText(I18N.t(lang, 'logConfirmDelete'));
+      expect(I18N.t(lang, 'logConfirmDelete')).toBe(lang === 'he' ? 'בטוחים? לחצו שוב למחיקה' : 'Sure? Tap again to delete');
+    });
+  }
+});
+
+for (const name of ['android', 'desktop']) {
+  test.describe(`the back button of the phone goes to the previous step: ${name}`, () => {
+    test.use(profiles[name]);
+
+    const progress = (page) => page.locator('#progress');
+    const toStep2 = async (page) => {
+      await page.goto('/index.html');
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+      await page.getByRole('button', { name: 'رياضيات' }).click();
+      await page.getByRole('button', { name: 'العاشر', exact: true }).click();
+      await page.getByRole('group', { name: 'الوحدات' }).getByRole('button', { name: '3 وحدات' }).click();
+      await page.locator('#next-1').click();
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+    };
+
+    test('back goes step by step and keeps the choices; forward comes back; from step 1 it leaves the page', async ({ page }) => {
+      await toStep2(page);
+      await page.getByLabel('النموذج الخطي', { exact: true }).check();
+      await page.locator('#next-2').click();
+      await expect(progress(page)).toHaveText('الخطوة 3 من 4');
+      await page.locator('input[data-mode="practice"]').check();
+      await page.locator('#prepare').click();
+      await expect(progress(page)).toHaveText('الخطوة 4 من 4');
+      // the back button of the phone: 4 -> 3 -> 2 -> 1
+      await page.goBack();
+      await expect(progress(page)).toHaveText('الخطوة 3 من 4');
+      await expect(page.locator('input[data-mode="practice"]')).toBeChecked();  // the choices are kept
+      await page.goBack();
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await expect(page.getByLabel('النموذج الخطي', { exact: true })).toBeChecked();
+      await page.goBack();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+      await expect(page.getByRole('button', { name: 'العاشر', exact: true })).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('#next-1')).toBeEnabled();
+      // forward again
+      await page.goForward();
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await expect(page.getByLabel('النموذج الخطي', { exact: true })).toBeChecked();
+      await page.goBack();
+      // from the first step the back button leaves the page
+      await page.goBack();
+      expect(page.url()).toBe('about:blank');
+    });
+
+    test('the back button of the page and the back button of the phone work together', async ({ page }) => {
+      test.skip(name === 'desktop', 'on a computer the steps are stacked and the page has no back button');
+      await toStep2(page);
+      await page.getByLabel('النموذج الخطي', { exact: true }).check();
+      await page.locator('#next-2').click();
+      await expect(progress(page)).toHaveText('الخطوة 3 من 4');
+      await expect(page.locator('#back')).toBeVisible();
+      await page.locator('#back').click();  // the button of the page
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await expect(page.getByLabel('النموذج الخطي', { exact: true })).toBeChecked();
+      await page.locator('#back').click();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+      await expect(page.locator('#back')).toBeHidden();
+      // the phone goes forward through the same entries, and the page button works from there too
+      await page.goForward();
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await page.goForward();
+      await expect(progress(page)).toHaveText('الخطوة 3 من 4');
+      await page.locator('#back').click();
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await page.goBack();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+      // going forward by the buttons again after the phone went back
+      await page.locator('#next-1').click();
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await page.goBack();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+    });
+
+    test('the log page is an entry too: back closes it and the step is as it was', async ({ page }) => {
+      await toStep2(page);
+      await page.locator('#log-link').click();
+      await expect(page.locator('#log-page')).toBeVisible();
+      await page.goBack();
+      await expect(page.locator('#log-page')).toHaveCount(0);
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await page.goForward();
+      await expect(page.locator('#log-page')).toBeVisible();
+      await page.locator('#log-close').click();  // the button of the page closes it like "back"
+      await expect(page.locator('#log-page')).toHaveCount(0);
+      await expect(progress(page)).toHaveText('الخطوة 2 من 4');
+      await page.locator('#log-link').click();
+      await page.locator('#log-link').click();  // the link closes it too
+      await expect(page.locator('#log-page')).toHaveCount(0);
+      await page.goBack();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+    });
+
+    test('after a reload an old entry does not open a step without a level', async ({ page }) => {
+      await toStep2(page);
+      await page.reload();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+      await page.goBack();  // the entry before the reload: step 1 of the page before
+      await page.goForward();
+      await expect(progress(page)).toHaveText('الخطوة 1 من 4');
+    });
+  });
+}
+
+test.describe('the line at the top of step 1, in each language', () => {
+  test.use(profiles.android);
+  const INTRO = {
+    ar: 'NMI يجهّز تعليمات لـ ChatGPT أو Claude أو Gemini، فيها منهاجك وشكل امتحاناتك، ليعلّمك بدل أن يحلّ عنك.',
+    he: 'NMI מכין הוראות ל-ChatGPT, Claude או Gemini, עם התוכנית שלכם ומבנה המבחנים, כדי שילמד אתכם ולא יפתור במקומכם.',
+    en: 'NMI prepares instructions for ChatGPT, Claude or Gemini with your curriculum and the shape of your exams, so it teaches you instead of solving for you.'
+  };
+  for (const lang of ['ar', 'he', 'en']) {
+    test(`step 1 starts with what the page does: ${lang}`, async ({ page }) => {
+      await page.addInitScript((l) => { window.localStorage.setItem('nmi-lang-v1', l); }, lang);
+      await page.goto('/index.html');
+      await expect(page.locator('#intro')).toHaveText(INTRO[lang]);
+      expect(I18N.t(lang, 'intro')).toBe(INTRO[lang]);
+      // it is the first thing of the step, above the question
+      const intro = await page.locator('#intro').boundingBox();
+      const title = await page.locator('section[data-step="1"] h1').boundingBox();
+      expect(intro.y).toBeLessThan(title.y);
+      await noSideScroll(page, `${lang} intro`);
+      // only on step 1
+      await page.getByRole('button', { name: I18N.t(lang, 'subjectMath') }).click();
+      await page.locator('.choices').nth(1).locator('button').first().click();
+      await page.locator('.choices').nth(2).locator('button').first().click();
+      await page.locator('#next-1').click();
+      await expect(page.locator('#intro')).toHaveCount(0);
+    });
+  }
 });

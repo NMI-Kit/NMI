@@ -59,6 +59,11 @@
       "he": "שלב {n} מתוך {total}",
       "en": "Step {n} of {total}"
     },
+    "intro": {
+      "ar": "NMI يجهّز تعليمات لـ ChatGPT أو Claude أو Gemini، فيها منهاجك وشكل امتحاناتك، ليعلّمك بدل أن يحلّ عنك.",
+      "he": "NMI מכין הוראות ל-ChatGPT, Claude או Gemini, עם התוכנית שלכם ומבנה המבחנים, כדי שילמד אתכם ולא יפתור במקומכם.",
+      "en": "NMI prepares instructions for ChatGPT, Claude or Gemini with your curriculum and the shape of your exams, so it teaches you instead of solving for you."
+    },
     "s1Title": {
       "ar": "ما مستواك؟",
       "he": "מה הרמה שלכם?",
@@ -513,6 +518,11 @@
       "ar": "امسح",
       "he": "מחיקה",
       "en": "Delete"
+    },
+    "logConfirmDelete": {
+      "ar": "متأكد؟ اضغط مرة أخرى للمسح",
+      "he": "בטוחים? לחצו שוב למחיקה",
+      "en": "Sure? Tap again to delete"
     },
     "logClearAll": {
       "ar": "امسح الكل",
