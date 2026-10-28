@@ -48,7 +48,7 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 - **Content:** perimeter of polygons, circumference of a circle and its parts, the Pythagorean theorem, composite shapes.
 - **Common mistakes:** mixing up the perimeter formula and the area formula of a circle.
 
-#### m10-3-07 Paths (מסלולים)
+#### m10-3-07 Distance, speed and time (מסלולים)
 - **Content:** the formula distance = speed × time.
 - **Common mistakes:** different units (minutes and hours, meters and kilometers).
 

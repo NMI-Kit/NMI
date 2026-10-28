@@ -4,7 +4,7 @@
 
 1. **The question starts with a story from real life:** prices, tickets, cars, sports, a restaurant, a trip. The story gives all the numbers.
 2. **The question is split into parts** (a, b, c, d), and sometimes a part has two sub-parts (1), (2).
-3. **The parts build on each other:** the result of part a is used in part b or c. A mistake in the first part drags a mistake after it.
+3. **The parts build on each other:** the result of part a is used in part b or c. A mistake in the first part leads to more mistakes later.
 4. **The kinds of requests in the parts:**
    - **Find:** a value, or a length, or a probability, or a mean, or a number.
    - **Match:** which graph fits which situation, and justify.
@@ -16,7 +16,7 @@
 
 ## 3 units, Grade 10: form (שאלון) 35172 (an example, summer 2022, session B)
 
-- **6 questions**, most of them word problems from real life, and their numbers are simpler than 35371.
+- **6 questions**, most of them word problems from real life, and their numbers are simpler than in 35371.
 
 | Topic | Question format | Number of parts | Common trap |
 |---|---|---|---|
@@ -34,7 +34,7 @@
 
 | Topic | Question format | Number of parts | Common trap |
 |---|---|---|---|
-| Growth and decrease (exponential) and reading graphs | comparing two quantities that change over time, with two graphs | 4 | mixing up the two graphs, or treating a decrease of 10% as if it were subtracting a fixed number |
+| Growth and decay (exponential) and reading graphs | comparing two quantities that change over time, with two graphs | 4 | mixing up the two graphs, or treating a decrease of 10% as if it were subtracting a fixed number |
 | Probability | a game or drawing from a box, independent events, "at least one" | 3 | mixing up "at least one" and "both", and forgetting the complement |
 | Similar triangles, Pythagoras, area and perimeter | a real shape (a tent, a room) with an enlargement or reduction ratio | 3 | the direction of the ratio is wrong, or mixing up the height and the side |
 | Right triangle and trigonometry (sin, cos, tan) | a device, a slope or a ladder, angles and lengths | 3 | choosing the wrong triangle, or mixing up the angles |
@@ -85,7 +85,7 @@
 ## 5 units: form (שאלון) 35571 (an example, summer 2025)
 
 - **Duration:** 4 hours and 15 minutes. **Answer 5 questions out of 8**, each question 20 marks.
-- **The condition of choice:** at least one question from chapter 1 or 2, and a question from chapter 3, and a question from chapter 4.
+- **Choice rules:** at least one question from chapter 1 or 2, and a question from chapter 3, and a question from chapter 4.
 
 | Chapter | Topics | Question format | Common trap |
 |---|---|---|---|
@@ -102,7 +102,7 @@
 |---|---|---|---|
 | 1 | Analytic geometry | a locus (a right angle, which means a circle), a parameter from the largest area, a parabola, a common tangent | the parameter from part b affects everything after it, and more than one tangent is possible |
 | 1 | Vectors in space | a pyramid, proving perpendicularity with vectors, coordinates, a parametric equation of a line, a ratio of volumes | reading the ratio on the side wrong, and comparing volumes with coordinates instead of the base and the height |
-| 1 | Complex numbers | polar form, the area of a triangle in the complex plane, the solutions of two equations as the vertices of a polygon | the acute angle condition picks one solution, and checking the modulus instead of assuming symmetry |
+| 1 | Complex numbers | polar form, the area of a triangle in the Gauss plane, the solutions of two equations as the vertices of a polygon | the acute angle condition picks one solution, and checking the modulus instead of assuming symmetry |
 | 2 | Exponential function | asymptotes, intercepts, an extreme value, a sketch, a second function and proving a relation, an area in terms of b, finding b | the area when the curve crosses the x axis, and b must stay the same between the parts |
 | 2 | Logarithmic function with a parameter | asymptotes, intercepts, an extreme value in terms of a, finding a from a common point, an antiderivative h, matching a graph of h | a affects everything after it, and matching the graph from the sign of h′ |
 
@@ -113,5 +113,5 @@
 3. **At least one part "justify" or "explain in context".**
 4. **One deliberate trap** from the table of traps, so that the student practices avoiding it.
 5. **Numbers that come out clean, or with a regular calculator.**
-6. **Gives only the first part, and waits for the student's solution**, and then checks and gives the next part.
+6. **In practice: gives only the first part, and waits for the student's solution**, and then checks and gives the next part.
 7. Does not copy questions from real exams. Writes a new question in the same format.

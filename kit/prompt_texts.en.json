@@ -43,8 +43,7 @@
   "modeLine": "Mode chosen: {value}",
   "modesSeveral": "The student chose: {labels}. Start with the first mode only. Every reply in one mode only. When you finish the mode, ask them if they are ready for the next one, and do not move on before they answer.",
   "studentLanguage": [
-    "Student language: English. All your replies are in English, from the first message.",
-    "- Math terms: in English, with the Hebrew term in parentheses at first mention (the exams use the Hebrew terms)."
+    "Student language: English. All your replies are in English, from the first message."
   ],
   "secLog": "== Summary of the session for the kit ==",
   "secMistakes": "== Mistakes from earlier sessions ==",

@@ -68,7 +68,7 @@ Each example here is one question in the **format** of the Bagrut questions: a s
 
 **Part d (4 marks) - justify:** why do we not count the diameter (20 m) in the length of the fence?
 
-## m10-3-07 Paths (מסלולים)
+## m10-3-07 Distance, speed and time (מסלולים)
 
 **The story:** Sami rides his bicycle to school 6 km at a speed of 12 km/h, and returns by the same road at a speed of 8 km/h.
 

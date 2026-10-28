@@ -29,7 +29,7 @@ BASE_PROMPT = KIT / 'base_prompt.txt'
 
 TOPIC_HEADING = re.compile(r'^(#{3,4}) (m\d+-\d+-\d+) (.+?)\s*$')
 HEBREW = re.compile(r'\s*\([^()]*[֐-׿][^()]*\)')
-# the English name is the last thing of a title line, between square brackets: `#### m10-3-07 مسارات (מסלולים) [Paths]`
+# the English name is the last thing of a title line, between square brackets: `#### m10-3-07 مسارات (מסלולים) [Distance, speed and time]`
 ENGLISH = re.compile(r'\s*\[([^\[\]]+)\]\s*$')
 LEVEL_FILE = re.compile(r'^(\d+)units\.md$')
 GRADE_FOLDER = re.compile(r'^grade(\d+)$')

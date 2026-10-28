@@ -700,14 +700,14 @@ test('old mistakes: their own section before the closing line, only when there a
   assert.equal(injected.filter((l) => l === '== اللغة ==').length, 1);
 });
 
-test('the length limit: 19,050 for Arabic and Hebrew, 26,400 for English: every level with every topic fits, in every set of modes', () => {
+test('the length limit: 19,050 for Arabic and Hebrew, 27,000 for English: every level with every topic fits, in every set of modes', () => {
   const long = [];
   for (let i = 0; i < 30; i++) long.push('غلط: ' + 'ب'.repeat(50) + ' ' + i);
   const sets = [];
   for (let mask = 1; mask < 16; mask++) sets.push(PROMPT_MODES.filter((_, i) => mask & (1 << i)));
   assert.equal(sets.length, 15);
   assert.equal(P.MAX_LENGTH, 19050);
-  assert.deepEqual(P.MAX_LENGTH_BY_LANGUAGE, { ar: 19050, he: 19050, en: 26400 });
+  assert.deepEqual(P.MAX_LENGTH_BY_LANGUAGE, { ar: 19050, he: 19050, en: 27000 });
   const biggest = { ar: 0, he: 0, en: 0 };
   let cases = 0;
   const overWithMistakes = { ar: [], he: [], en: [] };
@@ -726,10 +726,10 @@ test('the length limit: 19,050 for Arabic and Hebrew, 26,400 for English: every 
   // the biggest prompts are grade 10, 5 units, every topic, all four modes; English has about 40% more letters than Hebrew for the same content
   assert.ok(biggest.ar > 18000 && biggest.ar <= 19050, `ar: ${biggest.ar}`);
   assert.ok(biggest.he > 18000 && biggest.he <= 19050, `he: ${biggest.he}`);
-  assert.ok(biggest.en > 26000 && biggest.en <= 26400, `en: ${biggest.en}`);
+  assert.ok(biggest.en > 26000 && biggest.en <= 27000, `en: ${biggest.en}`);
   // a full mistakes section can still pass the limit, only on the biggest level: the page warns the student and does not block him
   for (const lang of ['ar', 'he', 'en']) assert.ok(overWithMistakes[lang].every((x) => x.startsWith('10/5 ')), `${lang}: ${overWithMistakes[lang].join(' | ')}`);
-  assert.ok(overWithMistakes.en.length > 0);
+  assert.deepEqual(overWithMistakes, { ar: [], he: [], en: [] });  // since task 18 not even with a full mistakes section
   // a normal choice (a few topics) is far from the limit, in every level, with every set of modes and in every language
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
     const few = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: l.topics.slice(0, 3).map((t) => t.id), modes, language: lang });
@@ -865,10 +865,12 @@ test('practice: the question has other numbers and another result than the expla
 test('the language of the page: Hebrew and English build the whole prompt in their language; Arabic adds nothing', () => {
   const he = build({ topics: ['m10-3-12'], language: 'he' }).text;
   const en = build({ topics: ['m10-3-12'], language: 'en' }).text;
-  // the language lines at the end of the student part (short: the language and the terms)
+  // the language line at the end of the student part; the rule of the Hebrew terms is said once, in the curriculum notes
   const studentPart = (text, from, to) => text.slice(text.indexOf(from), text.indexOf(to));
-  assert.ok(studentPart(he, '== תלמיד ==', '== מקורות ==').trimEnd().endsWith('שפת התלמיד: עברית. כל התשובות שלך בעברית, מההודעה הראשונה.\n- המונחים המתמטיים בעברית, כמו במבחנים.'));
-  assert.ok(studentPart(en, '== Student ==', '== Sources ==').trimEnd().endsWith('Student language: English. All your replies are in English, from the first message.\n- Math terms: in English, with the Hebrew term in parentheses at first mention (the exams use the Hebrew terms).'));
+  assert.ok(studentPart(he, '== תלמיד ==', '== מקורות ==').trimEnd().endsWith('\nשפת התלמיד: עברית. כל התשובות שלך בעברית, מההודעה הראשונה.'));
+  assert.ok(studentPart(en, '== Student ==', '== Sources ==').trimEnd().endsWith('\nStudent language: English. All your replies are in English, from the first message.'));
+  assert.equal(he.split('המונח בעברית').length, 2, 'the Hebrew-terms rule once');
+  assert.equal(en.split('Hebrew term in parentheses').length, 2, 'the Hebrew-terms rule once');
   assert.equal(he.split('שפת התלמיד: ').length, 2, 'once');
   assert.equal(en.split('Student language: ').length, 2, 'once');
   // the old Arabic block is gone: the whole prompt is translated
@@ -1030,7 +1032,7 @@ test('real session fixes: tone rules in "قواعد لكل رد", in every promp
 
 test('real session fixes: "افهم" has a short explanation and explains every chosen topic', () => {
   const SHORT = '   - الشرح قصير: الجملة الأولى والقانون ورموزه لحد 5 أسطر بالمجموع، وبعدها المثال مباشرة. ما في فقرات زيادة. إذا لسا ما فهم، اشرح بطريقة تانية تماماً (مثال تاني، أو جدول أرقام، أو رسم بالكلام)، مش نفس الشرح بكلام تاني.';
-  const NEXT = '   - إذا اختار أكتر من موضوع: لما تخلص شرح موضوع، اسأله "نكمل شرح الموضوع الجاي، ولا ننتقل للي بعده؟". ما تقفز عن موضوع بدون ما تسأله.';
+  const NEXT = '   - إذا اختار أكتر من موضوع: لما تخلص شرح موضوع، اسأله "نكمل لشرح الموضوع الجاي، ولا بدك سؤال تمرين على هاد الموضوع أول؟". ما تقفز عن موضوع بدون ما تسأله.';
   for (const mode of MODES) {
     const text = build({ topics: ['m10-3-12'], mode }).text;
     const explain = text.slice(text.indexOf('1) افهم:'), text.indexOf('2) تمرين:'));
@@ -1106,8 +1108,10 @@ test('language pages: a first line and a last line in the language of the studen
 test('language pages: "== שפה ==" and "== Language ==" are the translation of "== اللغة ==": answer in the language of the student', () => {
   const he = build({ topics: ['m10-3-12'], language: 'he' }).text;
   const en = build({ topics: ['m10-3-12'], language: 'en' }).text;
-  assert.ok(he.includes('== שפה ==\nענה בשפת התלמיד, בסגנון הטבעי שלך. משוואות בשורה נפרדת ובסימנים מתמטיים ברורים.\n'));
-  assert.ok(en.includes('== Language ==\nReply in the student\'s language, in your own natural style. Put equations on their own line, with clear math notation.\n'));
+  assert.ok(he.includes('== שפה ==\nענה בסגנון הטבעי שלך. משוואות בשורה נפרדת ובסימנים מתמטיים ברורים.\n'));
+  assert.ok(en.includes('== Language ==\nReply in your own natural style. Put equations on their own line, with clear math notation.\n'));
+  // the language of the reply is said once in the middle of the prompt (the student part), besides the first and the last line
+  assert.ok(!he.includes('בשפת התלמיד, בסגנון') && !en.includes("in the student's language, in your"));
   // the sentence that said "even if the instructions are Arabic" is gone: they are not
   for (const text of [he, en]) assert.ok(!text.includes(SENTENCE_OLD) && !text.includes('حتى لو التعليمات'));
 });
@@ -1246,15 +1250,15 @@ test('Hebrew and English prompts: the names of the topics and the grade are in t
   const he = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['practice'], language: 'he' });
   const en = P.buildPrompt(data, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['practice'], language: 'en' });
   assert.ok(he.text.includes('מקצוע: מתמטיקה\nכיתה: י׳\nיחידות: 3\nיעד: אין יעד מיוחד\nנושאים לחזרה: מסלולים\nהמצב שבחר: לתרגל\n'));
-  assert.ok(en.text.includes('Subject: Math\nGrade: 10\nUnits: 3\nGoal: no special goal\nTopics to review: Paths\nMode chosen: Practice\n'));
+  assert.ok(en.text.includes('Subject: Math\nGrade: 10\nUnits: 3\nGoal: no special goal\nTopics to review: Distance, speed and time\nMode chosen: Practice\n'));
   assert.ok(he.text.includes('### מסלולים\n'));
-  assert.ok(en.text.includes('### Paths (מסלולים)\n'));
+  assert.ok(en.text.includes('### Distance, speed and time (מסלולים)\n'));
   assert.ok(he.text.includes('-- דוגמה למבנה, אל תחזור עליה (נושא: «מסלולים») --'));
-  assert.ok(en.text.includes('-- An example of the shape, do not repeat it (topic: «Paths») --'));
+  assert.ok(en.text.includes('-- An example of the shape, do not repeat it (topic: «Distance, speed and time») --'));
   assert.ok(he.text.includes('**סעיף א (4 נקודות):** כמה דקות לוקח לסמי הלוך?'));
   assert.ok(en.text.includes('**Part a (4 marks):** how many minutes does Sami take going there?'));
   assert.ok(he.text.endsWith('התחל ישר בשאלה חדשה בסגנון המבחן על «מסלולים»: הסיפור וסעיף א בלבד, והמתן.\n\nהתחל עכשיו, בעברית בלבד.\n'));
-  assert.ok(en.text.endsWith('Start right away with a new exam-style question on «Paths»: the story and part a only, and wait.\n\nStart now, in English only.\n'));
+  assert.ok(en.text.endsWith('Start right away with a new exam-style question on «Distance, speed and time»: the story and part a only, and wait.\n\nStart now, in English only.\n'));
   // no topic id and no Arabic letter reaches the student
   for (const text of [he.text, en.text]) assert.ok(!/m\d+-\d+-\d+/.test(text) && !/[؀-ۿ]/.test(text));
   // the exam patterns: the grade-10 form of 3 units only for grade 10, the grade-12 form only for grade 12

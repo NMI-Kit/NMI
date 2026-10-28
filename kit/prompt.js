@@ -10,14 +10,15 @@
   'use strict';
 
   /* Longest prompt we are happy to send, in characters. The biggest whole level (grade 10, 5 units, every topic) with
-     any set of modes is about 18,200 in Arabic and 18,350 in Hebrew (the section of teaching methods and the tone rules
+     any set of modes is about 18,250 in Arabic and 18,350 in Hebrew (the section of teaching methods and the tone rules
      add about 2,200), so one level with every topic fits. 19,050 characters is about 6,700 tokens: a free-tier chat
      takes it, a phone pastes it without trouble, and the model still follows the rules at the top instead of drowning
      in text. English has more letters for the same content (about 40% more characters, about the same tokens): the
-     biggest English prompt is about 26,340, and its limit is 26,400. A prompt that is longer (a whole level with a long
-     mistakes section, or a whole own level plus a whole target level) is not refused: the page warns the student. */
+     biggest English prompt is about 26,700 (with the teacher's file), and its limit is 27,000. A prompt that is longer
+     (a whole level with a long mistakes section, or a whole own level plus a whole target level) is not refused: the
+     page warns the student. */
   const MAX_LENGTH = 19050;
-  const MAX_LENGTH_BY_LANGUAGE = { ar: MAX_LENGTH, he: MAX_LENGTH, en: 26400 };
+  const MAX_LENGTH_BY_LANGUAGE = { ar: MAX_LENGTH, he: MAX_LENGTH, en: 27000 };
 
   /* Topics the student adds by hand: at most 5, each at most 60 characters, plain text only. */
   const MAX_CUSTOM = 5;

@@ -199,7 +199,7 @@ class DataJsonLanguagesTests(unittest.TestCase):
         self.assertEqual([g['name'] for g in he['grades']], ['י׳', 'י״א', 'י״ב'])
         self.assertEqual([g['name'] for g in en['grades']], ['10', '11', '12'])
         topic = en['grades'][0]['levels'][0]['topics'][6]
-        self.assertEqual((topic['id'], topic['title'], topic['title_full']), ('m10-3-07', 'Paths', 'Paths (מסלולים)'))
+        self.assertEqual((topic['id'], topic['title'], topic['title_full']), ('m10-3-07', 'Distance, speed and time', 'Distance, speed and time (מסלולים)'))
         topic = he['grades'][0]['levels'][0]['topics'][6]
         self.assertEqual((topic['id'], topic['title'], topic['title_full']), ('m10-3-07', 'מסלולים', 'מסלולים'))
 

@@ -18,6 +18,8 @@ One list for the three languages of the prompt. The Hebrew is the term of the Is
 | موضوع | נושא | topic |
 | عنقود | אשכול | cluster |
 | سؤال | שאלה | question |
+| فصل | פרק | chapter |
+| موعد | מועד | exam session |
 | قسم (أ، ب، ج، د) | סעיף (א', ב', ג', ד') | part (a, b, c, d) |
 | بند (1)، (2) | תת-סעיף (1), (2) | sub-part (1), (2) |
 | علامة القسم | נקודות הסעיף | marks of the part |
@@ -31,7 +33,7 @@ One list for the three languages of the prompt. The Hebrew is the term of the Is
 | تلميح / سلّم التلميحات | רמז / סולם הרמזים | hint / hint ladder |
 | طالب | תלמיד | student |
 | مدرّب رياضيات | מורה פרטי למתמטיקה | math tutor |
-| استمارة، ورقة قوانين | דף נוסחאות | formula sheet |
+| ورقة قوانين | דף נוסחאות | formula sheet |
 | آلة حاسبة غير بيانية | מחשבון שאינו גרפי | non-graphing calculator |
 | شيكل | שקל | shekel |
 | جدول / رسم بياني / رسم | טבלה / גרף / תרשים | table / graph / chart |
