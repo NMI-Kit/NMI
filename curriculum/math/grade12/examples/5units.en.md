@@ -4,13 +4,15 @@ Each example here is one question in the **format** of the exam questions: a sto
 
 ## m12-5-01 Analytic geometry (גאומטריה אנליטית)
 
-**The story:** a plot of land in the shape of a triangle with vertices A(0, 0) and B(8, 0) and C(2, 6) on a map (the unit is a meter).
+**The story:** on a map (the unit is a kilometer), a straight road passes through the villages A(-4, 1) and B(8, 10). A water pumping station is at the point P(3, 0).
 
-**Part a (4 marks):** find the area of the triangle.
+**Part a (4 marks):** the point K on the road divides the segment AB in the ratio AK : KB = 1 : 2. Find the coordinates of K.
 
-**Part b (5 marks):** find the equation of the median from C to the midpoint of AB.
+**Part b (4 marks):** find the equation of the road AB.
 
-**Part c (5 marks) - justify:** find the meeting point of the medians G, and check that it is on the median from part b.
+**Part c (5 marks):** find the distance of the pumping station P from the road.
+
+**Part d (5 marks) - justify:** they want to build another straight road that passes through the station P and is parallel to the road AB. Find its equation, and explain why the distance between the two roads equals your answer in part c.
 
 ## m12-5-02 Algebra: exponents and logarithms (אלגברה: חזקות ולוגריתמים)
 

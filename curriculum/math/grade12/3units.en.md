@@ -36,7 +36,7 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 
 ### m12-3-04 Spatial vision (ראייה מרחבית)
 - **The cluster:** Orientation in the plane and in space.
-- **Content:** solids in space: volume, surface area and lateral area.
+- **Content:** spatial vision: a building of cubes, a number plan, and the views from the front and from the sides. Solids in space: volume, surface area and lateral area.
 - **Common mistakes:** mixing up the total area and the lateral area.
 
 ### m12-3-05 Analytic geometry: the straight line (גאומטריה אנליטית: הקו הישר)

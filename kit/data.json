@@ -920,7 +920,7 @@
          "group": null,
          "group_full": null,
          "group_en": null,
-         "text": "- **العنقود:** المستوى والفراغ.\n- **المحتوى:** أجسام بالفراغ: حجم، مساحة سطح، ومساحة جانبية.\n- **أخطاء شائعة:** خلط بين المساحة الكلية والمساحة الجانبية.",
+         "text": "- **العنقود:** المستوى والفراغ.\n- **المحتوى:** رؤية فراغية: مبنى من مكعبات، مخطط أعداد، والنظرة من الأمام ومن الجوانب. أجسام بالفراغ: حجم، مساحة سطح، ومساحة جانبية.\n- **أخطاء شائعة:** خلط بين المساحة الكلية والمساحة الجانبية.",
          "example": "**القصة:** خزان ماء أسطواني نصف قطر قاعدته 3 م وارتفاعه 5 م. بدهم يدهنوا جداره الخارجي (الجانبي بس) بدهان سعر المتر المربع منه 20 ₪.\n\n**القسم أ (4 علامات):** جد حجم الخزان (اترك π بالجواب).\n\n**القسم ب (5 علامات):** جد المساحة الجانبية (اترك π بالجواب).\n\n**القسم ج (4 علامات):** كم بتكلّف الدهان؟ (π = 3.14)\n\n**القسم د (4 علامات) - علّل:** طالب حسب المساحة الكلية للأسطوانة بدل الجانبية. جد المساحة الكلية، وقول ليش ما بتناسب هون."
         },
         {
@@ -1113,7 +1113,7 @@
          "group_full": null,
          "group_en": null,
          "text": "- **المحتوى:** تقسيم قطعة بنسبة معطاة، بعد نقطة عن مستقيم، بعد بين مستقيمين متوازيين، دمج أدوات العاشر.\n- **أخطاء شائعة:** نسيان القيمة المطلقة بقانون البعد.",
-         "example": "**القصة:** قطعة أرض على شكل مثلث رؤوسه A(0, 0) وB(8, 0) وC(2, 6) على خريطة (الوحدة متر).\n\n**القسم أ (4 علامات):** جد مساحة المثلث.\n\n**القسم ب (5 علامات):** جد معادلة المتوسط من C لمنتصف AB.\n\n**القسم ج (5 علامات) - علّل:** جد نقطة التقاء المتوسطات G، وتأكد إنها على المتوسط من القسم ب."
+         "example": "**القصة:** على خريطة (الوحدة كيلومتر)، شارع مستقيم بيمرّ بالقريتين A(-4, 1) وB(8, 10). محطة ضخ مي موجودة بالنقطة P(3, 0).\n\n**القسم أ (4 علامات):** النقطة K على الشارع بتقسم القطعة AB بنسبة AK : KB = 1 : 2. جد إحداثيات K.\n\n**القسم ب (4 علامات):** جد معادلة الشارع AB.\n\n**القسم ج (5 علامات):** جد بُعد محطة الضخ P عن الشارع.\n\n**القسم د (5 علامات) - علّل:** بدهم يعملوا شارع تاني مستقيم بيمرّ بالمحطة P وبيوازي الشارع AB. جد معادلته، واشرح ليش البُعد بين الشارعين بيساوي جوابك بالقسم ج."
         },
         {
          "id": "m12-5-02",
@@ -1942,7 +1942,7 @@
            "id": "m12-3-04",
            "title": "ראייה מרחבית",
            "title_full": "ראייה מרחבית",
-           "text": "- **האשכול:** התמצאות במישור ובמרחב.\n- **תוכן:** גופים במרחב: נפח, שטח פנים ושטח צדדי.\n- **טעויות נפוצות:** בלבול בין השטח הכולל לשטח הצדדי.",
+           "text": "- **האשכול:** התמצאות במישור ובמרחב.\n- **תוכן:** ראייה מרחבית: מבנה מקוביות, תוכנית מספרים, ומבטים מלפנים ומהצדדים. גופים במרחב: נפח, שטח פנים ושטח צדדי.\n- **טעויות נפוצות:** בלבול בין השטח הכולל לשטח הצדדי.",
            "example": "**הסיפור:** מיכל מים גלילי שרדיוס בסיסו 3 מ' וגובהו 5 מ'. רוצים לצבוע את הדופן החיצונית שלו (הצדדית בלבד) בצבע שמחיר המטר הרבוע שלו 20 ₪.\n\n**סעיף א (4 נקודות):** מצא את נפח המיכל (השאר π בתשובה).\n\n**סעיף ב (5 נקודות):** מצא את השטח הצדדי (השאר π בתשובה).\n\n**סעיף ג (4 נקודות):** כמה תעלה הצביעה? (π = 3.14)\n\n**סעיף ד (4 נקודות) - נמק:** תלמיד חישב את שטח הפנים הכולל של הגליל במקום הצדדי. מצא את שטח הפנים הכולל, ואמור למה הוא לא מתאים כאן."
           },
           {
@@ -2071,7 +2071,7 @@
            "title": "גאומטריה אנליטית",
            "title_full": "גאומטריה אנליטית",
            "text": "- **תוכן:** חלוקת קטע ביחס נתון, מרחק נקודה מישר, מרחק בין ישרים מקבילים, שילוב כלים מכיתה י׳.\n- **טעויות נפוצות:** לשכוח את הערך המוחלט בנוסחת המרחק.",
-           "example": "**הסיפור:** חלקת אדמה בצורת משולש שקדקודיו A(0, 0) ו-B(8, 0) ו-C(2, 6) במפה (היחידה מטר).\n\n**סעיף א (4 נקודות):** מצא את שטח המשולש.\n\n**סעיף ב (5 נקודות):** מצא את משוואת התיכון מ-C לאמצע AB.\n\n**סעיף ג (5 נקודות) - נמק:** מצא את נקודת מפגש התיכונים G, וודא שהיא על התיכון מסעיף ב."
+           "example": "**הסיפור:** על מפה (היחידה קילומטר), כביש ישר עובר דרך הכפרים A(-4, 1) ו-B(8, 10). תחנת שאיבה של מים נמצאת בנקודה P(3, 0).\n\n**סעיף א (4 נקודות):** הנקודה K על הכביש מחלקת את הקטע AB ביחס AK : KB = 1 : 2. מצא את שיעורי הנקודה K.\n\n**סעיף ב (4 נקודות):** מצא את משוואת הכביש AB.\n\n**סעיף ג (5 נקודות):** מצא את המרחק של תחנת השאיבה P מהכביש.\n\n**סעיף ד (5 נקודות) - נמק:** רוצים לסלול כביש ישר נוסף שעובר דרך התחנה P ומקביל לכביש AB. מצא את משוואתו, והסבר מדוע המרחק בין שני הכבישים שווה לתשובה שלך בסעיף ג."
           },
           {
            "id": "m12-5-02",
@@ -2867,7 +2867,7 @@
            "id": "m12-3-04",
            "title": "Spatial vision",
            "title_full": "Spatial vision (ראייה מרחבית)",
-           "text": "- **The cluster:** Orientation in the plane and in space.\n- **Content:** solids in space: volume, surface area and lateral area.\n- **Common mistakes:** mixing up the total area and the lateral area.",
+           "text": "- **The cluster:** Orientation in the plane and in space.\n- **Content:** spatial vision: a building of cubes, a number plan, and the views from the front and from the sides. Solids in space: volume, surface area and lateral area.\n- **Common mistakes:** mixing up the total area and the lateral area.",
            "example": "**The story:** a cylindrical water tank whose base has a radius of 3 m and whose height is 5 m. They want to paint its outer wall (the lateral part only) with paint whose price per square meter is 20 ₪.\n\n**Part a (4 marks):** find the volume of the tank (leave π in the answer).\n\n**Part b (5 marks):** find the lateral area (leave π in the answer).\n\n**Part c (4 marks):** how much will the painting cost? (π = 3.14)\n\n**Part d (4 marks) - justify:** a student calculated the total surface area of the cylinder instead of the lateral area. Find the total surface area, and say why it does not fit here."
           },
           {
@@ -2996,7 +2996,7 @@
            "title": "Analytic geometry",
            "title_full": "Analytic geometry (גאומטריה אנליטית)",
            "text": "- **Content:** dividing a segment in a given ratio, the distance of a point from a line, the distance between parallel lines, combining the tools of grade 10.\n- **Common mistakes:** forgetting the absolute value in the distance formula.",
-           "example": "**The story:** a plot of land in the shape of a triangle with vertices A(0, 0) and B(8, 0) and C(2, 6) on a map (the unit is a meter).\n\n**Part a (4 marks):** find the area of the triangle.\n\n**Part b (5 marks):** find the equation of the median from C to the midpoint of AB.\n\n**Part c (5 marks) - justify:** find the meeting point of the medians G, and check that it is on the median from part b."
+           "example": "**The story:** on a map (the unit is a kilometer), a straight road passes through the villages A(-4, 1) and B(8, 10). A water pumping station is at the point P(3, 0).\n\n**Part a (4 marks):** the point K on the road divides the segment AB in the ratio AK : KB = 1 : 2. Find the coordinates of K.\n\n**Part b (4 marks):** find the equation of the road AB.\n\n**Part c (5 marks):** find the distance of the pumping station P from the road.\n\n**Part d (5 marks) - justify:** they want to build another straight road that passes through the station P and is parallel to the road AB. Find its equation, and explain why the distance between the two roads equals your answer in part c."
           },
           {
            "id": "m12-5-02",

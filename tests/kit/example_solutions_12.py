@@ -153,14 +153,19 @@ def e12_4_14():  # e^(2x) - 3e^x + 2
 
 
 # ----------------------------------------------------------------------------- 5 units
-def e12_5_01():  # a triangle on a map
-    A, B, C = sp.Point(0, 0), sp.Point(8, 0), sp.Point(2, 6)
-    tri = sp.Polygon(A, B, C)
-    mid = A.midpoint(B)
-    line = sp.Line(C, mid)
-    G = sp.Point(R(10, 3), 2)
-    return _case(['A(0, 0)', 'B(8, 0)', 'C(2, 6)'], [abs(tri.area) == 24, mid == sp.Point(4, 0), line.contains(G), sp.Point((A.x + B.x + C.x) / 3, (A.y + B.y + C.y) / 3) == G,
-                                                     line.slope == -3])
+def e12_5_01():  # a road on a map: dividing a segment in a ratio, distance from a point to a line, parallel lines
+    A, B, P = sp.Point(-4, 1), sp.Point(8, 10), sp.Point(3, 0)
+    K = A + (B - A) * R(1, 3)  # AK : KB = 1 : 2
+    road = sp.Line(A, B)
+    a, b, c = road.coefficients
+    distance = road.distance(P)
+    other = road.parallel_line(P)  # the second road, through P
+    between = sp.Abs(c - other.coefficients[2] * a / other.coefficients[0]) / sp.sqrt(a ** 2 + b ** 2)
+    return _case(['A(-4, 1)', 'B(8, 10)', 'P(3, 0)', 'AK : KB = 1 : 2'],
+                 [K == sp.Point(0, 4), A.distance(K) * 2 == K.distance(B), road.slope == R(3, 4),
+                  road.contains(sp.Point(0, 4)) and road.equals(sp.Line(sp.Point(0, 4), slope=R(3, 4))),  # 3x - 4y + 16 = 0
+                  distance == 5, other.contains(P), other.equals(sp.Line(sp.Point(3, 0), slope=R(3, 4))),  # 3x - 4y - 9 = 0
+                  between == 5, other.distance(A) == distance])
 
 
 def e12_5_02():  # exponential and logarithmic equations
