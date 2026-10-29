@@ -48,7 +48,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 - **Common mistakes:** mixing up parallel vectors and equal vectors.
 
 ### m12-5-07 Complex numbers (מספרים מרוכבים)
-- **Content:** definition, algebraic form, equality, the four operations, the Gauss plane and the geometric meaning of addition, subtraction, absolute value and conjugate, square roots and solving quadratic equations, polar form (הצגה קוטבית) and converting between the forms, the geometric meaning of multiplication.
+- **Content:** definition, algebraic form, equality, the four operations, the complex plane (מישור גאוס) and the geometric meaning of addition, subtraction, absolute value and conjugate, square roots and solving quadratic equations, polar form (הצגה קוטבית) and converting between the forms, the geometric meaning of multiplication.
 - **Common mistakes:** calculating the angle without noticing the quadrant.
 
 ### m12-5-08 De Moivre's theorem (משפט דה-מואבר)

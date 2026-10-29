@@ -205,9 +205,9 @@
       "en": "Mock exam"
     },
     "modeMockDesc": {
-      "ar": "امتحان كامل على المواضيع المختارة، وعلامة من 100 في النهاية.",
-      "he": "מבחן מלא על הנושאים שבחרתם, וציון מ-100 בסוף.",
-      "en": "A full exam on the chosen topics, with a mark out of 100 at the end."
+      "ar": "امتحان تجريبي قصير في المحادثة: 3 إلى 4 أسئلة على المواضيع المختارة، وعلامة من 100 في النهاية. ليس استمارة البجروت الكاملة.",
+      "he": "סימולציה קצרה בצ'אט: 3 עד 4 שאלות על הנושאים שבחרתם, וציון מ-100 בסוף. זה לא השאלון המלא של הבגרות.",
+      "en": "A short mock exam in the chat: 3 to 4 questions on the chosen topics, with a mark out of 100 at the end. Not the full Bagrut form."
     },
     "modePlanLabel": {
       "ar": "خطة",

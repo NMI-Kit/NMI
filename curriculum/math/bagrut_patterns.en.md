@@ -2,7 +2,7 @@
 
 ## General rules for every exam question
 
-1. **The question starts with a story from real life:** prices, tickets, cars, sports, a restaurant, a trip. The story gives all the numbers.
+1. **The question starts with a story from real life:** prices, tickets, cars, sports, a restaurant, a trip. The story gives all the numbers. Except proof, induction, complex-number and pure calculus questions in 4 and 5 units, which usually have no story.
 2. **The question is split into parts** (a, b, c, d), and sometimes a part has two sub-parts (1), (2).
 3. **The parts build on each other:** the result of part a is used in part b or c. A mistake in the first part leads to more mistakes later.
 4. **The kinds of requests in the parts:**
@@ -16,7 +16,7 @@
 
 ## 3 units, Grade 10: form (שאלון) 35172 (according to the summer 2025 and winter 2026 exams)
 
-- **Duration:** an hour and a half. (The summer 2025 exam said an hour and 45 minutes, and the winter 2026 exam an hour and a half.)
+- **Duration:** an hour and a half.
 - **6 questions, each question 20 marks.** An accumulation form (שאלון צבירה): answer as many questions as you like, fully or partly, and the total is up to 100.
 - The questions are spread over the three clusters (אשכולות): society and science, orientation in the plane and in space, and money and economy.
 
@@ -30,7 +30,7 @@
 
 ## 3 units: form (שאלון) 35371 (according to the winter and summer 2025 exams)
 
-- **Duration:** two hours and a quarter. (The 2025 exams said two and a half hours.)
+- **Duration:** two hours and a quarter.
 - **6 questions, each question 22 marks.** An accumulation form: answer as many questions as you like, fully or partly, and the total is up to 100.
 - It covers all the topics of grade 10 and grade 11 (the teaching recommendations for 2026-2027).
 - **The topics of the questions and their format (summer 2025):**
@@ -46,9 +46,8 @@
 
 ## 3 units, Grade 12: form (שאלון) 35372 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** two hours and a quarter. (The summer 2025 exams said two and a half hours.)
+- **Duration:** two hours and a quarter.
 - **Two chapters with 6 questions, answer 4**, and at least one question from each chapter. Each question 27 marks.
-- The first chapter: linear programming and analytic geometry. The second chapter: the normal distribution, the quadratic model, spatial vision and solids in space.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
@@ -61,9 +60,8 @@
 
 ## 4 units: form (שאלון) 35471 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** 3½ hours. (The summer 2025 exams said 4 hours.)
+- **Duration:** 3½ hours.
 - **3 chapters with 8 questions, answer 5**, and at least one question from each chapter. Each question 20 marks.
-- The first chapter: statistics and probability. The second chapter: geometry. The third chapter: differential and integral calculus of polynomials, rational functions and root functions.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
@@ -78,9 +76,8 @@
 
 ## 4 units: form (שאלון) 35472 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** two hours. (The summer 2025 exams said two hours and a quarter.)
+- **Duration:** two hours.
 - **Two chapters with 5 questions, answer 3**, and at least one question from each chapter. Each question 33⅓ marks.
-- The first chapter: sequences, geometry in space, and growth and decay. The second chapter: differential and integral calculus of exponential and logarithmic functions.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
@@ -92,7 +89,7 @@
 
 ## 5 units: form (שאלון) 35571 (according to the summer 2025 exam)
 
-- **Duration:** 3 hours and 45 minutes. (The summer 2025 exam said 4¼ hours.)
+- **Duration:** 3 hours and 45 minutes.
 - **4 chapters with 8 questions, answer 5**, each question 20 marks.
 - **Choice rules:** at least one question from chapter 1 or 2, and at least one question from each of chapters 3 and 4. In chapter 1 you answer 2 of the 4 parts.
 
@@ -105,9 +102,8 @@
 
 ## 5 units: form (שאלון) 35572 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** two and a half hours. (The summer 2025 exams said two hours and 45 minutes.)
+- **Duration:** two and a half hours.
 - **Two chapters with 5 questions, answer 3**, and at least one question from each chapter. Each question 33⅓ marks.
-- The first chapter: analytic geometry, vectors, trigonometry in space and complex numbers. The second chapter: growth and decay, exponential and logarithmic functions.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|

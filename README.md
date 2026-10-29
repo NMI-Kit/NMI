@@ -29,7 +29,7 @@ NMI brings the curriculum **into** the app the student already uses.
 
 1. The student picks a subject, grade, level (3, 4 or 5 units) and an optional target level (for example 3 → 5).
 2. The student ticks the topics to review, or adds a topic of their own.
-3. The student picks one or more modes: **Understand**, **Practice**, **Mock exam**, **Plan**. Optional: "I have an old exam from my teacher", "Remind me of my old mistakes", and a short note to the tutor.
+3. The student picks one or more modes: **Understand**, **Practice**, **Mock exam** (a short mock exam of 3–4 questions in the chat, not the full Bagrut form), **Plan**. Optional: "I have an old exam from my teacher", "Remind me of my old mistakes", and a short note to the tutor.
 4. NMI builds one prompt and opens the student's AI app with it (Android share sheet, or copy and paste).
 5. At the end of a session, the AI writes a short summary. The student pastes it into **My log** in NMI, and the next prompt can test them on their old mistakes.
 

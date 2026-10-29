@@ -240,7 +240,7 @@ One list for the three languages of the prompt. The Hebrew is the term of the Is
 | أعداد مركبة | מספרים מרוכבים | complex numbers |
 | صورة قطبية | הצגה קוטבית | polar form |
 | مرافق | צמוד | conjugate |
-| مستوى غاوس | מישור גאוס | Gauss plane |
+| مستوى غاوس | מישור גאוס | complex plane |
 | جذور الواحد | שורשי היחידה | roots of unity |
 | نظرية دي موافر | משפט דה-מואבר | De Moivre's theorem |
 | قطوع مخروطية | חתכי חרוט | conic sections |

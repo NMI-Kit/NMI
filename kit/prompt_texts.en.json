@@ -11,9 +11,9 @@
   "startPracticeNone": "Start by asking the student: \"Which topic do you want to practice?\"",
   "startPracticeFile": "Start with a new question in the same format on {topic}: the story and part a only, and wait.",
   "practiceFileNoTopic": "the topic the student chooses",
-  "startMock": "Start right away with the full mock exam on the chosen topics.",
+  "startMock": "Start right away with the short mock exam on the chosen topics.",
   "startMockNone": "Start by asking the student: \"Which topics do you want the exam on?\"",
-  "startMockFile": "Give them a full mock exam in the same format on the chosen topics.",
+  "startMockFile": "Give them a short mock exam in the same format on the chosen topics.",
   "startPlan": "Start by asking the student: when is your exam, and how many hours a day can you study?",
   "askForFile": "If the student has not uploaded the file, ask them for it first. After they upload it: analyze the shape of the questions and ask them if the analysis is right, and then ",
   "patternsNote": "The tables describe exams that cover more than one grade. Use only the shape of the questions (the story, the parts, the kind of requests), and take the content and the difficulty only from the topics the student chose and from their grade.",
@@ -63,5 +63,6 @@
   "srcIdLine": "- Do not write topic numbers to the student.",
   "mathWord": "math",
   "anotherTopic": "another topic",
-  "examHeading": "## The exam"
+  "examHeading": "## The exam",
+  "fiveUnitsLine": "   - **5 units also:**"
 }

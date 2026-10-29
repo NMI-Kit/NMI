@@ -75,9 +75,9 @@
     startPracticeNone: 'ابدأ بسؤال الطالب: "أي موضوع بدك تتدرّب عليه؟"',
     startPracticeFile: 'ابدأ بسؤال جديد بنفس الشكل على {topic}: القصة والقسم أ بس، واستنى.',
     practiceFileNoTopic: 'الموضوع اللي بيختاره الطالب',
-    startMock: 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.',
+    startMock: 'ابدأ مباشرة بالامتحان التجريبي القصير على المواضيع المختارة.',
     startMockNone: 'ابدأ بسؤال الطالب: "على أي مواضيع بدك الامتحان؟"',
-    startMockFile: 'اعطيه امتحان تجريبي كامل بنفس الشكل على المواضيع المختارة.',
+    startMockFile: 'اعطيه امتحان تجريبي قصير بنفس الشكل على المواضيع المختارة.',
     startPlan: 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟',
     askForFile: ASK_FOR_THE_FILE,
     patternsNote: PATTERNS_NOTE,
@@ -118,7 +118,8 @@
     srcIdLine: '- ما تكتب أرقام المواضيع للطالب.',
     mathWord: 'رياضيات',
     anotherTopic: 'موضوع تاني',
-    examHeading: '## الامتحان'
+    examHeading: '## الامتحان',
+    fiveUnitsLine: '   - **5 وحدات كمان:**'
   };
 
   /* The page in Hebrew or English: a first line before everything and a last line after the closing line, in the language
@@ -275,12 +276,15 @@
   }
 
   /* The exam patterns of the student's own level: the general rules, the form sections of the level (a form written
-     for one grade, like the 12th-grade form, only for that grade) and "how the tutor writes a question". */
-  function patternsText(subject, gradeName, units, arabic) {
+     for one grade, like the 12th-grade form, only for that grade) and "how the tutor writes a question". The line of the
+     general rules about what 5 units also ask (prove, sketch, a parameter) is only in a 5-unit prompt. */
+  function patternsText(subject, gradeName, units, arabic, T) {
     const p = subject.patterns;
     if (!p) return '';
     const parts = [];
-    if (p.general) parts.push(p.general);
+    if (p.general) {
+      parts.push(Number(units) === 5 ? p.general : p.general.split('\n').filter(function (line) { return line.indexOf(T.fiveUnitsLine) !== 0; }).join('\n'));
+    }
     (p.levels[String(units)] || []).forEach(function (section) {
       if (!section.grade || section.grade === gradeName) parts.push(section.text);
     });
@@ -378,7 +382,7 @@
     const everyName = names(pickedOwn.concat(pickedTarget)).concat(custom);
     const first = everyName[0] || '';
 
-    const patterns = guide ? patternsText(subject, found.grade.name, sel.units, chosen.lang === 'ar') : '';
+    const patterns = guide ? patternsText(subject, found.grade.name, sel.units, chosen.lang === 'ar', T) : '';
 
     /* == المصادر == : a section that would be empty is not written at all, not even its heading */
     const sourceSection = section(T.names.sources);

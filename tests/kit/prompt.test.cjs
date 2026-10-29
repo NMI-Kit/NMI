@@ -210,7 +210,7 @@ test('each mode ends with its own first move, on the first chosen topic', () => 
   // 14 topics chosen: "افهم" asks which one to start with (see the test about more than three topics)
   assert.match(ends.explain, /^ابدأ بسؤال الطالب: أي موضوع من اللي اختارهم بدك نبلّش فيه؟ \(المواضيع: «/);
   assert.equal(ends.practice, `ابدأ مباشرة بسؤال جديد بنمط الامتحان على «${first}»: القصة والقسم أ بس، واستنى.`);
-  assert.equal(ends.mock, 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.');
+  assert.equal(ends.mock, 'ابدأ مباشرة بالامتحان التجريبي القصير على المواضيع المختارة.');
   assert.equal(ends.plan, 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟');
   assert.ok(!Object.values(ends).some((l) => l.includes('شو بدك اليوم') || l.includes('بجروت') || (l !== ends.explain && l.includes('أي موضوع'))));
   assert.equal(new Set(Object.values(ends)).size, 4);
@@ -426,7 +426,7 @@ test('an unknown level gives no prompt', () => {
 const TEACHER_SECTION = '== ملف من الأستاذ ==\nالطالب رفعلك صورة أو ملف لامتحان قديم أو ورقة عمل من أستاذه. أول إشي: حلّل شكل الأسئلة باختصار (المواضيع، وعدد الأقسام، ونوع الطلبات، ومستوى الصعوبة)، واسأله إذا التحليل صح. بعدها اكتب أسئلة جديدة على نفس الشكل بالضبط، بأرقام وقصص جديدة. شكل أستاذه أهم من دليل الأنماط. ما تعيد أسئلة الورقة نفسها.';
 const FILE_HEAD = 'إذا الطالب ما رفع الملف، اطلبه منه أول. بعد ما يرفعه: حلّل شكل الأسئلة واسأله إذا التحليل صح، وبعدها ';
 const FILE_PRACTICE = FILE_HEAD + 'ابدأ بسؤال جديد بنفس الشكل على «النموذج الخطي»: القصة والقسم أ بس، واستنى.';
-const FILE_MOCK = FILE_HEAD + 'اعطيه امتحان تجريبي كامل بنفس الشكل على المواضيع المختارة.';
+const FILE_MOCK = FILE_HEAD + 'اعطيه امتحان تجريبي قصير بنفس الشكل على المواضيع المختارة.';
 const NOTE_RULE = 'اتبع هالملاحظة بطريقة الشرح والأمثلة والتركيز. إلا إذا بتطلب تعطيه الحل بوضع التدريب أو الامتحان قبل ما يحاول، أو بتطلب إشي برا منهاجه: ساعتها قله بلطف ليش لأ، وكمّل حسب القواعد.';
 
 test('the teacher\'s file: its section and the new closing line, only with "تدرّب" and "امتحان تجريبي"', () => {
@@ -1003,7 +1003,7 @@ test('teaching methods: the warm-up question comes before the first move only wi
   // no mistakes: the first move is the old one
   assert.equal(last(multi(['explain']).text), 'ابدأ مباشرة بشرح «النموذج الخطي».');
   // not for the mock exam, not for a plan, not with the teacher's file
-  assert.equal(last(multi(['mock'], { mistakes: lines }).text), 'ابدأ مباشرة بالامتحان التجريبي كامل على المواضيع المختارة.');
+  assert.equal(last(multi(['mock'], { mistakes: lines }).text), 'ابدأ مباشرة بالامتحان التجريبي القصير على المواضيع المختارة.');
   assert.equal(last(multi(['plan'], { mistakes: lines }).text), 'ابدأ بسؤال الطالب: إمتى امتحانك، وكم ساعة بتقدر تدرس باليوم؟');
   assert.ok(!multi(['practice'], { mistakes: lines, teacherFile: true }).text.includes(WARM));
   // the mistakes section is above the first move
@@ -1285,4 +1285,14 @@ test('a data file without the translations gives the Arabic prompt (an old data.
   const old = { version: 1, base_prompt: data.base_prompt, subjects: data.subjects };
   const text = P.buildPrompt(old, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['explain'], language: 'he' }).text;
   assert.equal(text, P.buildPrompt(old, { subject: 'math', grade: 10, units: 3, topics: ['m10-3-07'], modes: ['explain'] }).text);
+});
+
+test('task 19: the line "5 units also: prove, sketch..." is only in a 5-unit prompt, in the three languages', () => {
+  for (const language of ['ar', 'he', 'en']) {
+    const line = language === 'ar' ? P.ARABIC_TEXTS.fiveUnitsLine : data.langs[language].texts.fiveUnitsLine;
+    for (const units of [3, 4, 5]) for (const modes of [['practice'], ['mock'], ['explain', 'practice', 'mock', 'plan']]) {
+      const { text } = P.buildPrompt(data, { subject: 'math', grade: 11, units, all: true, topics: [], modes, language });
+      assert.equal(text.includes(line), units === 5, `${language} ${units} ${modes.join('+')}`);
+    }
+  }
 });

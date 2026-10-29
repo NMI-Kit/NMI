@@ -65,6 +65,11 @@ test('Hebrew uses the words of Israeli students: יח"ל for units, no בגרו�
   assert.equal(I.t('he', 'grade11'), 'כיתה י״א');
   assert.equal(I.t('he', 'grade12'), 'כיתה י״ב');
   for (const [key, entry] of Object.entries(I.STRINGS)) {
+    // task 19: the mock exam says honestly that it is not the full Bagrut form; it is the only text with the word
+    if (key === 'modeMockDesc') {
+      assert.ok(entry.ar.includes('ليس استمارة البجروت الكاملة') && entry.he.includes('זה לא השאלון המלא של הבגרות') && entry.en.includes('Not the full Bagrut form.'));
+      continue;
+    }
     assert.ok(!entry.ar.includes('بجروت') && !entry.ar.includes('البجروت'), `${key}.ar`);
     assert.ok(!entry.he.includes('בגרות'), `${key}.he`);
     assert.ok(!/bagrut/i.test(entry.en), `${key}.en`);
