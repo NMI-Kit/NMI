@@ -620,7 +620,8 @@
           h('li', { text: T('logStep2') }),
           h('li', { text: T('logStep3') }),
           h('li', { text: T('logStep4') }))),
-      h('p', { class: 'hint', id: 'log-privacy', text: T('logPrivacy') }));
+      h('p', { class: 'hint', id: 'log-privacy', text: T('logPrivacy') }),
+      h('p', { class: 'hint', id: 'log-browser', text: T('logBrowser') }));
     if (!loaded.ok) section.appendChild(h('p', { class: 'warn', id: 'log-unavailable', role: 'alert', text: T('logNoStorage') }));
 
     section.appendChild(h('p', { class: 'note', id: 'log-level', text: level ? T('logLevel', { level: levelLabel(level) }) : T('logNoLevel') }));
@@ -697,6 +698,14 @@
     document.title = T('title');
     var description = document.querySelector('meta[name="description"]');
     if (description) description.setAttribute('content', T('description'));
+    /* the link preview: og:title is the page title, and the preview texts follow the language of the page */
+    var preview = { 'meta[property="og:title"]': T('title'), 'meta[name="twitter:title"]': T('title'),
+      'meta[property="og:description"]': T('ogDescription'), 'meta[name="twitter:description"]': T('ogDescription'),
+      'meta[property="og:locale"]': { ar: 'ar_AR', he: 'he_IL', en: 'en_US' }[state.lang] };
+    Object.keys(preview).forEach(function (selector) {
+      var meta = document.querySelector(selector);
+      if (meta) meta.setAttribute('content', preview[selector]);
+    });
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
       el.textContent = T(el.getAttribute('data-i18n'));
     });

@@ -252,7 +252,12 @@ class BuildKitTests(unittest.TestCase):
             (root / 'notes').mkdir()  # a folder without grades is not a subject
             base = root / 'base.txt'
             base.write_text('x', encoding='utf-8')
-            data = build_kit.build(root, base)
+            # without its Hebrew and English files the build stops (task 19); the Arabic part alone is picked up
+            with self.assertRaisesRegex(ValueError, 'translation is missing'):
+                build_kit.build(root, base)
+            from unittest import mock
+            with mock.patch.object(build_kit, 'TRANSLATED', ()):
+                data = build_kit.build(root, base)
         self.assertEqual([s['id'] for s in data['subjects']], ['physics'])
         subject = data['subjects'][0]
         self.assertEqual(subject['name'], 'فيزياء')
@@ -338,9 +343,11 @@ class KitFilesTests(unittest.TestCase):
             self.assertEqual(header[:8], b'\x89PNG\r\n\x1a\n', name)
             self.assertEqual((int.from_bytes(header[16:20], 'big'), int.from_bytes(header[20:24], 'big')), (size, size), name)
 
-    def test_manifest_is_arabic_rtl_black_and_white_and_needs_no_service_worker(self):
+    def test_manifest_is_neutral_black_and_white_and_needs_no_service_worker(self):
         manifest = json.loads(read(ROOT / 'kit' / 'manifest.webmanifest'))
-        self.assertEqual((manifest['lang'], manifest['dir'], manifest['display']), ('ar', 'rtl', 'standalone'))
+        # task 19: the installed app is not Arabic only: an English name and description, the direction from the page
+        self.assertEqual((manifest['name'], manifest['short_name'], manifest['lang'], manifest['dir'], manifest['display']), ('NMI Kit', 'NMI', 'en', 'auto', 'standalone'))
+        self.assertIn('Arabic, Hebrew and English', manifest['description'])
         self.assertEqual((manifest['background_color'], manifest['theme_color']), ('#ffffff', '#000000'))
         for icon in manifest['icons']:
             self.assertTrue((ROOT / 'kit' / icon['src']).is_file(), icon['src'])
@@ -648,8 +655,8 @@ class KitFilesTests(unittest.TestCase):
 
     def test_a_shared_link_shows_what_the_site_does(self):
         html = read(ROOT / 'kit' / 'index.html')
-        for tag in ('<meta property="og:type" content="website">', '<meta property="og:site_name" content="NMI">', '<meta property="og:title" content="NMI">',
-                    '<meta name="twitter:card" content="summary">', '<meta name="twitter:title" content="NMI">'):
+        for tag in ('<meta property="og:type" content="website">', '<meta property="og:site_name" content="NMI">', '<meta property="og:title" content="عدّة NMI">',
+                    '<meta name="twitter:card" content="summary">', '<meta name="twitter:title" content="عدّة NMI">'):
             self.assertIn(tag, html)
         description = re.findall(r'<meta (?:property="og:description"|name="twitter:description") content="([^"]+)">', html)
         self.assertEqual(len(description), 2)

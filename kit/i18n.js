@@ -19,6 +19,11 @@
       "he": "ערכת NMI",
       "en": "NMI Kit"
     },
+    "ogDescription": {
+      "ar": "NMI يجهّز تعليمات لـ ChatGPT أو Claude أو Gemini، فيها منهاج الرياضيات الإسرائيلي وشكل الامتحانات، ليعلّمك بدل أن يحلّ عنك.",
+      "he": "NMI מכין הנחיות ל-ChatGPT, ל-Claude או ל-Gemini, עם תוכנית הלימודים במתמטיקה בישראל ומבנה המבחנים, כדי שילמד אתכם במקום לפתור בשבילכם.",
+      "en": "NMI prepares instructions for ChatGPT, Claude or Gemini with the Israeli math curriculum and the shape of the exams, so that it teaches you instead of solving for you."
+    },
     "description": {
       "ar": "جهّز نصًّا فيه منهاجك ونمط الامتحان وقواعد التدريس، وافتحه في تطبيق الذكاء الاصطناعي الذي تستخدمه.",
       "he": "הכינו פרומפט עם התוכנית שלכם, מבנה המבחנים וכללי ההוראה, ופתחו אותו באפליקציית הבינה המלאכותית שלכם.",
@@ -385,9 +390,9 @@
       "en": "Photograph your solution on paper and send it in the app."
     },
     "examNote": {
-      "ar": "هل تريد التدرّب على امتحان كامل؟ نزّله وارفعه إلى الأداة.",
-      "he": "רוצים לתרגל מבחן שלם? הורידו אותו והעלו אותו לכלי.",
-      "en": "Want to practise a full exam? Download it and upload it to the tool."
+      "ar": "هل تريد التدرّب على امتحان كامل؟ نزّله وارفعه في محادثة الذكاء الاصطناعي.",
+      "he": "רוצים לתרגל מבחן שלם? הורידו אותו והעלו אותו לשיחה עם הבינה המלאכותית.",
+      "en": "Want to practise a full exam? Download it and upload it to your AI chat."
     },
     "examsLink": {
       "ar": "امتحانات رسمية سابقة",
@@ -473,6 +478,11 @@
       "ar": "السجل محفوظ على هذا الجهاز فقط. لا يصلنا منه شيء.",
       "he": "היומן נשמר במכשיר הזה בלבד. שום דבר ממנו לא מגיע אלינו.",
       "en": "The log is saved on this device only. Nothing reaches us."
+    },
+    "logBrowser": {
+      "ar": "السجل محفوظ في هذا المتصفح فقط، ويُمسح إذا مسحت بيانات المتصفح. عندما تختار «ذكّرني بأخطائي القديمة»، تُضاف أخطاؤك إلى البرومبت الذي ترسله للذكاء الاصطناعي.",
+      "he": "היומן נשמר בדפדפן הזה בלבד, והוא נמחק אם מוחקים את נתוני הדפדפן. כשבוחרים \"להזכיר לי את הטעויות הקודמות שלי\", הטעויות שלכם נוספות לפרומפט שאתם שולחים לבינה המלאכותית.",
+      "en": "The log is saved in this browser only, and it is deleted if you clear the browser data. When you choose \"Remind me of my old mistakes\", your mistakes are added to the prompt you send to the AI."
     },
     "logLevel": {
       "ar": "المستوى: {level}",

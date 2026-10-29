@@ -216,17 +216,19 @@ class DataJsonLanguagesTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 build_kit.build(root, KIT / 'base_prompt.txt')
 
-    def test_a_missing_translation_is_left_out_not_half_built(self):
+    def test_a_missing_translation_stops_the_build(self):
+        # task 19: a missing translation file stops the build (before, the language was left out without a word)
         import shutil
         import tempfile
         cache = ROOT / '.cache' / 'offline'
         cache.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory(dir=cache) as folder:
-            root = Path(folder) / 'curriculum'
-            shutil.copytree(ROOT / 'curriculum', root)
-            (root / 'math' / 'grade12' / '5units.en.md').unlink()
-            data = build_kit.build(root, KIT / 'base_prompt.txt')
-        self.assertEqual(list(data['langs']), ['he'])
+        for missing in ('grade12/5units.en.md', 'grade10/examples/3units.he.md', 'bagrut_patterns.en.md'):
+            with tempfile.TemporaryDirectory(dir=cache) as folder:
+                root = Path(folder) / 'curriculum'
+                shutil.copytree(ROOT / 'curriculum', root)
+                (root / 'math' / missing).unlink()
+                with self.assertRaisesRegex(ValueError, 'translation is missing'):
+                    build_kit.build(root, KIT / 'base_prompt.txt')
 
     def test_the_text_tables_of_hebrew_and_english_have_the_same_keys_and_no_arabic(self):
         import json

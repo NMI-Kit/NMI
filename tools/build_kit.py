@@ -176,12 +176,13 @@ def translated(path, language):
 
 
 def build_language(curriculum, base_prompt, language, subjects):
-    """The prompt in Hebrew or English: the translated files, parsed like the Arabic ones. None when a file is missing."""
+    """The prompt in Hebrew or English: the translated files, parsed like the Arabic ones. A missing file stops the build."""
     names = NAMES[language]
     base_path = base_prompt.with_name(f'{base_prompt.stem}.{language}{base_prompt.suffix}')
     texts_path = base_prompt.with_name(f'prompt_texts.{language}.json')
-    if not base_path.is_file() or not texts_path.is_file():
-        return None
+    for needed in (base_path, texts_path):
+        if not needed.is_file():
+            raise ValueError(f'{needed.name}: the {language} translation is missing')
     base = read(base_path).strip()
     if len(re.findall(r'^== .+ ==\s*$', base, re.M)) != len(re.findall(r'^== .+ ==\s*$', read(base_prompt), re.M)):
         raise ValueError(f'{base_path.name}: not the same sections as {base_prompt.name}')
@@ -197,9 +198,11 @@ def build_language(curriculum, base_prompt, language, subjects):
             for level in grade['levels']:
                 arabic_file = grade_dir / f'{level["units"]}units.md'
                 path = translated(arabic_file, language)
-                if not path.is_file():
-                    return None
-                examples = parse_examples(translated(grade_dir / 'examples' / arabic_file.name, language))
+                examples_path = translated(grade_dir / 'examples' / arabic_file.name, language)
+                for needed in (path, examples_path):
+                    if not needed.is_file() and (needed == path or (grade_dir / 'examples' / arabic_file.name).is_file()):
+                        raise ValueError(f'{needed.relative_to(curriculum)}: the {language} translation is missing')
+                examples = parse_examples(examples_path)
                 tr = parse_level(path, examples, names, level['units'])
                 where = f'{path.relative_to(curriculum)}'
                 if [t['id'] for t in tr['topics']] != [t['id'] for t in level['topics']]:
@@ -212,7 +215,10 @@ def build_language(curriculum, base_prompt, language, subjects):
                 levels.append({'units': level['units'], 'title': tr['title'], 'notes': tr['notes'], 'experimental': tr['experimental'], 'topics': tr_topics})
             named = names['grade_title'].search(levels[0]['title'])
             grades.append({'id': grade['id'], 'name': named.group(1).strip() if named else f'{grade["id"]}', 'levels': levels})
-        patterns = parse_patterns(translated(subject_dir / 'bagrut_patterns.md', language), names)
+        patterns_path = translated(subject_dir / 'bagrut_patterns.md', language)
+        if subject['patterns'] and not patterns_path.is_file():
+            raise ValueError(f'{patterns_path.relative_to(curriculum)}: the {language} translation is missing')
+        patterns = parse_patterns(patterns_path, names)
         if bool(patterns) != bool(subject['patterns']):
             raise ValueError(f'{subject["id"]}: the patterns are not translated')
         if patterns:
@@ -254,7 +260,7 @@ def build(curriculum=CURRICULUM, base_prompt=BASE_PROMPT):
         built = build_language(curriculum, base_prompt, language, subjects)
         if built:
             langs[language] = built
-    if len(langs) == len(TRANSLATED) and set(langs['he']['texts']) != set(langs['en']['texts']):
+    if 'he' in langs and 'en' in langs and set(langs['he']['texts']) != set(langs['en']['texts']):
         raise ValueError('prompt_texts.he.json and prompt_texts.en.json do not have the same keys')
     if langs:
         data['langs'] = langs

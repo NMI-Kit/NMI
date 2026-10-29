@@ -162,7 +162,7 @@ for (const [name, profile] of Object.entries(profiles)) {
         ['Claude', 'https://claude.ai/new', name === 'iphone' ? '' : '_blank', 'noopener noreferrer'],
         ['Gemini', 'https://gemini.google.com/app', name === 'iphone' ? '' : '_blank', 'noopener noreferrer']]);
       await expect(page.getByText('صوّر حلّك على الورقة وأرسله في التطبيق.')).toBeVisible();
-      await expect(page.getByText('هل تريد التدرّب على امتحان كامل؟ نزّله وارفعه إلى الأداة.')).toBeVisible();
+      await expect(page.getByText('هل تريد التدرّب على امتحان كامل؟ نزّله وارفعه في محادثة الذكاء الاصطناعي.')).toBeVisible();
       await expect(page.locator('#exams-link')).toHaveAttribute('href', 'https://meyda.education.gov.il/bagptr/');
       await expect(page.locator('#exams-link')).toHaveText('امتحانات رسمية سابقة');
       // one link to the exams, the ministry site, and nothing else about exams
@@ -1728,4 +1728,35 @@ test.describe('the line at the top of step 1, in each language', () => {
       await expect(page.locator('#intro')).toHaveCount(0);
     });
   }
+});
+
+test.describe('task 19: the link preview and the log page follow the language of the page', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'ar' });
+
+  test('title = og:title = twitter:title, and the preview text, in each language', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#app h1').first().waitFor();
+    const meta = (selector) => page.locator(selector).getAttribute('content');
+    for (const lang of ['ar', 'he', 'en']) {
+      await page.locator(`#langs button[data-lang="${lang}"]`).click();
+      await expect(page.locator('html')).toHaveAttribute('lang', lang);
+      expect(await page.title()).toBe(I18N.t(lang, 'title'));
+      expect(await meta('meta[property="og:title"]')).toBe(I18N.t(lang, 'title'));
+      expect(await meta('meta[name="twitter:title"]')).toBe(I18N.t(lang, 'title'));
+      expect(await meta('meta[property="og:description"]')).toBe(I18N.t(lang, 'ogDescription'));
+      expect(await meta('meta[name="twitter:description"]')).toBe(I18N.t(lang, 'ogDescription'));
+      expect(await meta('meta[property="og:locale"]')).toBe({ ar: 'ar_AR', he: 'he_IL', en: 'en_US' }[lang]);
+    }
+  });
+
+  test('the log page says where the log is kept and what "remind me" sends, in each language', async ({ page }) => {
+    await page.goto('/index.html');
+    await page.locator('#app h1').first().waitFor();
+    for (const lang of ['ar', 'he', 'en']) {
+      await page.locator(`#langs button[data-lang="${lang}"]`).click();
+      await page.locator('#log-link').click();
+      await expect(page.locator('#log-browser')).toHaveText(I18N.t(lang, 'logBrowser'));
+      await page.locator('#log-close').click();
+    }
+  });
 });
