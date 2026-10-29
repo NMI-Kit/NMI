@@ -1,4 +1,4 @@
-# Patterns of Bagrut questions in math (version 3)
+# Patterns of Bagrut questions in math (version 4)
 
 ## General rules for every exam question
 
@@ -14,97 +14,108 @@
 5. **All the steps must be written.** A solution without steps loses marks.
 6. **A non-graphing calculator, and a formula sheet attached.**
 
-## 3 units, Grade 10: form (שאלון) 35172 (an example, summer 2022, session B)
+## 3 units, Grade 10: form (שאלון) 35172 (according to the summer 2025 and winter 2026 exams)
 
-- **6 questions**, most of them word problems from real life, and their numbers are simpler than in 35371.
+- **Duration:** an hour and a half. (The summer 2025 exam said an hour and 45 minutes, and the winter 2026 exam an hour and a half.)
+- **6 questions, each question 20 marks.** An accumulation form (שאלון צבירה): answer as many questions as you like, fully or partly, and the total is up to 100.
+- The questions are spread over the three clusters (אשכולות): society and science, orientation in the plane and in space, and money and economy.
 
 | Topic | Question format | Number of parts | Common trap |
 |---|---|---|---|
-| Probability | a multiple choice question (4 options) | 1 | reading the question wrong |
-| Motion and speed | two boats or two cars, departure times, distance and time | 4 | mixing up time and distance, and which boat is faster |
-| Area and cost | tiling a floor with two kinds of tiles, the price in shekels | 4 | mixing up square meters and the number of tiles, and the units |
-| Circle and perimeter | bicycle wheels, the number of turns | 3 | different units (cm and m), and mixing up the diameter and the radius |
-| Weighted average and cost | a table of fruit with prices per kilo and weights | 5 | a regular average instead of the weighted one, and matching the price to the wrong fruit |
-| Linear function | two companies with a fixed price + a price per unit, the break-even point | 3 | writing the two equations wrong, and forgetting the fixed price |
+| Statistics | a table or a bar chart (jump results, medals), mean, median, percent, "did they reach the goal? justify" | 3 to 4 | forgetting to recompute the mean after a new value is added |
+| Probability | a random draw (playing cards, domino tiles), a two-stage event, a sum or a product | 3 to 4 | counting the possible outcomes wrong, and forgetting the ordered pairs |
+| Area and perimeter | a plot of land, a wardrobe or a plate (square, rectangle, circle, half circle), a diagonal with the Pythagorean theorem, an enlargement in percent | 3 to 4 | making the side 20% longer does not make the area 20% larger, and forgetting part of the perimeter |
+| A money graph or chart | a price graph (a parcel by weight) or a chart of expenses, reading values, saving, a percent of the total, "is the claim right? justify" | 3 to 4 | judging by the shape of the chart without reading the key and the axes |
+| The linear model | two payment options (a fixed sum or a price per lesson), or a bank account that changes every month, an expression in terms of x, when the two options are equal | 3 to 4 | the minus sign of a debt, and choosing the wrong expression |
 
-## 3 units: form (שאלון) 35371 (an example, summer 2025)
+## 3 units: form (שאלון) 35371 (according to the winter and summer 2025 exams)
 
-- **Duration:** two and a half hours. **6 questions**, each question 22 marks. The first 100 marks are counted, which means you can leave out a question.
-- **The topics of the questions and their format:**
+- **Duration:** two hours and a quarter. (The 2025 exams said two and a half hours.)
+- **6 questions, each question 22 marks.** An accumulation form: answer as many questions as you like, fully or partly, and the total is up to 100.
+- It covers all the topics of grade 10 and grade 11 (the teaching recommendations for 2026-2027).
+- **The topics of the questions and their format (summer 2025):**
 
 | Topic | Question format | Number of parts | Common trap |
 |---|---|---|---|
 | Growth and decay (exponential) and reading graphs | comparing two quantities that change over time, with two graphs | 4 | mixing up the two graphs, or treating a decrease of 10% as if it were subtracting a fixed number |
-| Probability | a game or drawing from a box, independent events, "at least one" | 3 | mixing up "at least one" and "both", and forgetting the complement |
-| Similar triangles, Pythagoras, area and perimeter | a real shape (a tent, a room) with an enlargement or reduction ratio | 3 | the direction of the ratio is wrong, or mixing up the height and the side |
+| Probability | a scratch card or a game, independent events, "at least one" | 3 | mixing up "at least one" and "both", and forgetting the complement |
+| Similar triangles, Pythagoras, area and perimeter | a real shape (a tent, a room) with a similarity ratio | 3 | the direction of the ratio is wrong, or mixing up the height and the side |
 | Right triangle and trigonometry (sin, cos, tan) | a device, a slope or a ladder, angles and lengths | 3 | choosing the wrong triangle, or mixing up the angles |
-| Statistics | weighted average, mode, percentages | 4 | a regular average instead of the weighted one, and mixing up an increase of 20% and an increase in shekels |
+| Statistics | weighted average, mode, percentages, a change of prices | 4 | a regular average instead of the weighted one, and mixing up an increase of 20% and an increase in shekels |
 | Linear function and equations | two price plans (fixed + a price per unit), two graphs, the break-even point | 4 | forgetting the fixed price, and not writing the break-even equation clearly |
 
-## 3 units, Grade 12: form (שאלון) 35372 (according to the corresponding graduates' exam 35382, summer 2025)
+## 3 units, Grade 12: form (שאלון) 35372 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** two and a quarter hours. **6 questions, answer 4**, each question 27 marks.
-- The topics are algebra, analytic geometry, differential and integral calculus. Most of the questions have no story, except algebra and optimization.
-
-| Topic | Question format | Number of parts | Common trap |
-|---|---|---|---|
-| Algebra: a word problem | buying two kinds, a ratio of prices and a total, a discount in percent | 2 | applying the discount to the wrong quantity, and reading "more by" in the wrong direction |
-| Analytic geometry | points, slope, the equation of a line, parallel to an axis, proving a triangle is isosceles, perimeter | 5 | sign mistakes, and mixing up parallel and perpendicular |
-| Circle and tangent | center, a point on the circle, tangent, the intersection with the y axis, the area of a triangle | 4 | the tangent is perpendicular to the radius, so the slope is flipped and with the opposite sign |
-| Function investigation | domain, extrema, increasing, matching a graph from 4, comparing the slopes of two tangents | 5 | forgetting the limits of the domain, and an extremum without checking the sign change of the derivative |
-| Function and area | intercepts, a maximum point, choosing a line with a justification, the area between a curve and a line | 4 | the area between two curves needs the difference, and checking where they intersect |
-| Optimization | a square and a rectangle, expressing the sides with x, the largest area | 3 | forgetting to add the two areas, and not substituting the condition before differentiating |
-
-## 4 units: form (שאלון) 35471 (according to the corresponding graduates' exam 35481, summer 2025)
-
-- **Duration:** 4 hours. **8 questions in 3 chapters, answer 5**, and at least one question from each chapter. Each question 20 marks.
+- **Duration:** two hours and a quarter. (The summer 2025 exams said two and a half hours.)
+- **Two chapters with 6 questions, answer 4**, and at least one question from each chapter. Each question 27 marks.
+- The first chapter: linear programming and analytic geometry. The second chapter: the normal distribution, the quadratic model, spatial vision and solids in space.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
-| 1 | Linear equations: motion | two hikers on a trail, one stops, the speed needed for them to arrive together | mixing up the length of the stop and the difference in arrival, and unit conversion |
-| 1 | Circle and tangents | a circle centered on the x axis, two tangents, the perimeter of a shape, the radius of a circumscribed circle | assuming points without checking that the tangent is perpendicular to the radius |
-| 1 | Conditional probability | a class with girls and boys, volunteers and non-volunteers, "evaluate a classmate's claim" | mixing up conditional and joint, and comparing percentages from different groups |
-| 2 | Cyclic quadrilateral, tangent and chord, similarity | proving a relation between lengths and angles, sides from a ratio of areas, the radius | the angle of the tangent and the chord in the wrong place |
-| 2 | Triangles (sines and cosines) | a triangle with known sides, a circumscribed circle, points on the sides, a length from an area | choosing the wrong vertex for the circumscribed circle |
-| 3 | A fractional function | asymptotes, extrema, a sketch, matching the graph of f′, the area under f′ | forgetting an asymptote, and matching f′ according to the sign of f |
-| 3 | A polynomial and a shifted function | domain, intercepts, extrema, a sketch, g = f + a constant | the shift changes the intercepts and not the x values of the extrema |
-| 3 | A parameter, a tangent and optimization | finding a from the slope of the tangent, the equation of the tangent, the smallest length | the slope of the tangent at a point = f′ there, and the expression of the length is wrong |
+| 1 | Linear programming (תכנון לינארי) | two products, constraints (weight, number, machine time), drawing the feasible region, vertices, the objective function, the largest profit, "is it possible...? justify" | a missing constraint, or computing the profit at one point instead of at every vertex |
+| 1 | Analytic geometry: the straight line | a right triangle with the axes, the midpoint of a side, slope, the equation of a side, a vertex, proving the triangle is isosceles, perimeter or area | the slope of a perpendicular is inverted with the opposite sign, and sign mistakes |
+| 2 | Normal distribution | marks or sports results, the standard deviation is given, the mean from a percent, completing the graph, the number of participants, standard score | reading the percents from the graph wrong, and mixing up a percent and a number |
+| 2 | The quadratic model | the path of a ball or a bridge shaped like a parabola, the starting height, the maximum height, where it goes up or down, x for a given height | the equation has two solutions, and the context picks one |
+| 2 | Spatial vision (ראייה מרחבית) | a building of cubes, a number plan, the view from the front, from the right and from the left, adding or removing cubes without changing a view | mixing up the view from the right and the view from the left |
+| 2 | Solids in space | a fridge or a washing machine (a box) and a pot or a drum (a cylinder), volume, lateral area, percent, "does it fit? justify" | mixing up the lateral area and the surface area, and the units |
 
-## 4 units: form (שאלון) 35472 (an example, summer 2022, session B)
+## 4 units: form (שאלון) 35471 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** an hour and 45 minutes. **5 questions in two chapters, answer 3**, and at least one question from each chapter. Each question 33⅓ marks.
+- **Duration:** 3½ hours. (The summer 2025 exams said 4 hours.)
+- **3 chapters with 8 questions, answer 5**, and at least one question from each chapter. Each question 20 marks.
+- The first chapter: statistics and probability. The second chapter: geometry. The third chapter: differential and integral calculus of polynomials, rational functions and root functions.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
-| 1 | Geometry in space and vectors | a pyramid, a midpoint and a point that divides a side in a ratio, the dot product, "true or false with a justification" | the direction of the vector, and which end is closer to the point |
-| 1 | Statistics: regression and correlation | a table of values, choosing the scatter plot and the correlation coefficient, the regression line, prediction | the units (thousands of shekels), and r does not change when the units change |
-| 2 | Exponential function | domain, intercepts, extrema, increasing and decreasing, a sketch, a second shifted function, an area in terms of S | which is above which in the area |
-| 2 | Logarithmic function with a parameter a | domain, an extremum in terms of a, matching graphs, finding a from an intersection point, when one function is greater than the other | a mistake in a drags all the parts, and the direction of the inequality |
-| 2 | Investigation from the graph of the derivative | the type of extremum from the graph of f′, intersections to two decimal places, a sketch of f | mixing up the sign of f′ and the shape of f |
+| 1 | Normal distribution | a jumping contest, the standard deviation from a percent, the percent of winners, the number of participants, comparing two results with the standard score | comparing the results by their numbers instead of by the standard score |
+| 1 | Linear regression and correlation | a table of values (the area of a flat and its price), mean and standard deviation, the correlation coefficient r, the regression line, a prediction, the effect of adding a constant | adding a constant to every value changes neither the standard deviation nor r |
+| 1 | Conditional probability | a year group with girls and boys, volunteers and non-volunteers, percents, conditional probability, "is the sentence right? justify" | mixing up conditional probability and the probability of an intersection |
+| 2 | Analytic geometry: lines | a right triangle, the equations of the sides, a vertex, a median, the length of a segment, an angle, a point from an area | the slope of a perpendicular, and finding the angle from the slope |
+| 2 | Circle: analytic and plane geometry | the equation of a circle, a diameter, a tangent, a length, "explain why", proving congruence, a ratio of areas | the tangent is perpendicular to the radius, and congruence without a sufficient condition |
+| 3 | Rational function | asymptote, extremum, intercepts, sketch, matching the graph of f′, the area under f′ | matching f′ by the shape of f instead of by where f increases and decreases |
+| 3 | Root function | domain, intercepts, extrema, sketch, a shifted function g(x) = f(x + a) | forgetting the domain, and shifting right instead of left |
+| 3 | Parameter, tangent and an extreme value problem | finding a from the slope of the tangent, the equation of the tangent, the length of a segment in terms of t, the shortest length | the slope of the tangent at a point is f′ there, and a wrong expression for the length |
 
-## 5 units: form (שאלון) 35571 (an example, summer 2025)
+## 4 units: form (שאלון) 35472 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** 4 hours and 15 minutes. **Answer 5 questions out of 8**, each question 20 marks.
-- **Choice rules:** at least one question from chapter 1 or 2, and a question from chapter 3, and a question from chapter 4.
+- **Duration:** two hours. (The summer 2025 exams said two hours and a quarter.)
+- **Two chapters with 5 questions, answer 3**, and at least one question from each chapter. Each question 33⅓ marks.
+- The first chapter: sequences, geometry in space, and growth and decay. The second chapter: differential and integral calculus of exponential and logarithmic functions.
+
+| Chapter | Topic | Question format | Common trap |
+|---|---|---|---|
+| 1 | Sequences | an arithmetic and a geometric sequence together, the ratio from a condition (two options), an infinite sum, deposits or payments | choosing the wrong ratio of the two, and the condition for the sum to converge |
+| 1 | Geometry in space and vectors | a pyramid, vectors in terms of u, v and w, proving perpendicular or parallel, coordinates, an angle, the area of a triangle | the direction of the vector, and the point that divides a side in a given ratio |
+| 1 | Growth and decay | two quantities that change by different percents (seedlings, plays of a song), matching a graph, finding the percent, when they are equal, a claim "right or wrong" | treating a rise and a fall by the same percent as if they cancel out |
+| 2 | Exponential function with a parameter | the parameter from an asymptote, domain, intercepts, extremum, sketch, how many times another function crosses the x axis | forgetting the asymptote, and a mistake in the parameter that carries into every part |
+| 2 | Logarithmic function | domain, intercepts, extremum, matching the graph of f or of f′, a function g = a·f, the area under f′ | mixing up the sign of f′ and the shape of f, and the domain of ln |
+
+## 5 units: form (שאלון) 35571 (according to the summer 2025 exam)
+
+- **Duration:** 3 hours and 45 minutes. (The summer 2025 exam said 4¼ hours.)
+- **4 chapters with 8 questions, answer 5**, each question 20 marks.
+- **Choice rules:** at least one question from chapter 1 or 2, and at least one question from each of chapters 3 and 4. In chapter 1 you answer 2 of the 4 parts.
 
 | Chapter | Topics | Question format | Common trap |
 |---|---|---|---|
-| 1. Short questions | induction, short geometry, matching the graph of a function and its derivative, area | 4 sub-parts, choose 2 | only the first two sub-parts are checked, and matching a graph without a justification loses marks |
-| 2. Sequences and probability | a geometric sequence with a parameter, conditional probability, total probability, an experiment that stops at an event | 4 parts | mixing up conditional and joint, and the sign conditions of the parameter |
-| 3. Geometry and triangles | circles (tangent, chords, similarity), a triangle with an inscribed circle | 4 parts, most of them a proof or an expression in terms of r and an angle | more than one shape is possible, and substituting the angle too early |
-| 4. Differential and integral calculus | a function with a parameter: domain, asymptotes, even or odd, increasing and decreasing, a sketch, a tangent, area, an extreme value (optimization) | 4 to 6 parts | forgetting the limits of the domain, sign mistakes, and not checking that the point really is an extremum |
+| 1. Short questions | induction (a sum), short geometry (a proof in a trapezoid), matching the graphs of f, f′ and f″ and inflection points, where a function is positive, and area | 4 parts, answer 2 | only the first two parts are checked, and matching a graph without a justification loses marks |
+| 2. Mathematical induction, sequences and probability | an infinite geometric sequence with a parameter, proving that a sequence is geometric, a sum; probability with the Bernoulli formula, conditional and total probability, an experiment that stops at an event | 4 parts | mixing up conditional probability and the probability of an intersection, and the sign conditions of the parameter |
+| 3. Geometry and trigonometry in the plane | two circles and a tangent, proving angles and congruence, an area in terms of S; an isosceles triangle with an inscribed circle, lengths in terms of r and an angle | 4 parts, most of them a proof or an expression in terms of a parameter | more than one shape is possible, and substituting the angle too early |
+| 4. Differential and integral calculus of polynomials, root functions, rational functions and trigonometric functions | a rational function with a parameter (odd, asymptotes, area), a trigonometric function on 0 ≤ x ≤ 2π, a root function with a tangent and the smallest area | 4 to 6 parts | forgetting the limits of the domain, sign mistakes, and not checking that the point really is an extremum |
 
-## 5 units: form (שאלון) 35572 (an example, winter 2025)
+## 5 units: form (שאלון) 35572 (according to the summer 2025 exams, both sessions)
 
-- **Duration:** two hours and 45 minutes. **5 questions in two chapters, answer 3**, and at least one question from each chapter. Each question 33⅓ marks.
+- **Duration:** two and a half hours. (The summer 2025 exams said two hours and 45 minutes.)
+- **Two chapters with 5 questions, answer 3**, and at least one question from each chapter. Each question 33⅓ marks.
+- The first chapter: analytic geometry, vectors, trigonometry in space and complex numbers. The second chapter: growth and decay, exponential and logarithmic functions.
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
-| 1 | Analytic geometry | a locus (a right angle, which means a circle), a parameter from the largest area, a parabola, a common tangent | the parameter from part b affects everything after it, and more than one tangent is possible |
-| 1 | Vectors in space | a pyramid, proving perpendicularity with vectors, coordinates, a parametric equation of a line, a ratio of volumes | reading the ratio on the side wrong, and comparing volumes with coordinates instead of the base and the height |
-| 1 | Complex numbers | polar form, the area of a triangle in the Gauss plane, the solutions of two equations as the vertices of a polygon | the acute angle condition picks one solution, and checking the modulus instead of assuming symmetry |
-| 2 | Exponential function | asymptotes, intercepts, an extreme value, a sketch, a second function and proving a relation, an area in terms of b, finding b | the area when the curve crosses the x axis, and b must stay the same between the parts |
-| 2 | Logarithmic function with a parameter | asymptotes, intercepts, an extreme value in terms of a, finding a from a common point, an antiderivative h, matching a graph of h | a affects everything after it, and matching the graph from the sign of h′ |
+| 1 | Analytic geometry | a circle with a parameter and a tangent, a locus that turns out to be an ellipse, foci, the perimeter of a triangle, a square with a side on a tangent | the parameter from one part affects everything after it, and there is more than one solution |
+| 1 | Vectors in space | a pyramid or a prism, vectors in terms of u, v and w, a proof (perpendicular, points on one line), coordinates, the equation of a plane, the distance of a point from a plane, volume | reading the ratio on the side wrong, and the direction of the vector |
+| 1 | Complex numbers | a locus in the complex plane (מישור גאוס), a quadratic equation with a complex variable, polar form and De Moivre's theorem, a polygon and its area, a rotation | forgetting some of the solutions, and mixing up the modulus and the angle |
+| 2 | Exponential function with a parameter | two cases for the sign of the parameter, asymptotes, where it increases and decreases, sketch, a claim about an integral "right or wrong" | the asymptote changes with the sign of the parameter |
+| 2 | Logarithmic function | ln(xⁿ) or a function with ln, domain, matching a graph, a composite function, area | the domain of ln, and a wrong substitution in the integral |
 
 ## How the tutor writes a practice question in the exam style
 

@@ -15,7 +15,7 @@ Total hours according to the curriculum: 150 hours.
 
 ## The exam
 
-According to the Ministry table 2025: the 5-unit exam forms (שאלון) are 35571 (60% of the mark) and 35572 (40%). The Bagrut exams at 5 units cover the material of grades 10 and 11 together, so old Bagrut questions are useful for practice only on the topics in this guide.
+According to the table of exam rules for 2026-2027: the 5-unit exam forms (שאלון) are 35571 and 35572. Which grade takes which form is not verified (the teaching recommendations do not say), so ask the teacher. Old Bagrut questions are useful for practice only on the topics in this guide.
 
 ## The topics in order
 

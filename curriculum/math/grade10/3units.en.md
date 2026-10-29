@@ -13,7 +13,7 @@ Source: the official curriculum of the Ministry of Education (the new curriculum
 
 ## The exam
 
-According to the Ministry table 2025: the grade 10 exam form (שאלון) is 35172 or 35173. The Bagrut at the end of grade 11 is form 35371, and it covers all the topics of grades 10 and 11. Grade 12: 35372.
+The teaching recommendations for 2026-2027 name form (שאלון) 35173 for grade 10, and the table of exam rules names 35172 (the latest published exam: 35172, winter 2026), so ask the teacher which form your school takes. The Bagrut at the end of grade 11 is form 35371, and it covers all the topics of grades 10 and 11. Grade 12: 35372.
 
 ## Outside the 3-unit curriculum
 

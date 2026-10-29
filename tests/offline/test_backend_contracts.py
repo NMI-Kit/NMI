@@ -321,7 +321,7 @@ class BackendContracts(unittest.TestCase):
         self.assertLess(prefix.index("# STUDENT CURRICULUM"), prefix.index("# BAGRUT QUESTION PATTERNS"))
         self.assertIn("رياضيات، الصف العاشر، 3 وحدات", prefix)
         for part in ("## كيف المدرّس يكتب سؤال تدريب بنمط البجروت", "بيعطي القسم الأول بس", "ما بينسخ أسئلة امتحانات حقيقية",
-                     "35172 أو 35173", "35571 (60%)"):
+                     "35173", "35571 و35572"):
             self.assertIn(part, prefix)
 
     def test_every_file_the_command_line_code_writes_is_ignored_by_git(self):
@@ -352,10 +352,10 @@ class BackendContracts(unittest.TestCase):
         self.assertIn("علّم بس المواضيع اللي بهالدليل.", (root / "math/grade10/4units.md").read_text(encoding="utf-8"))
         self.assertIn("الأخطاء الشائعة بهالدليل من خبرة تدريس عامة", (root / "math/grade12/5units.md").read_text(encoding="utf-8"))
         self.assertIn("هاد الدليل بيوصف **شكل** أسئلة البجروت.", (root / "math" / "bagrut_patterns.md").read_text(encoding="utf-8"))
-        # version 3 of the patterns: one exam per level, with the 2025 table
+        # version 4 of the patterns: every exam fact from an official source, written next to it
         patterns = (root / "math" / "bagrut_patterns.md").read_text(encoding="utf-8")
-        for part in ("(نسخة 3)", "035172 (صيف 2022)", "035472 (صيف 2022)", "3 وحدات، الصف العاشر: استمارة 35172",
-                     "4 وحدات: استمارة 35472", "5 وحدات: استمارة 35571", "35172 أو 35173 (25%)", "35471 (65%)"):
+        for part in ("(نسخة 4)", "mafmar/exams-time.pdf", "2025/6/035471-49-ARB-0900-1300.pdf", "3 وحدات، الصف العاشر: استمارة 35172",
+                     "4 وحدات: استمارة 35472", "5 وحدات: استمارة 35571", "وزن كل استمارة من العلامة النهائية: مش متأكد منه"):
             self.assertIn(part, patterns)
         self.assertIn("ملف", (root / "SOURCES.md").read_text(encoding="utf-8"))  # left as it was: it is for the teacher
 
@@ -376,22 +376,30 @@ class BackendContracts(unittest.TestCase):
         self.assertIn("one small hint, no new section", ai.FINAL_CHECK)
         self.assertIn("# TEACHING MODES", ai.rules_for_subject("math"))  # kept for every subject
 
-    def test_exam_form_numbers_follow_the_2025_table_of_the_patterns_file(self):
+    def test_exam_form_numbers_follow_the_official_2026_2027_documents(self):
         root = ROOT / "curriculum"
         read = lambda name: (root / name).read_text(encoding="utf-8")
         table = read("math/bagrut_patterns.md")
-        for row in ("35172 أو 35173", "35371 (35%)", "35372 (40%)", "35471 (65%)", "35472 (35%)", "35571 (60%)", "35572 (40%)"):
+        # the forms of each grade (teaching recommendations 2026-2027) and the table of exam rules (July 2026)
+        for row in ("وثيقة التوصيات بتذكر 35173، وجدول الامتحانات بيذكر 35172", "الحادي عشر: 35371", "الثاني عشر: 35372",
+                    "الحادي عشر: 35471. الثاني عشر: 35472", "35571 و35572 (جدول الامتحانات)"):
             self.assertIn(row, table)
-        self.assertIn("35172 أو 35173", read("math/grade10/3units.md"))
+        # the durations of the July 2026 table, and the weights that no official source gave are gone
+        for duration in ("**المدة:** ساعة ونص.", "**المدة:** ساعتين وربع.", "**المدة:** 3 ساعات ونص.", "**المدة:** ساعتين.",
+                         "**المدة:** 3 ساعات و45 دقيقة.", "**المدة:** ساعتين ونص."):
+            self.assertIn(duration, table)
+        for weight in ("(25%)", "(35%)", "(40%)", "(60%)", "(65%)"):
+            self.assertNotIn(weight, table)
+        self.assertIn("35173", read("math/grade10/3units.md"))
+        self.assertIn("35172", read("math/grade10/3units.md"))
         self.assertIn("35371", read("math/grade10/3units.md"))
         self.assertIn("35372", read("math/grade10/3units.md"))
         for name in ("math/grade10/5units.md", "math/grade11/5units.md", "math/grade12/5units.md"):
             text = read(name)
-            self.assertIn("حسب جدول الوزارة 2025", text, name)
-            self.assertIn("35571 (60", text, name)
-            self.assertIn("35572 (40%)", text, name)
-        self.assertIn("35571", read("math/grade11/5units.md").split("## الامتحان")[1])
-        self.assertIn("35572", read("math/grade12/5units.md").split("## الامتحان")[1])
+            self.assertIn("حسب جدول قواعد الامتحانات 2026-2027", text, name)
+            self.assertIn("35571 و35572", text, name)
+            self.assertIn("مش متأكد منه", text, name)
+            self.assertNotIn("(60", text, name)
         # the old 5-unit numbers are gone from the level files and are only called old in the sources
         for path in root.rglob("*.md"):
             text = path.read_text(encoding="utf-8")

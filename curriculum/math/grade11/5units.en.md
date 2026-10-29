@@ -12,7 +12,7 @@ Source: the recommendations of the math inspector for 2026-2027 (תשפ"ז), the
 
 ## The exam
 
-According to the Ministry table 2025: the 5-unit exam forms (שאלון) are 35571 (60%) and 35572 (40%). The first form, 35571, covers the material of grades 10 and 11 (according to earlier exams, check with the teacher).
+According to the table of exam rules for 2026-2027: the 5-unit exam forms (שאלון) are 35571 and 35572. Which grade takes which form is not verified (the teaching recommendations do not say), so ask the teacher.
 
 ## The topics in order
 

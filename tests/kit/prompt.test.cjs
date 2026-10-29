@@ -330,7 +330,7 @@ test('fix 4: the "## الامتحان" section of the level (form numbers, Bagru
     }
   }
   const plan = build({ topics: ['m10-3-12'], mode: 'plan' }).text;
-  assert.ok(plan.includes('حسب جدول الوزارة 2025: استمارة العاشر 35172 أو 35173. بجروت نهاية الحادي عشر 35371'));
+  assert.ok(plan.includes('وثيقة توصيات التعليم 2026-2027 بتذكر استمارة 35173 للعاشر، وجدول قواعد الامتحانات بيذكر 35172'));
   const explain = build({ topics: ['m10-3-12'], mode: 'explain' }).text;
   assert.ok(!explain.includes('35172') && !explain.includes('35371'));
   assert.ok(build({ topics: ['m10-3-12'], mode: 'practice' }).text.includes('## خارج منهاج 3 وحدات'));
@@ -611,7 +611,7 @@ test('modes: the order line only with more than one mode, and the start line of 
 });
 
 test('modes: the patterns and the example follow practice and mock, the exam forms follow the plan', () => {
-  const FORMS = 'حسب جدول الوزارة 2025: استمارة العاشر 35172 أو 35173.';
+  const FORMS = 'وثيقة توصيات التعليم 2026-2027 بتذكر استمارة 35173 للعاشر';
   const cases = [[['explain'], false, false], [['plan'], false, true], [['practice'], true, false], [['mock'], true, false], [['explain', 'plan'], false, true],
     [['explain', 'practice'], true, false], [['plan', 'practice'], true, true], [['plan', 'mock'], true, true], [['explain', 'practice', 'mock'], true, false],
     [['plan', 'explain', 'practice', 'mock'], true, true]];
@@ -729,7 +729,7 @@ test('the length limit: 19,050 for Arabic and Hebrew, 27,000 for English: every 
   assert.ok(biggest.en > 26000 && biggest.en <= 27000, `en: ${biggest.en}`);
   // a full mistakes section can still pass the limit, only on the biggest level: the page warns the student and does not block him
   for (const lang of ['ar', 'he', 'en']) assert.ok(overWithMistakes[lang].every((x) => x.startsWith('10/5 ')), `${lang}: ${overWithMistakes[lang].join(' | ')}`);
-  assert.deepEqual(overWithMistakes, { ar: [], he: [], en: [] });  // since task 18 not even with a full mistakes section
+  // (task 19: the official patterns are longer, so grade 10, 5 units with every topic and a full mistakes section is over again)
   // a normal choice (a few topics) is far from the limit, in every level, with every set of modes and in every language
   for (const lang of ['ar', 'he', 'en']) for (const g of math.grades) for (const l of g.levels) for (const modes of sets) {
     const few = P.buildPrompt(data, { subject: 'math', grade: g.id, units: l.units, all: false, topics: l.topics.slice(0, 3).map((t) => t.id), modes, language: lang });

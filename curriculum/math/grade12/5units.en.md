@@ -13,7 +13,7 @@ Note: the text of the source mixed some items of vectors with complex numbers. W
 
 ## The exam
 
-According to the Ministry table 2025: the 5-unit exam forms (שאלון) are 35571 (60%) and 35572 (40%). The second form, 35572, covers the material of grade 12 (according to earlier exams, check with the teacher).
+According to the table of exam rules for 2026-2027: the 5-unit exam forms (שאלון) are 35571 and 35572. Which grade takes which form is not verified (the teaching recommendations do not say), so ask the teacher.
 
 ## The topics in order
 

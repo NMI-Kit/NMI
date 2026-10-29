@@ -16,7 +16,7 @@ Total hours: at least 120 hours. Geometry 40, algebra and differential calculus 
 
 ## The exam
 
-No exam form number is mentioned for grade 10. Bagrut 4 units: form (שאלון) 35471 in grade 11, and 35472 in grade 12.
+The teaching recommendations for 2026-2027 name no exam form for grade 10. Bagrut 4 units: form (שאלון) 35471 in grade 11, and 35472 in grade 12.
 
 ## Topics from middle school that need to be reviewed
 The topics that usually were not learned in grade 9 and will be learned together with the new ones: relations between angles and sides in a triangle, the midsegment in a triangle and in a trapezoid, the ratio of areas in similar triangles, and systems of quadratic equations by the algebraic method.
