@@ -58,7 +58,7 @@ Each example here is one question in the **format** of the Bagrut questions: a s
 
 **Part c (5 marks):** check with Pythagoras that the height, the distance and the ladder satisfy the relation.
 
-**Part d (4 marks) - justify:** a student wrote sin 60° = -0.3048 on the calculator. What is the mistake, and how does he fix it?
+**Part d (4 marks) - justify:** a student got sin 60° = -0.3048 on the calculator. What is the mistake, and how does he fix it?
 
 ## m10-4-06 Differential calculus (חשבון דיפרנציאלי)
 

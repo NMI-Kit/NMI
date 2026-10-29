@@ -5,7 +5,7 @@ Note: the text of the source mixed some items of vectors with complex numbers. W
 
 ## Instructions for the teacher about this guide
 
-- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student where the class has reached.
+- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student how far the class has got.
 - The student knows all the material of grades 10 and 11, and you can build on it.
 - The answers are exact, unless the question asked for an approximation.
 - Write the term in English, and the first time put the Hebrew term in parentheses.
@@ -29,7 +29,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 - **Content:** finding the equation of a circle by completing the square, a tangent to a circle at a point on it, the relative positions of a line and a circle and of two circles, finding loci that are lines or circles.
 
 ### m12-5-04 Differentiation and integration of exponential and logarithmic functions (גזירה ואינטגרציה של פונקציות מעריכיות ולוגריתמיות)
-- **Content:** differentiating exponential (מעריכיות) and logarithmic functions, their integral, the integral as an accumulated area, and combining all the previous types of functions.
+- **Content:** differentiating exponential and logarithmic functions (פונקציות מעריכיות ולוגריתמיות), their integral, the integral as an accumulated area, and combining all the previous types of functions.
 - **Common mistakes:** the derivative of a^x = x·a^(x−1) (wrong). Forgetting the domain of ln.
 
 ### m12-5-05 Conic sections (חתכי חרוט)
@@ -45,7 +45,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 - **Content:** solids (a prism and a pyramid, מנסרה ופירמידה) and angles in space, vectors as arrows in the plane and in space, addition, subtraction and multiplying by a number, a linear combination, dividing a segment in a ratio, linear dependence (תלות לינארית) and the uniqueness of the representation.
 - **The dot product (מכפלה סקלרית):** its properties, calculating lengths and angles, the algebraic representation of vectors.
 - **Lines and planes in space:** a parametric equation of a line, representing a plane parametrically and with an equation, relative positions: two lines, a line and a plane, two planes.
-- **Common mistakes:** mixing up parallel vectors and equal vectors.
+- **Common mistakes:** mixing up collinear vectors and equal vectors.
 
 ### m12-5-07 Complex numbers (מספרים מרוכבים)
 - **Content:** definition, algebraic form, equality, the four operations, the complex plane (מישור גאוס) and the geometric meaning of addition, subtraction, absolute value and conjugate, square roots and solving quadratic equations, polar form (הצגה קוטבית) and converting between the forms, the geometric meaning of multiplication.

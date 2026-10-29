@@ -38,7 +38,7 @@ Each example here is one question in the **format** of the exam questions: a sto
 
 **Part a (5 marks):** solve the equation.
 
-**Part b (4 marks) - justify:** why is one of the two solutions that come out when squaring rejected?
+**Part b (4 marks) - justify:** why is one of the two solutions of the quadratic equation rejected?
 
 **Part c (5 marks) - justify:** a student wrote log₂(x + y) = log₂ x + log₂ y. Give a numerical example that shows it is wrong.
 

@@ -5,7 +5,7 @@ Total hours: at least 120 hours. Geometry 40, algebra and differential calculus 
 
 ## Instructions for the teacher about this guide
 
-- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student where the class has reached.
+- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student how far the class has got.
 - Teach only the topics in this guide.
 - The answers are exact (roots without rounding) unless the question asked for an approximation.
 - Angles in degrees only. Radians are not in the 4-unit curriculum for grade 10.
@@ -19,7 +19,7 @@ Total hours: at least 120 hours. Geometry 40, algebra and differential calculus 
 The teaching recommendations for 2026-2027 name no exam form for grade 10. Bagrut 4 units: form (שאלון) 35471 in grade 11, and 35472 in grade 12.
 
 ## Topics from middle school that need to be reviewed
-The topics that usually were not learned in grade 9 and will be learned together with the new ones: relations between angles and sides in a triangle, the midsegment in a triangle and in a trapezoid, the ratio of areas in similar triangles, and systems of quadratic equations by the algebraic method.
+The topics that are usually not learned in grade 9, and are learned together with the new ones: relations between angles and sides in a triangle, the midsegment in a triangle and in a trapezoid, the ratio of areas in similar triangles, and systems of quadratic equations by the algebraic method.
 
 ## The topics in order
 
@@ -40,7 +40,7 @@ The topics that usually were not learned in grade 9 and will be learned together
 
 ### m10-4-04 Functions: power functions and transformations (פונקציית חזקה)
 - **Content:** the power function xⁿ, even and odd functions, transformations: f(x)+k, f(x−p), −f(x), f(−x), a·f(x), and the absolute value of a function.
-- **Common mistakes:** f(x−p) moves right, not left.
+- **Common mistakes:** f(x−p) shifts right, not left.
 
 ### m10-4-05 Trigonometry (טריגונומטריה)
 - **Content:** sin and cos and tan of an acute angle in a right triangle, their values at 0° and 90°, tan and the slope, identities: tan = sin/cos, sin²+cos²=1, sin(90°−θ)=cos θ. Exact values for 30°, 45° and 60°. sin(180°−θ)=sin θ for an obtuse angle. Finding an angle with the calculator. Calculating sides, angles, perimeter and area, and area = ½·a·b·sinγ, and shapes that split into right triangles.
@@ -49,7 +49,7 @@ The topics that usually were not learned in grade 9 and will be learned together
 ### m10-4-06 Differential calculus (חשבון דיפרנציאלי)
 - **Content:** constant and non-constant rate of change, the definition of the derivative at a point and its geometric meaning, the derivative of xⁿ, a sum, multiplying by a constant, a product and a composition (two steps only). The equation of a tangent. Investigating a polynomial: domain, parity, intercepts, increasing and decreasing, local and absolute extrema and at the ends, a sketch. The relation between the graph of the function and the graph of the derivative. Extreme value problems for polynomials.
 - **Out of scope:** the second derivative.
-- **Common mistakes:** f'(x) = 0 is not always an extremum. Forgetting the values at the ends in an absolute extremum.
+- **Common mistakes:** f'(x) = 0 is not always an extremum. Forgetting to check the endpoints for an absolute extremum.
 
 ### m10-4-07 Plane geometry: special lines in a triangle (קווים מיוחדים במשולש)
 - **Content:** the medians (meeting point and the 2:1 ratio, a median splits the triangle into two triangles of equal area, the median to the hypotenuse = half the hypotenuse), angle bisectors (locus, meeting point, the interior angle bisector theorem and its converse), perpendicular bisectors (locus, meeting point), altitudes (meeting point).

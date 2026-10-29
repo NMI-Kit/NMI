@@ -4,7 +4,7 @@ Source: the recommendations of the math inspector for 2026-2027 (תשפ"ז).
 
 ## Instructions for the teacher about this guide
 
-- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student where the class has reached.
+- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student how far the class has got.
 - Teach only the topics in this guide and the topics of grade 10.
 - Angles in degrees. The answers are exact unless the question asked for an approximation.
 - At most one parameter in integral problems.

@@ -6,7 +6,7 @@ Source: the official curriculum of the Ministry of Education (the new curriculum
 
 - The new 3-unit curriculum is built on three clusters (אשכולות), and all the topics are from real life: data, money, shapes and distances. Always use examples from real life.
 - All the grade 10 topics must be covered, because grade 11 is built on them.
-- The order is a recommendation. Ask the student where the class has reached.
+- The order is a recommendation. Ask the student how far the class has got.
 - Algebra is learned when it is needed in a problem, not on its own.
 - Write the term in English, and the first time put the Hebrew term in parentheses.
 - The common mistakes in this guide come from general teaching experience, not from the Ministry.
@@ -37,7 +37,7 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 
 #### m10-3-04 Probability (הסתברות)
 - **Content:** probability as relative frequency, sample space, events, complementary event, mutually exclusive events, two-stage events as ordered pairs, union of mutually exclusive events.
-- **Common mistakes:** forgetting that the probabilities add up to 1. Counting the ordered pairs short.
+- **Common mistakes:** forgetting that the probabilities add up to 1. Missing some of the ordered pairs.
 
 #### m10-3-05 Combining statistics and probability (שילוב סטטיסטיקה והסתברות)
 - **Content:** problems that combine statistics and probability from the earlier topics.
@@ -80,4 +80,4 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 
 ## Teaching tips from the Ministry
 - One main topic in each period, and two topics in parallel are possible.
-- After two topics are finished, a weekly review lesson on the topics that will come in the exam.
+- After two topics are finished, a weekly review lesson on the topics that will appear in the exam.

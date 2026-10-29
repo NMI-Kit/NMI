@@ -19,15 +19,15 @@
   "patternsNote": "The tables describe exams that cover more than one grade. Use only the shape of the questions (the story, the parts, the kind of requests), and take the content and the difficulty only from the topics the student chose and from their grade.",
   "targetNote": "The student chose these topics on purpose, to move up a level. Teach them as usual, even if it says above that they are outside the curriculum of their level.",
   "examSectionNote": "This information is for you, to build the plan. Do not mention the word Bagrut or the exam form numbers to the student, unless they ask about them or say that their exam is a Bagrut.",
-  "teacherFileText": "The student uploaded a photo or a file of an old exam or a worksheet from their teacher. First thing: analyze the shape of the questions briefly (the topics, the number of parts, the kind of requests, and the difficulty), and ask them if the analysis is right. Then write new questions in exactly the same shape, with new numbers and stories. The shape of their teacher matters more than the patterns guide. Do not repeat the questions of the worksheet itself.",
-  "noteRule": "Follow this note in the way you explain, the examples and the focus. Unless it asks you to give the solution in practice or exam mode before they try, or asks for something outside their curriculum: then tell them gently why not, and continue by the rules.",
+  "teacherFileText": "The student uploaded a photo or a file of an old exam or a worksheet from their teacher. First thing: analyze the shape of the questions briefly (the topics, the number of parts, the kind of requests, and the difficulty), and ask them if the analysis is right. Then write new questions in exactly the same shape, with new numbers and stories. Their teacher's format matters more than the patterns guide. Do not repeat the questions of the worksheet itself.",
+  "noteRule": "Follow this note in the way you explain, the examples and the focus. Unless it asks you to give the solution in practice or exam mode before they try, or asks for something outside their curriculum: then tell them gently why not, and keep to the rules.",
   "logRule": [
     "When the student says \"I'm done\", or after the summary of the last question, write a summary for the kit inside a code block, in exactly this form:",
     "NMI-LOG",
     "Topics: ...",
     "Correct: ...",
     "Mistakes: ... (each mistake in a short sentence: what the mistake is and in which topic)",
-    "And tell them: \"If you like, copy this and paste it in the kit on the My log page. It is not required, but it helps me check you on your mistakes next time.\""
+    "And tell them: \"If you like, copy this and paste it into My log in the kit. It is not required, but it helps me check you on your mistakes next time.\""
   ],
   "mistakesRule": "During the session, check them on these mistakes with at least one question. Do not mention them unless they are related to the question.",
   "warmupStart": "Start with one quick warm-up question on a mistake from \"Mistakes from earlier sessions\" above, and wait for the answer. Then ",

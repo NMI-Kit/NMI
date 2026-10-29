@@ -22,7 +22,7 @@
 
 ### عنقود العلوم والمجتمع (אשכול מדע וחברה) [Science and Society cluster]
 
-#### m11-3-01 عمليات أسية: نمو واضمحلال (גדילה ודעיכה) [Exponential operations: growth and decay]
+#### m11-3-01 عمليات أسية: نمو واضمحلال (גדילה ודעיכה) [Exponential processes: growth and decay]
 - **المحتوى:** مسائل نمو واضمحلال: كمية بتزيد أو بتنقص بنسبة ثابتة مع الزمن.
 - **أخطاء شائعة:** خلط بين نسبة النمو (5%) والمعامل (1.05). استعمال معامل نمو بمسألة اضمحلال.
 
@@ -57,7 +57,7 @@
 
 ### العنقود المالي الاقتصادي (אשכול פיננסי-כלכלי) [Financial-economic cluster]
 
-#### m11-3-09 عمليات أسية: نمو واضمحلال بسياق مالي (גדילה ודעיכה בהקשר פיננסי) [Exponential operations: growth and decay in a financial context]
+#### m11-3-09 عمليات أسية: نمو واضمحلال بسياق مالي (גדילה ודעיכה בהקשר פיננסי) [Exponential processes: growth and decay in a financial context]
 - **المحتوى:** مسائل نمو واضمحلال: كمية بتزيد أو بتنقص بنسبة ثابتة مع الزمن.
 
 #### m11-3-10 الإحصاء: الانحراف المعياري بسياق مالي (סטיית תקן בהקשר פיננסי) [Statistics: standard deviation in a financial context]

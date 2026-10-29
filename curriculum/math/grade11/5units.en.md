@@ -4,7 +4,7 @@ Source: the recommendations of the math inspector for 2026-2027 (תשפ"ז), the
 
 ## Instructions for the teacher about this guide
 
-- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student where the class has reached.
+- The order of the topics is a recommendation, and the teacher is allowed to change it. Ask the student how far the class has got.
 - Teach only the topics in this guide and the topics of grade 10. If they ask about something from grade 12, tell them it is in grade 12.
 - The answers are exact (roots, π, fractions), unless the question asked for an approximation.
 - Write the term in English, and the first time put the Hebrew term in parentheses.
@@ -22,12 +22,12 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 
 ### m11-5-02 Differential calculus (חשבון דיפרנציאלי)
 - **Content:** the rate of change, the second derivative (נגזרת שנייה), concavity (קעירות), inflection points (נקודות פיתול), the relation between the graph of the function and the graphs of its first and second derivative.
-- **Rational and root functions:** behavior near points of non-definition and at the ends of the domain, vertical asymptotes, a removable discontinuity (אי רציפות סליקה), families of functions with a parameter, tangent problems.
+- **Rational and root functions:** behavior near points where the function is undefined and at the ends of the domain, vertical asymptotes, a removable discontinuity (אי רציפות סליקה), families of functions with a parameter, tangent problems.
 - **Investigating functions** built from division, multiplication, addition, subtraction and composition.
 - **Common mistakes:** f''(x)=0 is not always an inflection point. Forgetting the domain before the investigation.
 
 ### m11-5-03 Sequences (סדרות)
-- **Content:** a general sequence, the geometric sequence (סדרה הנדסית): the general term, the recursive rule (כלל נסיגה), properties, a partial sum, the infinite sum when it converges, subsequences, and integer exponents and exponential equations by trial.
+- **Content:** a general sequence, the geometric sequence (סדרה הנדסית): the general term, the recursive rule (כלל נסיגה), properties, a partial sum, the infinite sum when it converges, subsequences, and integer exponents and exponential equations by trial and error.
 - **Common mistakes:** using the infinite sum formula when |q| ≥ 1.
 
 ### m11-5-04 Extreme value problems (בעיות קיצון)
@@ -39,7 +39,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 - **Common mistakes:** forgetting the base step. Using the assumption without reaching the case n+1.
 
 ### m11-5-06 Differentiating trigonometric functions (גזירת פונקציות טריגונומטריות)
-- **Content:** properties, graphs and operations, derivatives of trigonometric functions and their applications, tangent, investigating a sum, product and quotient of trigonometric functions, composing polynomials and roots with trigonometric functions with a linear variable, extreme value problems.
+- **Content:** properties, graphs and operations, derivatives of trigonometric functions and their applications, tangent, investigating a sum, product and quotient of trigonometric functions, composing polynomials and roots with trigonometric functions with a linear argument, extreme value problems.
 - **Common mistakes:** forgetting the chain rule with sin(ax+b). The calculator in degrees instead of radians.
 
 ### m11-5-07 Probability (הסתברות)

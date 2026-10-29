@@ -18,7 +18,7 @@
 
 - **Duration:** an hour and a half.
 - **6 questions, each question 20 marks.** An accumulation form (שאלון צבירה): answer as many questions as you like, fully or partly, and the total is up to 100.
-- The questions are spread over the three clusters (אשכולות): society and science, orientation in the plane and in space, and money and economy.
+- The questions are spread over the three clusters (אשכולות): science and society, orientation in the plane and in space, and money and economy.
 
 | Topic | Question format | Number of parts | Common trap |
 |---|---|---|---|

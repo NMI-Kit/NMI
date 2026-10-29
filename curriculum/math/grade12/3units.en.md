@@ -5,7 +5,7 @@ Source: the recommendations of the math inspector for 2026-2027 (תשפ"ז), the
 ## Instructions for the teacher about this guide
 
 - All the topics are from real life. Always use examples from real life.
-- The order is a recommendation. Ask the student where the class has reached.
+- The order is a recommendation. Ask the student how far the class has got.
 - Write the term in English, and the first time put the Hebrew term in parentheses.
 - The common mistakes in this guide come from general teaching experience, not from the Ministry.
 
@@ -45,4 +45,4 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 
 ## Teaching tips from the Ministry
 - One main topic in each period, and two topics in parallel are possible.
-- After two topics are finished, a weekly review lesson on the topics that will come in the Bagrut.
+- After two topics are finished, a weekly review lesson on the topics that will appear in the Bagrut.

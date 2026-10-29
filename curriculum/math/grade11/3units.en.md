@@ -6,7 +6,7 @@ Source: the recommendations of the math inspector for 2026-2027 (תשפ"ז), the
 
 - The curriculum is built on clusters (אשכולות), and all the topics are from real life. Always use examples from real life.
 - All the clusters need skills from grade 10. If the student is missing something from grade 10, take them back to it.
-- The order is a recommendation. Ask the student where the class has reached.
+- The order is a recommendation. Ask the student how far the class has got.
 - Write the term in English, and the first time put the Hebrew term in parentheses.
 - The common mistakes in this guide come from general teaching experience, not from the Ministry.
 
@@ -22,7 +22,7 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 
 ### Science and Society cluster (אשכול מדע וחברה)
 
-#### m11-3-01 Exponential operations: growth and decay (גדילה ודעיכה)
+#### m11-3-01 Exponential processes: growth and decay (גדילה ודעיכה)
 - **Content:** growth and decay problems: a quantity that increases or decreases at a constant rate over time.
 - **Common mistakes:** mixing up the growth rate (5%) and the factor (1.05). Using a growth factor in a decay problem.
 
@@ -57,7 +57,7 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 
 ### Financial-economic cluster (אשכול פיננסי-כלכלי)
 
-#### m11-3-09 Exponential operations: growth and decay in a financial context (גדילה ודעיכה בהקשר פיננסי)
+#### m11-3-09 Exponential processes: growth and decay in a financial context (גדילה ודעיכה בהקשר פיננסי)
 - **Content:** growth and decay problems: a quantity that increases or decreases at a constant rate over time.
 
 #### m11-3-10 Statistics: standard deviation in a financial context (סטיית תקן בהקשר פיננסי)

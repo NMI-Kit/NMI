@@ -2,7 +2,7 @@
 
 Each example here is one question in the **format** of the exam questions: a story, parts a b c, and a "justify" part. The stories and the numbers are new, not copied from any exam. The numbers of the examples were checked with sympy (tests/kit/example_solutions_11.py).
 
-## m11-3-01 Exponential operations: growth and decay (גדילה ודעיכה)
+## m11-3-01 Exponential processes: growth and decay (גדילה ודעיכה)
 
 **The story:** a village has 2,000 residents, and its population grows by 10% every year.
 
@@ -82,7 +82,7 @@ Each example here is one question in the **format** of the exam questions: a sto
 
 **Part c (5 marks) - justify:** for safety the angle with the ground must be at least 60°. Is the ladder safe? And what must the distance of its bottom from the wall be so that the angle is 60°?
 
-## m11-3-09 Exponential operations: growth and decay in a financial context (גדילה ודעיכה בהקשר פיננסי)
+## m11-3-09 Exponential processes: growth and decay in a financial context (גדילה ודעיכה בהקשר פיננסי)
 
 **The story:** Husam put 10,000 ₪ in a savings account at an interest of 10% every year (the interest is added to the amount). And a car whose price is 50,000 ₪ loses 20% of its value every year.
 

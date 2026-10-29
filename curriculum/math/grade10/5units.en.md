@@ -5,7 +5,7 @@ Total hours according to the curriculum: 150 hours.
 
 ## Instructions for the teacher about this guide
 
-- The order of the topics is the recommendation of the Ministry, and the teacher in the school is allowed to change it. Ask the student where the class has reached, and do not assume.
+- The order of the topics is the recommendation of the Ministry, and the teacher in the school is allowed to change it. Ask the student how far the class has got, and do not assume.
 - Teach only the topics in this guide. If the student asks about something that was moved to grade 11, tell them it is in grade 11, and help them with a simple idea only if they ask.
 - The answers are in exact form, not approximate: √2/2 and not 0.707, and π and not 3.14. Rounding only if the question asked for it.
 - Write the term in English, and the first time put the Hebrew term in parentheses, because many books and papers are in Hebrew.
@@ -41,7 +41,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 - **Transformations:** shift, stretch and shrink, reflection in the axes, absolute value. Forms like a(x−p)²+k and a√(x−p)+k and a/(x−p)+k.
 - **Also:** operations on functions, and the function 1/f(x) and its relation to f, and composition of functions and the inverse function, and √(x²) = |x|.
 - **Note:** the analysis here is qualitative. No calculation with ∞. Continuity in an intuitive way from the graphs.
-- **Common mistakes:** f(x−p) moves right, not left. √(x²) = x instead of |x|.
+- **Common mistakes:** f(x−p) shifts right, not left. √(x²) = x instead of |x|.
 
 ### m10-5-05 Proportion and Thales' theorem (פרופורציה, משפט תאלס)
 - **Content:** Thales' theorem and its converse and its extensions, and the angle bisector theorem in a triangle, and deriving new proportions from a given proportion.
@@ -62,7 +62,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 
 ### m10-5-08 Graph and derivative (גרף ונגזרת)
 - **Content:** the relation between the graph of the function and the graph of its derivative in both directions, the derivative of a product and of a composition, an antiderivative of polynomials in a qualitative way (without the integral sign), extreme value problems for polynomials.
-- **Note:** the graph of the function and the graph of its derivative are not drawn on the same axes. The derivative goes below it.
+- **Note:** the graph of the function and the graph of its derivative are not drawn on the same axes. The derivative is drawn below it.
 - **Common mistakes:** mixing up "the function is positive" and "the function is increasing".
 
 ### m10-5-09 The circle (המעגל)

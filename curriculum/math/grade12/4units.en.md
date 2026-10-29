@@ -4,7 +4,7 @@ Source: the recommendations of the math inspector for 2026-2027 (תשפ"ז).
 
 ## Instructions for the teacher about this guide
 
-- The order of the topics is a recommendation, and the teacher is allowed to change it (for example sequences can come before vectors). Ask the student where the class has reached.
+- The order of the topics is a recommendation, and the teacher is allowed to change it (for example sequences can come before vectors). Ask the student how far the class has got.
 - Exponential and logarithmic equations and inequalities are needed only to serve differentiation and growth and decay problems, not as a topic on their own.
 - Write the term in English, and the first time put the Hebrew term in parentheses.
 - The common mistakes in this guide come from general teaching experience, not from the Ministry.
@@ -16,10 +16,10 @@ Form (שאלון) 35472 in grade 12.
 ## The topics in order
 
 ### m12-4-01 Geometry in space (גאומטריה במרחב)
-- **Content:** basic concepts of vectors in the geometric way: definition, notation, length, parallel (קולינאריים), equal and opposite vectors. Solids: a prism (ישרה ולאו דווקא, right or not necessarily), a pyramid, a right pyramid. Addition, subtraction, multiplying by a number and a linear combination (צירוף לינארי).
+- **Content:** basic concepts of vectors in the geometric way: definition, notation, length, collinear (קולינאריים), equal and opposite vectors. Solids: a prism (right or not, מנסרה ישרה ולאו דווקא), a pyramid, a right pyramid. Addition, subtraction, multiplying by a number and a linear combination (צירוף לינארי).
 
 ### m12-4-02 The exponential function (פונקציה מעריכית)
-- **Content:** laws of exponents with fractional exponents, exponential equations, properties of the function and its graph, shift, stretch, shrink, reflection and absolute value, simple exponential inequalities (that reduce to a quadratic inequality at most).
+- **Content:** laws of exponents with rational exponents, exponential equations, properties of the function and its graph, shift, stretch, shrink, reflection and absolute value, simple exponential inequalities (that reduce to a quadratic inequality at most).
 
 ### m12-4-03 The dot product, geometric method (מכפלה סקלרית)
 - **Content:** the angle between two vectors, properties of the dot product, perpendicularity (ניצבות), lengths, angles and areas.
