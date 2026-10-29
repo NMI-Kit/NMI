@@ -46,7 +46,7 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 | Part | What | How it was checked |
 |---|---|---|
 | Curriculum | 9 levels: grades 10, 11, 12 × 3, 4, 5 units, in Arabic | Topic lists compared line by line with the Ministry of Education teaching recommendations for 2026–2027 and the new curriculum document |
-| Exam patterns | 7 exam forms (35172, 35371, 35372, 35471, 35472, 35571, 35572): structure, typical sections, common traps | Built from official Ministry exams; no exam question is copied |
+| Exam patterns | 7 exam forms (35172, 35371, 35372, 35471, 35472, 35571, 35572): duration, questions, choice rules, points, chapters, typical sections, common traps | Every exam fact from the Ministry's table of exam rules for 2026–2027 and the official 2025 papers, with the source written next to it; no exam question is copied |
 | Example bank | 101 exam-style questions, one per topic, with new stories and numbers | Every number checked with SymPy; stories checked for sense (no negative prices or lengths) |
 | Teaching rules | Explain / practice / mock exam / plan, a hint ladder, photo reading, memory methods from learning science (retrieval, spacing, interleaving), and teaching methods inspired by research at Oxford (tutorials), MIT (active learning), Stanford (Jo Boaler) and Harvard (Peer Instruction) | Tested first in a lab version (below) |
 
@@ -54,7 +54,7 @@ Nothing is uploaded to NMI. The mistakes log stays only on the student's phone. 
 
 - **Lab version (first):** a local web app that called the Claude API directly, with 60+ evaluation cases scored by an AI judge and by code checks. It taught me which teaching rules work. It also taught me that students would not leave ChatGPT for it, so the product became the toolkit.
 - **Toolkit (now):** a static page (`kit/`) built from the curriculum files by `tools/build_kit.py`. Adding a subject means adding its curriculum files and its own base prompt; the rest of the code stays the same.
-- **Tests:** 207 offline tests, 77 local tests, 64 prompt tests, 10 log tests, 13 text tests, 154 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
+- **Tests:** 207 offline tests, 77 local tests, 65 prompt tests, 10 log tests, 13 text tests, 156 browser tests of the kit on iPhone, Android and desktop sizes, and 44 browser tests of the lab demo.
 - **Tools:** I designed the product, made the decisions and tested it with real study sessions. I wrote the code with AI coding assistants (Claude Code), and checked the content against official sources.
 
 ## The lab version
@@ -83,8 +83,10 @@ You can try the demo online: https://nmi-kit.github.io/NMI/lab/
 ## Honest limits
 
 - The curriculum and exam patterns follow official documents, but **no math teacher has reviewed** the example bank yet.
-- Common mistakes listed per topic come from general teaching experience, not from the Ministry.
-- Some 4- and 3-unit patterns (35372, 35471) were built from the matching graduates' exams.
+- Common mistakes listed per topic, and the common traps in the exam patterns, come from general teaching experience, not from the Ministry.
+- Not verified: the weight of each exam form in the final mark, which grade takes 35571 and which 35572, and whether a grade 10 class at 3 units takes 35172 or 35173 (the Ministry documents name both). The prompt says so and tells the student to ask the teacher.
+- The mock exam is a short mock exam of 3–4 questions in the chat, not the full Bagrut form.
+- One example (grade 11, 5 units, review) uses an arithmetic sequence, which the 2026–2027 recommendations do not list for that level.
 - Opening the installed app directly works on Android; on iPhone the student pastes the prompt.
 - The Hebrew and English page texts were written with AI and checked by me, not by a professional translator.
 - The lab demo was built for computers; on a phone it shows zoomed out.

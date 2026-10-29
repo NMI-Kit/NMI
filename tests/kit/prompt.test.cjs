@@ -726,7 +726,7 @@ test('the length limit: 19,050 for Arabic and Hebrew, 27,000 for English: every 
   // the biggest prompts are grade 10, 5 units, every topic, all four modes; English has about 40% more letters than Hebrew for the same content
   assert.ok(biggest.ar > 18000 && biggest.ar <= 19050, `ar: ${biggest.ar}`);
   assert.ok(biggest.he > 18000 && biggest.he <= 19050, `he: ${biggest.he}`);
-  assert.ok(biggest.en > 26000 && biggest.en <= 27000, `en: ${biggest.en}`);
+  assert.ok(biggest.en > 25000 && biggest.en <= 27000, `en: ${biggest.en}`);
   // a full mistakes section can still pass the limit, only on the biggest level: the page warns the student and does not block him
   for (const lang of ['ar', 'he', 'en']) assert.ok(overWithMistakes[lang].every((x) => x.startsWith('10/5 ')), `${lang}: ${overWithMistakes[lang].join(' | ')}`);
   // (task 19: the official patterns are longer, so grade 10, 5 units with every topic and a full mistakes section is over again)

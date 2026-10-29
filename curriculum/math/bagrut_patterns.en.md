@@ -91,14 +91,14 @@
 
 - **Duration:** 3 hours and 45 minutes.
 - **4 chapters with 8 questions, answer 5**, each question 20 marks.
-- **Choice rules:** at least one question from chapter 1 or 2, and at least one question from each of chapters 3 and 4. In chapter 1 you answer 2 of the 4 parts.
+- **Choice rules:** at least one question from chapter 1 or 2, and at least one from each of chapters 3 and 4. In chapter 1 you answer 2 of the 4 parts.
 
 | Chapter | Topics | Question format | Common trap |
 |---|---|---|---|
-| 1. Short questions | induction (a sum), short geometry (a proof in a trapezoid), matching the graphs of f, f′ and f″ and inflection points, where a function is positive, and area | 4 parts, answer 2 | only the first two parts are checked, and matching a graph without a justification loses marks |
-| 2. Mathematical induction, sequences and probability | an infinite geometric sequence with a parameter, proving that a sequence is geometric, a sum; probability with the Bernoulli formula, conditional and total probability, an experiment that stops at an event | 4 parts | mixing up conditional probability and the probability of an intersection, and the sign conditions of the parameter |
-| 3. Geometry and trigonometry in the plane | two circles and a tangent, proving angles and congruence, an area in terms of S; an isosceles triangle with an inscribed circle, lengths in terms of r and an angle | 4 parts, most of them a proof or an expression in terms of a parameter | more than one shape is possible, and substituting the angle too early |
-| 4. Differential and integral calculus of polynomials, root functions, rational functions and trigonometric functions | a rational function with a parameter (odd, asymptotes, area), a trigonometric function on 0 ≤ x ≤ 2π, a root function with a tangent and the smallest area | 4 to 6 parts | forgetting the limits of the domain, sign mistakes, and not checking that the point really is an extremum |
+| 1. Short questions | induction, short geometry, matching the graphs of f, f′ and f″, area | 4 parts, answer 2 | only the first two parts are checked |
+| 2. Induction, sequences and probability | an infinite geometric sequence with a parameter, the Bernoulli formula, conditional probability | 4 parts | mixing up conditional probability and intersection |
+| 3. Geometry and trigonometry in the plane | circles, a tangent and proofs, a triangle with an inscribed circle in terms of r and an angle | 4 parts, mostly proofs | substituting the angle too early |
+| 4. Calculus (polynomial, root, rational and trigonometric functions) | a function with a parameter, a trigonometric function on 0 ≤ x ≤ 2π, a tangent and the smallest area | 4 to 6 parts | forgetting the limits of the domain |
 
 ## 5 units: form (שאלון) 35572 (according to the summer 2025 exams, both sessions)
 
@@ -107,11 +107,11 @@
 
 | Chapter | Topic | Question format | Common trap |
 |---|---|---|---|
-| 1 | Analytic geometry | a circle with a parameter and a tangent, a locus that turns out to be an ellipse, foci, the perimeter of a triangle, a square with a side on a tangent | the parameter from one part affects everything after it, and there is more than one solution |
-| 1 | Vectors in space | a pyramid or a prism, vectors in terms of u, v and w, a proof (perpendicular, points on one line), coordinates, the equation of a plane, the distance of a point from a plane, volume | reading the ratio on the side wrong, and the direction of the vector |
-| 1 | Complex numbers | a locus in the complex plane (מישור גאוס), a quadratic equation with a complex variable, polar form and De Moivre's theorem, a polygon and its area, a rotation | forgetting some of the solutions, and mixing up the modulus and the angle |
-| 2 | Exponential function with a parameter | two cases for the sign of the parameter, asymptotes, where it increases and decreases, sketch, a claim about an integral "right or wrong" | the asymptote changes with the sign of the parameter |
-| 2 | Logarithmic function | ln(xⁿ) or a function with ln, domain, matching a graph, a composite function, area | the domain of ln, and a wrong substitution in the integral |
+| 1 | Analytic geometry | a circle with a parameter and a tangent, a locus that turns out to be an ellipse, foci | the parameter affects everything after it |
+| 1 | Vectors in space | a pyramid or a prism, a proof, the equation of a plane, the distance of a point from a plane, volume | the direction of the vector |
+| 1 | Complex numbers | a locus in the complex plane (מישור גאוס), polar form and De Moivre's theorem, a polygon and its area | forgetting some of the solutions |
+| 2 | Exponential function with a parameter | two cases for the sign of the parameter, asymptotes, sketch, a claim about an integral | the asymptote changes with the sign |
+| 2 | Logarithmic function | ln(xⁿ), domain, matching a graph, area | the domain of ln |
 
 ## How the tutor writes a practice question in the exam style
 

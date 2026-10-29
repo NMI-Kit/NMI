@@ -22,7 +22,7 @@ According to the table of exam rules for 2026-2027: the 5-unit exam forms (שא�
 
 ### m11-5-02 Differential calculus (חשבון דיפרנציאלי)
 - **Content:** the rate of change, the second derivative (נגזרת שנייה), concavity (קעירות), inflection points (נקודות פיתול), the relation between the graph of the function and the graphs of its first and second derivative.
-- **Rational and root functions:** behavior near points where the function is undefined and at the ends of the domain, vertical asymptotes, a removable discontinuity (אי רציפות סליקה), families of functions with a parameter, tangent problems.
+- **Rational and root functions:** behavior near points where the function is not defined and at the ends of the domain, vertical asymptotes, a removable discontinuity (אי רציפות סליקה), families of functions with a parameter, tangent problems.
 - **Investigating functions** built from division, multiplication, addition, subtraction and composition.
 - **Common mistakes:** f''(x)=0 is not always an inflection point. Forgetting the domain before the investigation.
 

@@ -57,7 +57,7 @@ Sequences, trigonometry in space, differential and integral calculus, and the an
 - **Common mistakes:** using a side instead of the height in the area of a triangle.
 
 #### m10-3-09 Tiling (ריצופים)
-- **Content:** covering an area with tiles, and calculating the number of tiles and the cost (the document only mentions the name, and the shape is from exam 35172).
+- **Content:** covering an area with tiles, and calculating the number of tiles and the cost (the document only mentions the name, and the shape is from Ministry exams).
 
 #### m10-3-10 Combining the topics of the cluster (שילוב נושאי האשכול)
 - **Content:** problems that combine all the topics of the orientation in the plane and in space cluster.
