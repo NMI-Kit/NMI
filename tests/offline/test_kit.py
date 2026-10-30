@@ -363,7 +363,7 @@ class KitFilesTests(unittest.TestCase):
             self.assertFalse(reference.startswith(('http:', 'https:', '//')), reference)  # no CDN, no web font
         app = read(ROOT / 'kit' / 'app.js')
         self.assertEqual(sorted(re.findall(r"https://[^'\"]+", app)),
-                         sorted(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app', 'https://meyda.education.gov.il/bagptr/']))
+                         sorted(['https://chatgpt.com/', 'https://claude.ai/new', 'https://gemini.google.com/app', 'https://pop.education.gov.il/tchumey_daat/matmatika/chativa-elyona/teaching-mathematics/new-curriculum/']))
         # the Android buttons use Chrome intents of the three official apps, with the official site as the fallback
         # ChatGPT variant B, Claude variant A and Gemini variant C of kit/applinks.html: the ones that opened the app on a real phone
         self.assertEqual(sorted(re.findall(r"package: '([a-z.]+)'", app)), ['com.anthropic.claude', 'com.openai.chatgpt'])
@@ -674,7 +674,7 @@ class KitFilesTests(unittest.TestCase):
 
     def test_the_ministry_link_is_the_archive_of_past_exams_and_the_readme_describes_the_example_correctly(self):
         app = read(ROOT / 'kit' / 'app.js')
-        self.assertIn("var MINISTRY = 'https://meyda.education.gov.il/bagptr/';", app)
+        self.assertIn("var MINISTRY = 'https://pop.education.gov.il/tchumey_daat/matmatika/chativa-elyona/teaching-mathematics/new-curriculum/';", app)
         readme = read(ROOT / 'README.md')
         self.assertIn('one example question in the shape of the exam', readme)
         self.assertNotIn('one example question per topic', readme)

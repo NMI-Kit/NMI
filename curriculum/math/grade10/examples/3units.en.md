@@ -60,7 +60,7 @@ Each example here is one question in the **format** of the Bagrut questions: a s
 
 **The story:** a yard in the shape of a rectangle, 30 m long and 20 m wide. On the width side a semicircle with a diameter of 20 m was added (a small garden), and the semicircle is outside the rectangle.
 
-**Part a (4 marks):** find the perimeter of the semicircle (leave π in the answer).
+**Part a (4 marks):** find the length of the arc of the semicircle (leave π in the answer).
 
 **Part b (5 marks):** find the perimeter of the whole shape (the rectangle with the semicircle, without the shared diameter). Leave π in the answer.
 

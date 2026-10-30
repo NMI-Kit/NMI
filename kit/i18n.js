@@ -125,9 +125,9 @@
       "en": "What do you want to review?"
     },
     "allTopics": {
-      "ar": "كل المواضيع",
-      "he": "כל הנושאים",
-      "en": "All topics"
+      "ar": "كل مواضيع هذا الصف",
+      "he": "כל הנושאים של הכיתה הזאת",
+      "en": "All topics of this grade"
     },
     "customTitle": {
       "ar": "أضف موضوعًا غير موجود في القائمة",

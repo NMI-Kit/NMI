@@ -163,10 +163,10 @@ for (const [name, profile] of Object.entries(profiles)) {
         ['Gemini', 'https://gemini.google.com/app', name === 'iphone' ? '' : '_blank', 'noopener noreferrer']]);
       await expect(page.getByText('صوّر حلّك على الورقة وأرسله في التطبيق.')).toBeVisible();
       await expect(page.getByText('هل تريد التدرّب على امتحان كامل؟ نزّله وارفعه في محادثة الذكاء الاصطناعي.')).toBeVisible();
-      await expect(page.locator('#exams-link')).toHaveAttribute('href', 'https://meyda.education.gov.il/bagptr/');
+      await expect(page.locator('#exams-link')).toHaveAttribute('href', 'https://pop.education.gov.il/tchumey_daat/matmatika/chativa-elyona/teaching-mathematics/new-curriculum/');
       await expect(page.locator('#exams-link')).toHaveText('امتحانات رسمية سابقة');
       // one link to the exams, the ministry site, and nothing else about exams
-      expect(await page.$$eval('a[href]', (a) => a.map((x) => x.href).filter((h) => /education\.gov\.il|exam|bagrut/i.test(h)))).toEqual(['https://meyda.education.gov.il/bagptr/']);
+      expect(await page.$$eval('a[href]', (a) => a.map((x) => x.href).filter((h) => /education\.gov\.il|exam|bagrut/i.test(h)))).toEqual(['https://pop.education.gov.il/tchumey_daat/matmatika/chativa-elyona/teaching-mathematics/new-curriculum/']);
     });
 
     test('the ready screen shows the real prompt: chosen topics, the example, no ids', async ({ page }) => {
@@ -268,7 +268,7 @@ for (const [name, profile] of Object.entries(profiles)) {
       await page.locator('#prepare').click();
       await expect(page.locator('#too-long')).toBeVisible();
       await expect(page.locator('#too-long')).toContainText('اخترت مواضيع كثيرة');
-      await expect(page.locator('#summary')).toContainText('كل المواضيع + 13 موضوعًا من مستوى الهدف');
+      await expect(page.locator('#summary')).toContainText('كل مواضيع هذا الصف + 13 موضوعًا من مستوى الهدف');
       await expect(page.locator('#open-app')).toBeEnabled();
     });
 

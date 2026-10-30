@@ -72,7 +72,7 @@ Each example here is one question in the **format** of the Bagrut questions: a s
 
 ## m10-5-07 Similarity of triangles (דמיון משולשים)
 
-**The story:** in a triangle ABC ∠A = 50° and ∠B = 60°. In a triangle DEF ∠D = 50° and ∠F = 70°. AB = 6 cm and DE = 9 cm, and the perimeter of ABC = 24 cm and its area is 32 square cm.
+**The story:** in a triangle ABC, AB = 6 cm, BC = 8 cm, AC = 10 cm and ∠B = 90°. In a triangle DEF, ∠E = 90°, ∠D = ∠A and DE = 9 cm. The perimeter of ABC = 24 cm and its area is 24 square cm.
 
 **Part a (5 marks):** prove that ABC ~ DEF, and find the similarity ratio.
 
@@ -80,7 +80,7 @@ Each example here is one question in the **format** of the Bagrut questions: a s
 
 **Part c (5 marks):** find the area of DEF.
 
-**Part d (4 marks) - justify:** a student said that the area of DEF = 32 × (3/2) = 48. Where is the mistake?
+**Part d (4 marks) - justify:** a student said that the area of DEF = 24 × (3/2) = 36. Where is the mistake?
 
 ## m10-5-08 Graph and derivative (גרף ונגזרת)
 

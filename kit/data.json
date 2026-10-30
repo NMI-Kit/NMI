@@ -80,7 +80,7 @@
          "group_full": "عنقود المستوى والفراغ (אשכול התמצאות במישור ובמרחב)",
          "group_en": "Orientation in the plane and in space cluster",
          "text": "- **المحتوى:** محيط مضلعات، محيط دائرة وأجزائها، نظرية فيثاغورس، أشكال مركّبة.\n- **أخطاء شائعة:** الخلط بين قانون المحيط والمساحة للدائرة.",
-         "example": "**القصة:** ساحة بشكل مستطيل طولها 30 م وعرضها 20 م. على ضلع العرض اتضافت نصف دائرة قطرها 20 م (حديقة صغيرة)، والنصف دائرة برّا المستطيل.\n\n**القسم أ (4 علامات):** جد محيط نصف الدائرة (اترك π بالجواب).\n\n**القسم ب (5 علامات):** جد محيط الشكل كله (المستطيل مع نصف الدائرة، بدون القطر المشترك). اترك π بالجواب.\n\n**القسم ج (5 علامات):** بدهم يحطوا سياج حول الشكل، وكل متر بـ 25 ₪. كم بتكلّف السياج؟ (π = 3.14)\n\n**القسم د (4 علامات) - علّل:** ليش ما بنحسب القطر (20 م) ضمن طول السياج؟"
+         "example": "**القصة:** ساحة بشكل مستطيل طولها 30 م وعرضها 20 م. على ضلع العرض اتضافت نصف دائرة قطرها 20 م (حديقة صغيرة)، والنصف دائرة برّا المستطيل.\n\n**القسم أ (4 علامات):** جد طول قوس نصف الدائرة (اترك π بالجواب).\n\n**القسم ب (5 علامات):** جد محيط الشكل كله (المستطيل مع نصف الدائرة، بدون القطر المشترك). اترك π بالجواب.\n\n**القسم ج (5 علامات):** بدهم يحطوا سياج حول الشكل، وكل متر بـ 25 ₪. كم بتكلّف السياج؟ (π = 3.14)\n\n**القسم د (4 علامات) - علّل:** ليش ما بنحسب القطر (20 م) ضمن طول السياج؟"
         },
         {
          "id": "m10-3-07",
@@ -382,7 +382,7 @@
          "group_full": null,
          "group_en": null,
          "text": "- **المحتوى:** ثلاث نظريات التشابه. نسبة المحيطات والمتوسطات والارتفاعات والمنصّفات = نسبة التشابه. نسبة المساحات = مربع نسبة التشابه.\n- **مهارات:** تمييز المثلثات المتشابهة وأضلاعها المتقابلة، إثبات تشابه، إيجاد نسبة التشابه، استعمال التشابه بالإثبات.\n- **بالدائرة:** تشابه من علاقات الزوايا. الوتران المتقاطعان والمماس والقاطع بيتدربوا كتمارين، مش كنظريات جاهزة.\n- **أخطاء شائعة:** نسبة المساحات = نسبة التشابه بدل مربعها.",
-         "example": "**القصة:** مثلث ABC فيه ∠A = 50° و∠B = 60°. مثلث DEF فيه ∠D = 50° و∠F = 70°. AB = 6 سم وDE = 9 سم، ومحيط ABC = 24 سم ومساحته 32 سم².\n\n**القسم أ (5 علامات):** أثبت إن ABC ~ DEF، وجد نسبة التشابه.\n\n**القسم ب (4 علامات):** جد محيط DEF.\n\n**القسم ج (5 علامات):** جد مساحة DEF.\n\n**القسم د (4 علامات) - علّل:** طالب قال إن مساحة DEF = 32 × (3/2) = 48. وين الخطأ؟"
+         "example": "**القصة:** مثلث ABC فيه AB = 6 سم وBC = 8 سم وAC = 10 سم، و∠B = 90°. مثلث DEF فيه ∠E = 90° و∠D = ∠A، وDE = 9 سم. محيط ABC = 24 سم ومساحته 24 سم².\n\n**القسم أ (5 علامات):** أثبت إن ABC ~ DEF، وجد نسبة التشابه.\n\n**القسم ب (4 علامات):** جد محيط DEF.\n\n**القسم ج (5 علامات):** جد مساحة DEF.\n\n**القسم د (4 علامات) - علّل:** طالب قال إن مساحة DEF = 24 × (3/2) = 36. وين الخطأ؟"
         },
         {
          "id": "m10-5-08",
@@ -797,7 +797,7 @@
          "group_full": null,
          "group_en": null,
          "text": "- **المحتوى:** متوالية عامة، المتوالية الهندسية (סדרה הנדסית): الحد العام، قاعدة التكرار (כלל נסיגה)، الخصائص، مجموع جزئي، المجموع اللانهائي لما يتقارب، متواليات جزئية، وأسس صحيحة ومعادلات أسية بالتجربة.\n- **أخطاء شائعة:** استعمال قانون المجموع اللانهائي لما |q| ≥ 1.",
-         "example": "**القصة:** كرة بتسقط من ارتفاع 48 سم، وبعد كل ارتداد بتوصل لنص الارتفاع اللي قبله. ارتفاعات الارتداد (48، 24، 12، ...) متوالية هندسية.\n\n**القسم أ (4 علامات):** جد الارتفاع بالارتداد الرابع.\n\n**القسم ب (5 علامات):** جد مجموع أول 4 ارتفاعات.\n\n**القسم ج (6 علامات) - علّل:** جد مجموع كل الارتفاعات لو استمرت الكرة بالارتداد للأبد. ليش ما بنقدر نستعمل نفس القانون لمتوالية 2، 4، 8، ...؟"
+         "example": "**القصة:** كرة بترتد أول مرة لارتفاع 48 سم، وبعد كل ارتداد بتوصل لنص الارتفاع اللي قبله. ارتفاعات الارتداد (48، 24، 12، ...) متوالية هندسية.\n\n**القسم أ (4 علامات):** جد الارتفاع بالارتداد الرابع.\n\n**القسم ب (5 علامات):** جد مجموع أول 4 ارتفاعات.\n\n**القسم ج (6 علامات) - علّل:** جد مجموع كل الارتفاعات لو استمرت الكرة بالارتداد للأبد. ليش ما بنقدر نستعمل نفس القانون لمتوالية 2، 4، 8، ...؟"
         },
         {
          "id": "m11-5-04",
@@ -1387,7 +1387,7 @@
            "title": "היקפים בהקשר אורייני",
            "title_full": "היקפים בהקשר אורייני",
            "text": "- **תוכן:** היקף של מצולעים, היקף מעגל וחלקיו, משפט פיתגורס, צורות מורכבות.\n- **טעויות נפוצות:** בלבול בין נוסחת ההיקף לנוסחת השטח של מעגל.",
-           "example": "**הסיפור:** רחבה בצורת מלבן שאורכה 30 מ' ורוחבה 20 מ'. על צלע הרוחב נוסף חצי מעגל שקוטרו 20 מ' (גינה קטנה), וחצי המעגל מחוץ למלבן.\n\n**סעיף א (4 נקודות):** מצא את היקף חצי המעגל (השאר π בתשובה).\n\n**סעיף ב (5 נקודות):** מצא את היקף הצורה כולה (המלבן עם חצי המעגל, בלי הקוטר המשותף). השאר π בתשובה.\n\n**סעיף ג (5 נקודות):** רוצים להקיף את הצורה בגדר, וכל מטר עולה 25 ₪. כמה תעלה הגדר? (π = 3.14)\n\n**סעיף ד (4 נקודות) - נמק:** למה לא סופרים את הקוטר (20 מ') באורך הגדר?"
+           "example": "**הסיפור:** רחבה בצורת מלבן שאורכה 30 מ' ורוחבה 20 מ'. על צלע הרוחב נוסף חצי מעגל שקוטרו 20 מ' (גינה קטנה), וחצי המעגל מחוץ למלבן.\n\n**סעיף א (4 נקודות):** מצא את אורך הקשת של חצי המעגל (השאר π בתשובה).\n\n**סעיף ב (5 נקודות):** מצא את היקף הצורה כולה (המלבן עם חצי המעגל, בלי הקוטר המשותף). השאר π בתשובה.\n\n**סעיף ג (5 נקודות):** רוצים להקיף את הצורה בגדר, וכל מטר עולה 25 ₪. כמה תעלה הגדר? (π = 3.14)\n\n**סעיף ד (4 נקודות) - נמק:** למה לא סופרים את הקוטר (20 מ') באורך הגדר?"
           },
           {
            "id": "m10-3-07",
@@ -1585,7 +1585,7 @@
            "title": "דמיון משולשים",
            "title_full": "דמיון משולשים",
            "text": "- **תוכן:** שלושת משפטי הדמיון. יחס ההיקפים, התיכונים, הגבהים וחוצי הזוויות = יחס הדמיון. יחס השטחים = ריבוע יחס הדמיון.\n- **מיומנויות:** זיהוי משולשים דומים וצלעותיהם המתאימות, הוכחת דמיון, מציאת יחס הדמיון, שימוש בדמיון בהוכחה.\n- **במעגל:** דמיון מקשרי זוויות. שני מיתרים נחתכים, משיק וחותך מתורגלים כתרגילים, לא כמשפטים מוכנים.\n- **טעויות נפוצות:** יחס השטחים = יחס הדמיון במקום ריבועו.",
-           "example": "**הסיפור:** במשולש ABC ∠A = 50° ו-∠B = 60°. במשולש DEF ∠D = 50° ו-∠F = 70°. AB = 6 ס\"מ ו-DE = 9 ס\"מ, והיקף ABC = 24 ס\"מ ושטחו 32 סמ\"ר.\n\n**סעיף א (5 נקודות):** הוכח ש-ABC ~ DEF, ומצא את יחס הדמיון.\n\n**סעיף ב (4 נקודות):** מצא את היקף DEF.\n\n**סעיף ג (5 נקודות):** מצא את שטח DEF.\n\n**סעיף ד (4 נקודות) - נמק:** תלמיד אמר ששטח DEF = 32 × (3/2) = 48. איפה הטעות?"
+           "example": "**הסיפור:** במשולש ABC AB = 6 ס\"מ, BC = 8 ס\"מ, AC = 10 ס\"מ ו-∠B = 90°. במשולש DEF ∠E = 90°, ∠D = ∠A ו-DE = 9 ס\"מ. היקף ABC = 24 ס\"מ ושטחו 24 סמ\"ר.\n\n**סעיף א (5 נקודות):** הוכח ש-ABC ~ DEF, ומצא את יחס הדמיון.\n\n**סעיף ב (4 נקודות):** מצא את היקף DEF.\n\n**סעיף ג (5 נקודות):** מצא את שטח DEF.\n\n**סעיף ד (4 נקודות) - נמק:** תלמיד אמר ששטח DEF = 24 × (3/2) = 36. איפה הטעות?"
           },
           {
            "id": "m10-5-08",
@@ -1860,7 +1860,7 @@
            "title": "סדרות",
            "title_full": "סדרות",
            "text": "- **תוכן:** סדרה כללית, הסדרה ההנדסית: האיבר הכללי, כלל נסיגה, תכונות, סכום חלקי, הסכום האינסופי כשהיא מתכנסת, סדרות חלקיות, וחזקות שלמות ומשוואות מעריכיות בדרך של ניסוי וטעייה.\n- **טעויות נפוצות:** שימוש בנוסחת הסכום האינסופי כש-|q| ≥ 1.",
-           "example": "**הסיפור:** כדור נופל מגובה 48 ס\"מ, ואחרי כל קפיצה הוא מגיע לחצי מהגובה הקודם. גבהי הקפיצות (48, 24, 12, ...) הם סדרה הנדסית.\n\n**סעיף א (4 נקודות):** מצא את הגובה בקפיצה הרביעית.\n\n**סעיף ב (5 נקודות):** מצא את סכום 4 הגבהים הראשונים.\n\n**סעיף ג (6 נקודות) - נמק:** מצא את סכום כל הגבהים אילו הכדור המשיך לקפוץ לנצח. למה אי אפשר להשתמש באותה נוסחה לסדרה 2, 4, 8, ...?"
+           "example": "**הסיפור:** כדור קופץ בפעם הראשונה לגובה 48 ס\"מ, ואחרי כל קפיצה הוא מגיע לחצי מהגובה הקודם. גבהי הקפיצות (48, 24, 12, ...) הם סדרה הנדסית.\n\n**סעיף א (4 נקודות):** מצא את הגובה בקפיצה הרביעית.\n\n**סעיף ב (5 נקודות):** מצא את סכום 4 הגבהים הראשונים.\n\n**סעיף ג (6 נקודות) - נמק:** מצא את סכום כל הגבהים אילו הכדור המשיך לקפוץ לנצח. למה אי אפשר להשתמש באותה נוסחה לסדרה 2, 4, 8, ...?"
           },
           {
            "id": "m11-5-04",
@@ -2313,7 +2313,7 @@
            "title": "Perimeters in everyday contexts",
            "title_full": "Perimeters in everyday contexts (היקפים בהקשר אורייני)",
            "text": "- **Content:** perimeter of polygons, circumference of a circle and its parts, the Pythagorean theorem, composite shapes.\n- **Common mistakes:** mixing up the perimeter formula and the area formula of a circle.",
-           "example": "**The story:** a yard in the shape of a rectangle, 30 m long and 20 m wide. On the width side a semicircle with a diameter of 20 m was added (a small garden), and the semicircle is outside the rectangle.\n\n**Part a (4 marks):** find the perimeter of the semicircle (leave π in the answer).\n\n**Part b (5 marks):** find the perimeter of the whole shape (the rectangle with the semicircle, without the shared diameter). Leave π in the answer.\n\n**Part c (5 marks):** they want to put a fence around the shape, and every meter costs 25 ₪. How much will the fence cost? (π = 3.14)\n\n**Part d (4 marks) - justify:** why do we not count the diameter (20 m) in the length of the fence?"
+           "example": "**The story:** a yard in the shape of a rectangle, 30 m long and 20 m wide. On the width side a semicircle with a diameter of 20 m was added (a small garden), and the semicircle is outside the rectangle.\n\n**Part a (4 marks):** find the length of the arc of the semicircle (leave π in the answer).\n\n**Part b (5 marks):** find the perimeter of the whole shape (the rectangle with the semicircle, without the shared diameter). Leave π in the answer.\n\n**Part c (5 marks):** they want to put a fence around the shape, and every meter costs 25 ₪. How much will the fence cost? (π = 3.14)\n\n**Part d (4 marks) - justify:** why do we not count the diameter (20 m) in the length of the fence?"
           },
           {
            "id": "m10-3-07",
@@ -2511,7 +2511,7 @@
            "title": "Similarity of triangles",
            "title_full": "Similarity of triangles (דמיון משולשים)",
            "text": "- **Content:** the three similarity theorems. The ratio of perimeters, medians, altitudes and angle bisectors = the similarity ratio. The ratio of areas = the square of the similarity ratio.\n- **Skills:** recognizing similar triangles and their corresponding sides, proving similarity, finding the similarity ratio, using similarity in a proof.\n- **In the circle:** similarity from relations of angles. Two intersecting chords, a tangent and a secant are practiced as exercises, not as ready theorems.\n- **Common mistakes:** the ratio of areas = the similarity ratio instead of its square.",
-           "example": "**The story:** in a triangle ABC ∠A = 50° and ∠B = 60°. In a triangle DEF ∠D = 50° and ∠F = 70°. AB = 6 cm and DE = 9 cm, and the perimeter of ABC = 24 cm and its area is 32 square cm.\n\n**Part a (5 marks):** prove that ABC ~ DEF, and find the similarity ratio.\n\n**Part b (4 marks):** find the perimeter of DEF.\n\n**Part c (5 marks):** find the area of DEF.\n\n**Part d (4 marks) - justify:** a student said that the area of DEF = 32 × (3/2) = 48. Where is the mistake?"
+           "example": "**The story:** in a triangle ABC, AB = 6 cm, BC = 8 cm, AC = 10 cm and ∠B = 90°. In a triangle DEF, ∠E = 90°, ∠D = ∠A and DE = 9 cm. The perimeter of ABC = 24 cm and its area is 24 square cm.\n\n**Part a (5 marks):** prove that ABC ~ DEF, and find the similarity ratio.\n\n**Part b (4 marks):** find the perimeter of DEF.\n\n**Part c (5 marks):** find the area of DEF.\n\n**Part d (4 marks) - justify:** a student said that the area of DEF = 24 × (3/2) = 36. Where is the mistake?"
           },
           {
            "id": "m10-5-08",
@@ -2786,7 +2786,7 @@
            "title": "Sequences",
            "title_full": "Sequences (סדרות)",
            "text": "- **Content:** a general sequence, the geometric sequence (סדרה הנדסית): the general term, the recursive rule (כלל נסיגה), properties, a partial sum, the infinite sum when it converges, subsequences, and integer exponents and exponential equations by trial and error.\n- **Common mistakes:** using the infinite sum formula when |q| ≥ 1.",
-           "example": "**The story:** a ball falls from a height of 48 cm, and after each bounce it reaches half of the previous height. The heights of the bounces (48, 24, 12, ...) are a geometric sequence.\n\n**Part a (4 marks):** find the height at the fourth bounce.\n\n**Part b (5 marks):** find the sum of the first 4 heights.\n\n**Part c (6 marks) - justify:** find the sum of all the heights if the ball kept bouncing forever. Why can we not use the same formula for the sequence 2, 4, 8, ...?"
+           "example": "**The story:** a ball bounces the first time to a height of 48 cm, and after each bounce it reaches half of the previous height. The heights of the bounces (48, 24, 12, ...) are a geometric sequence.\n\n**Part a (4 marks):** find the height at the fourth bounce.\n\n**Part b (5 marks):** find the sum of the first 4 heights.\n\n**Part c (6 marks) - justify:** find the sum of all the heights if the ball kept bouncing forever. Why can we not use the same formula for the sequence 2, 4, 8, ...?"
           },
           {
            "id": "m11-5-04",

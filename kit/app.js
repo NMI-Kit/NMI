@@ -13,7 +13,7 @@
     { name: 'Claude', url: 'https://claude.ai/new', host: 'claude.ai', path: 'new', suffix: '', package: 'com.anthropic.claude' },
     { name: 'Gemini', url: 'https://gemini.google.com/app', host: 'gemini.google.com', path: 'app', suffix: '', package: null }
   ];
-  var MINISTRY = 'https://meyda.education.gov.il/bagptr/';
+  var MINISTRY = 'https://pop.education.gov.il/tchumey_daat/matmatika/chativa-elyona/teaching-mathematics/new-curriculum/';
   var TOTAL = 4;
 
   var data = null;

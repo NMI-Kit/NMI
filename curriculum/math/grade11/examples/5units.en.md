@@ -24,7 +24,7 @@ Each example here is one question in the **format** of the exam questions: a sto
 
 ## m11-5-03 Sequences (סדרות)
 
-**The story:** a ball falls from a height of 48 cm, and after each bounce it reaches half of the previous height. The heights of the bounces (48, 24, 12, ...) are a geometric sequence.
+**The story:** a ball bounces the first time to a height of 48 cm, and after each bounce it reaches half of the previous height. The heights of the bounces (48, 24, 12, ...) are a geometric sequence.
 
 **Part a (4 marks):** find the height at the fourth bounce.
 

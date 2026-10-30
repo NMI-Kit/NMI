@@ -56,8 +56,9 @@ def e11_3_05():  # similar triangles
     area_abc = R(8 * 10, 2)
     height_def = 10 * k
     area_def = R(12, 1) * height_def / 2
+    shortest = 8 + 2 * sp.sqrt(4 ** 2 + 10 ** 2)  # the smallest perimeter with the base 8 and the altitude 10 (C above the middle)
     return _case([8, 12, 30, 10, 40, 60],
-                 [k == R(3, 2), 30 * k == 45, height_def == 15, area_abc == 40, area_def == 90, area_def == 40 * k ** 2, 40 * k == 60, area_def != 60])
+                 [shortest <= 30, k == R(3, 2), 30 * k == 45, height_def == 15, area_abc == 40, area_def == 90, area_def == 40 * k ** 2, 40 * k == 60, area_def != 60])
 
 
 def e11_3_06():  # isosceles roof, a parallel line
@@ -102,7 +103,7 @@ def e11_4_01():  # conditional probability and independence
     p_girl_given_sport = R(girl_sport, girl_sport + boy_sport)
     p_sport_given_girl = R(girl_sport, 60)
     independent = R(60, 100) * R(girl_sport + boy_sport, 100) == R(girl_sport, 100)
-    return _case([100, 60, 40, 45, 20], [p_girl_given_sport == R(9, 13), p_sport_given_girl == R(3, 4), not independent, R(60, 100) * R(65, 100) == R(39, 100)])
+    return _case([100, 60, 40, 45, 20], [60 + 40 == 100, girl_sport <= 60, boy_sport <= 40, p_girl_given_sport == R(9, 13), p_sport_given_girl == R(3, 4), not independent, R(60, 100) * R(65, 100) == R(39, 100)])
 
 
 def e11_4_02():  # 1 / (x^2 - 4)
@@ -239,7 +240,7 @@ def e11_5_03():  # a bouncing ball: geometric sequence
     a4 = a1 * q ** 3
     s4 = a1 * (1 - q ** 4) / (1 - q)
     s_inf = a1 / (1 - q)
-    return _case([48, 24, 12], [a4 == 6, s4 == 90, s_inf == 96, abs(2) >= 1])
+    return _case(['بترتد أول مرة لارتفاع 48', 24, 12], [a1 * q == 24 and a1 * q ** 2 == 12, a4 == 6, s4 == 90, s_inf == 96, abs(2) >= 1])
 
 
 def e11_5_04():  # fence on three sides

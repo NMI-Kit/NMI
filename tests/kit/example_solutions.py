@@ -70,7 +70,7 @@ def e10_3_06():  # composite perimeter with a semicircle
     semi = sp.pi * 10
     whole = 30 + 30 + 20 + semi
     cost = (80 + R(314, 10)) * 25
-    return _case([30, 20, 25, '3.14'],
+    return _case([30, 20, 25, '3.14', 'طول قوس نصف الدائرة'],
                  [sp.simplify(semi - 10 * sp.pi) == 0, sp.simplify(whole - (80 + 10 * sp.pi)) == 0,
                   cost == R(2785), R(314, 10) == 10 * R(314, 100)])
 
@@ -167,8 +167,9 @@ def e10_4_03():  # roof triangle: similarity ratio, DE, areas
     ratio = R(6, 6 + 3)
     de = ratio * 15
     area = 54 * ratio ** 2
+    sin_b = R(2 * 54, 9 * 15)  # the area 54 with AB = 9 and BC = 15 needs sin B = 0.8: a real triangle
     return _case([6, 3, 15, 54],
-                 [ratio == R(2, 3), de == 10, area == 24, 54 * ratio != area, 54 * ratio == 36])
+                 [ratio == R(2, 3), de == 10, area == 24, 54 * ratio != area, 54 * ratio == 36, 0 < sin_b <= 1])
 
 
 def e10_4_04():  # parabola shifts: vertex, roots of h, h is not even
@@ -299,12 +300,13 @@ def e10_5_06():  # cubic on a closed interval
                   sp.diff(x ** 3, x).subs(x, 0) == 0])
 
 
-def e10_5_07():  # similar triangles by two angles
-    angle_c = 180 - 50 - 60
-    angle_e = 180 - 50 - 70
-    k = R(9, 6)
-    return _case([50, 60, 70, 6, 9, 24, 32],
-                 [angle_c == 70, angle_e == 60, k == R(3, 2), 24 * k == 36, 32 * k ** 2 == 72, 32 * k != 32 * k ** 2])
+def e10_5_07():  # similar triangles (AA: the right angles, and the angles at A and D); the givens of ABC agree with each other
+    ab, bc, ac, de = 6, 8, 10, 9
+    perimeter, area = ab + bc + ac, R(ab * bc, 2)  # the right angle is at B, between AB and BC
+    k = R(de, ab)  # DE corresponds to AB (D to A, E to B)
+    return _case(['AB = 6', 'BC = 8', 'AC = 10', '∠B = 90°', '∠E = 90°', 'DE = 9', '24 × (3/2) = 36'],
+                 [ab ** 2 + bc ** 2 == ac ** 2, perimeter == 24, area == 24, k == R(3, 2), perimeter * k == 36, area * k ** 2 == 54,
+                  area * k == 36, area * k != area * k ** 2])
 
 
 def e10_5_08():  # positive does not mean increasing

@@ -46,7 +46,7 @@ test('a level that misses its examples is experimental and the prompt has no exa
 
 test('grade 11 and grade 12 prompts carry their own example, patterns of their level and no topic id', () => {
   const cases = [[11, 3, 'm11-3-01', 'قرية فيها 2,000 نسمة', '35371'], [11, 4, 'm11-4-04', 'علامات اختبار بتتوزع توزيع طبيعي', '35471'],
-    [11, 5, 'm11-5-03', 'كرة بتسقط من ارتفاع 48 سم', '35571'], [12, 3, 'm12-3-03', 'مخبز بيعمل x صندوق كعك', '35372'],
+    [11, 5, 'm11-5-03', 'كرة بترتد أول مرة لارتفاع 48 سم', '35571'], [12, 3, 'm12-3-03', 'مخبز بيعمل x صندوق كعك', '35372'],
     [12, 4, 'm12-4-02', 'مزرعة بكتيريا', '35472'], [12, 5, 'm12-5-05', 'قاعة على شكل قطع ناقص', '35572']];
   for (const [grade, units, id, story, form] of cases) {
     for (const mode of ['practice', 'mock']) {
